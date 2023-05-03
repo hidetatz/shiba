@@ -20,6 +20,10 @@ std::vector<Token> tokenize(std::string line) {
 		// terminate tokenize if it's a line comment
 		if (c == '#') {
 			c++;
+			// skip whitespaces after hash
+			while (isspace(c) || c == '#') {
+				c++;
+			}
 			std::string msg = "";
 			while(c != '\n') {
 				msg.push_back(c);
@@ -33,4 +37,5 @@ std::vector<Token> tokenize(std::string line) {
 
 	return tokens;
 }
+
 } // namespace shiba
