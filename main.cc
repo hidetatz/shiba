@@ -5,8 +5,8 @@
 
 #include "shiba.h"
 
-void run_testfile() {
-	std::ifstream infile("test.sb");
+void run(char* filename) {
+	std::ifstream infile(filename);
 
 	std::string line;
 	while (std::getline(infile, line)) {
@@ -16,8 +16,13 @@ void run_testfile() {
 	}
 }
 
-int main() {
-	std::cout << "Now shiba lang is up and running..." << std::endl;
-	run_testfile();
+
+int main(int argc, char* argv[]) {
+	if (argc != 2) {
+		std::cout << "a filename to be run must be given!" << std::endl;
+		exit(1);
+	}
+
+	run(argv[1]);
 	return 0;
 }
