@@ -1,21 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
+
+#include "shiba.h"
 
 void run_repl() {
-	std::ifstream infile("main.f");
+	std::ifstream infile("test.sb");
 
 	std::string line;
-	while (std::getline(infile, line))
-	{
-		
-		std::istringstream iss(line);
-		int a, b;
-		if (!(iss >> a >> b)) { break; } // error
-		
-		// process pair (a,b)
+	while (std::getline(infile, line)) {
+		std::cout << line << std::endl;
+		std::vector<shiba::Token> tokens = shiba::tokenize(line);
+		std::cout << tokens.size() << std::endl;
 	}
-
 }
 
 int main() {

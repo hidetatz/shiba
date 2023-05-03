@@ -1,8 +1,13 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace shiba {
+
+/*
+ * common
+ */
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -13,5 +18,62 @@ typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
+
+/*
+ * token
+ */
+
+enum class TokenType {
+	illegal,
+	eof,
+	string,
+	
+	ident,
+	_int,
+	
+	assign,
+	plus,
+	minus,
+	bang,
+	star,
+	slash,
+	
+	eq,
+	neq,
+	
+	lt,
+	gt,
+	
+	comma,
+	colon,
+	
+	lparen,
+	rparen,
+	lbrace,
+	rbrace,
+	lbracket,
+	rbracket,
+	
+	
+	fn,
+	let,
+	_true,
+	_false,
+	_if,
+	_else,
+	_return,
+
+	comment,
+};
+
+struct Token {
+	TokenType type;
+
+	std::string str;
+	i64 inum;
+	float fnum;
+};
+
+std::vector<Token> tokenize(std::string line);
 
 } // namespace shiba
