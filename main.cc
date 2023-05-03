@@ -5,7 +5,7 @@
 
 #include "shiba.h"
 
-void run_repl() {
+void run_testfile() {
 	std::ifstream infile("test.sb");
 
 	std::string line;
@@ -18,6 +18,6 @@ void run_repl() {
 
 int main() {
 	std::cout << "Now shiba lang is up and running..." << std::endl;
-	run_repl();
+	run_testfile();
 	return 0;
 }
