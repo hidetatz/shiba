@@ -10,7 +10,6 @@ void run(char* filename) {
 
 	std::string line;
 	while (std::getline(infile, line)) {
-		std::cout << line << std::endl;
 		std::vector<shiba::Token> tokens = shiba::tokenize(line);
 		std::cout << tokens.size() << std::endl;
 	}

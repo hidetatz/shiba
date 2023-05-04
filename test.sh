@@ -10,6 +10,13 @@ if [ $ret -eq 0 ]; then
 	exit 1
 fi
 
+echo "# test" > test.sb
+./shiba test.sb
+ret=$?
+if [ $ret -ne 0 ]; then
+	exit 1
+fi
+
 echo "all test passed!"
 make clean
 exit 0

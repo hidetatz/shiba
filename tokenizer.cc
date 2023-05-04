@@ -17,7 +17,7 @@ std::vector<Token> tokenize(std::string line) {
 			continue;
 		}
 
-		// terminate tokenize if it's a line comment
+		// comment
 		if (c == '#') {
 			c++;
 			// skip whitespaces after hash
@@ -32,6 +32,35 @@ std::vector<Token> tokenize(std::string line) {
 			Token t{TokenType::comment, msg, 0, 0};
 			tokens.push_back(t);
 			break;
+		}
+
+		// number
+		if (isdigit(c)) {
+			bool decimals = false;
+			std::string s = "";
+			while (true) {
+				if (isdigit(c)) {
+					s.push_back(c);
+					c++;
+				} else if (c == '.') {
+					decimals = true;
+					s.push_back(c);
+					c++;
+				} else {
+					break;
+				}
+			}
+			if (decimals) {
+
+			} else {
+				int i = std::stoi(s);
+				Token t{TokenType::_int, msg, 0, 0};
+				tokens.push_back(t);
+			}
+
+			Token t{TokenType::comment, msg, 0, 0};
+			tokens.push_back(t);
+			continue;
 		}
 	}
 

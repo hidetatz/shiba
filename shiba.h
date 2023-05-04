@@ -26,27 +26,26 @@ typedef int64_t i64;
 enum class TokenType {
 	illegal,
 	eof,
+	ident,
+
+	// values
+	_int,
+	_float
 	string,
 	
-	ident,
-	_int,
-	
+	// panctuators
 	assign,
 	plus,
 	minus,
 	bang,
 	star,
 	slash,
-	
 	eq,
 	neq,
-	
 	lt,
 	gt,
-	
 	comma,
 	colon,
-	
 	lparen,
 	rparen,
 	lbrace,
@@ -54,7 +53,7 @@ enum class TokenType {
 	lbracket,
 	rbracket,
 	
-	
+	// reserved words
 	fn,
 	let,
 	_true,
@@ -63,6 +62,7 @@ enum class TokenType {
 	_else,
 	_return,
 
+	// #
 	comment,
 };
 
