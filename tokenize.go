@@ -17,13 +17,13 @@ func (t *token) String() string {
 	switch t.typ {
 	case tkUnknown:
 		return "{unknown token}"
-	case tkIdent, tkStr, tkI64, tkF64:
-		return fmt.Sprintf("{%s}", t.literal)
 	case tkAssign:
 		return "{=}"
 	case tkHash:
 		return "{#}"
 	case tkComment:
+		return fmt.Sprintf("{%s}", t.literal)
+	case tkIdent, tkStr, tkI64, tkF64:
 		return fmt.Sprintf("{%s}", t.literal)
 	}
 
@@ -54,6 +54,8 @@ const (
 
 	tkAssign  // =
 	tkHash    // #
+	tkLParen  // (
+	tkRParen  // )
 	tkComment // comment message
 	tkStr     // "string value"
 	tkI64     // int64
@@ -76,7 +78,6 @@ func tokenize(line string) ([]*token, error) {
 			continue
 		}
 
-		// comment
 		if rline[i] == '#' {
 			tokens = append(tokens, &token{typ: tkHash})
 
@@ -85,9 +86,20 @@ func tokenize(line string) ([]*token, error) {
 			break // The rest must be comment after '#' so tokenize finishes here
 		}
 
-		// assign
 		if rline[i] == '=' {
 			tokens = append(tokens, &token{typ: tkAssign})
+			i++
+			continue
+		}
+
+		if rline[i] == '(' {
+			tokens = append(tokens, &token{typ: tkLParen})
+			i++
+			continue
+		}
+
+		if rline[i] == ')' {
+			tokens = append(tokens, &token{typ: tkRParen})
 			i++
 			continue
 		}
