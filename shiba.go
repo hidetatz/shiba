@@ -5,36 +5,8 @@ import (
 	"strings"
 )
 
-type vType int
-
-const (
-	vtString vType = iota
-	vtInt64
-	vtFloat64
-)
-
-type value struct {
-	datatype vType
-	strval   string
-	ival int64
-	fval float64
-}
-
-func (v *value) String() string {
-	switch v.datatype {
-	case vtString:
-		return fmt.Sprintf("%s(string)", v.strval)
-	case vtInt64:
-		return fmt.Sprintf("%s(int64)", v.ival)
-	case vtFloat64:
-		return fmt.Sprintf("%s(float64)", v.fval)
-	}
-
-	return "<unknown datatype>"
-}
-
 type env struct {
-	m map[string]*value
+	m map[string]obj
 }
 
 func (e *env) String() string {
@@ -50,31 +22,39 @@ type shiba struct {
 	env *env
 }
 
-type obj struct {
-}
-
 func resolvevar(mod, varname string) string {
 	return fmt.Sprintf("%s/%s", mod, varname)
 }
 
-func (s *shiba) eval(mod string, n node) (*obj, error) {
-	// switch n.typ {
-	// case ndEmpty:
-	// 	return nil, nil
+func (s *shiba) eval(mod string, n node) (obj, error) {
+	switch v := n.(type) {
+	case *commentStmt:
+		return nil, nil
 
-	// case ndComment:
-	// 	return nil, nil
+	case *assignStmt:
+		ident := v.ident
+		val, err := s.eval(mod, v.right)
+		if err != nil {
+			return nil, err
+		}
 
-	// case ndAssign:
-	// 	ident := resolvevar(mod, n.leftIdent)
-	// 	s.setenv(ident, n.rightSval)
-	// }
+		s.setenv(resolvevar(mod, ident.name), val)
 
-	// fmt.Println(s.env)
+	case *stringExpr:
+		return &oString{val: v.val}, nil
+
+	case *int64Expr:
+		return &oInt64{val: v.val}, nil
+
+	case *float64Expr:
+		return &oFloat64{val: v.val}, nil
+	}
+
+	fmt.Println(s.env)
 
 	return nil, fmt.Errorf("unknown node")
 }
 
-func (s *shiba) setenv(ident string, v string) {
-	s.env.m[ident] = &value{datatype: vtString, strval: v}
+func (s *shiba) setenv(ident string, obj obj) {
+	s.env.m[ident] = obj
 }

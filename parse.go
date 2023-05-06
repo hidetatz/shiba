@@ -135,9 +135,12 @@ func (p *parser) decl() *assignStmt {
 
 	case p.isnext(tkF64):
 		a.right = p.float64val()
+
+	default:
+		panic("cannot parse declaraton")
 	}
 
-	panic("cannot parse declaraton")
+	return a
 }
 
 func (p *parser) ident() *identExpr {
@@ -148,7 +151,6 @@ func (p *parser) strval() *stringExpr {
 	return &stringExpr{val: p.must(tkStr)}
 }
 
-// 123
 func (p *parser) int64val() *int64Expr {
 	s := p.must(tkI64)
 	i, err := strconv.ParseInt(s, 10, 64)
@@ -159,7 +161,6 @@ func (p *parser) int64val() *int64Expr {
 	return &int64Expr{val: i}
 }
 
-// 0.987
 func (p *parser) float64val() *float64Expr {
 	s := p.must(tkF64)
 	f, err := strconv.ParseFloat(s, 64)

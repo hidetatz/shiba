@@ -17,7 +17,7 @@ func (t *token) String() string {
 	switch t.typ {
 	case tkUnknown:
 		return "{unknown token}"
-	case tkIdent:
+	case tkIdent, tkStr, tkI64, tkF64:
 		return fmt.Sprintf("{%s}", t.literal)
 	case tkAssign:
 		return "{=}"
@@ -25,12 +25,6 @@ func (t *token) String() string {
 		return "{#}"
 	case tkComment:
 		return fmt.Sprintf("{%s}", t.literal)
-	case tkStr:
-		return fmt.Sprintf("{\"%s\"}", t.literal)
-	case tkI64:
-		return fmt.Sprintf("{%d}", t.literal)
-	case tkF64:
-		return fmt.Sprintf("{%f}", t.literal)
 	}
 
 	return "{?}"
@@ -104,6 +98,10 @@ func tokenize(line string) ([]*token, error) {
 			isfloat := false
 			s := ""
 			for {
+				if len(rline) <= i {
+					break
+				}
+
 				if isdigit(rline[i]) {
 					s += string(rline[i])
 					i++

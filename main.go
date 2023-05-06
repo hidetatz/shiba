@@ -41,7 +41,7 @@ func runmod(mod string) int {
 
 	sc := bufio.NewScanner(f)
 
-	s := &shiba{env: &env{map[string]*value{}}}
+	s := &shiba{env: &env{map[string]obj{}}}
 
 	l := 1
 	for sc.Scan() {
@@ -54,6 +54,7 @@ func runmod(mod string) int {
 		}
 
 		if len(tokens) == 0 {
+			l++
 			continue
 		}
 
