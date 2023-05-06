@@ -1,0 +1,51 @@
+# this is an example shibalang file.
+# the line which starts with # is a comment.
+
+# implment:
+# * builtin func call
+# * digit
+# * string
+# * negative number
+# * calculation with priority
+# * assignment
+# * scope consideration in assignment
+# * && ||
+
+a = 1 # this is also comment
+b = "a"
+r = 0
+
+fn add(a, b) {
+	return a + b
+}
+
+fn add2(a, b) {
+	r = a + b
+}
+
+c = -1
+d = a * c
+e = add(d, a)
+add2(d, a)
+
+f = add(add(a, r), e)
+
+g = anothermod.sub(c, d)
+
+h = a + c - (g - (f / d))
+
+if h == 0 {
+    print("zero")
+} else if h == 1 {
+    print(1)
+} else {
+}
+
+i = 0
+for true {
+	i += add(1, 2)
+}
+
+if a && b || c {
+	i = a && b
+}
