@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# apply formatter and import
+goimports() {
+	docker run --rm -v $(pwd):/data cytopia/goimports -w .
+}
+
+# build go files
+build() {
+	docker run --rm --mount type=bind,source="$(pwd)",target=/go golang:1.20.4-bullseye go build -o shiba *.go && sudo chown $USER:$USER shiba
+}
+
+# cleanup files
+clean() {
+	rm -f shiba
+}
+
+# shows the help
+help() {
+	echo "usage:"
+	grep -B 1 '^.*() {$' task | awk 'BEGIN {FS="\n"; RS="--\n"} {sub("\(\) {", "", $2); sub("# ", "", $1); printf("\t\033[36m%-20s\033[m %s\n", $2, $1)}'
+}
+
+target=$1
+if [ -z "$target" ]; then
+	help
+	exit 0
+fi
+
+$target
