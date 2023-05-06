@@ -27,8 +27,12 @@ func run(args []string) int {
 		return 1
 	}
 
-	fname := args[1]
-	f, err := os.Open(fname)
+	mod := args[1]
+	return runmod(mod)
+}
+
+func runmod(mod string) int {
+	f, err := os.Open(mod)
 	if err != nil {
 		werr("open the file: %v", err)
 		return 1
