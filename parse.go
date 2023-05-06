@@ -2,8 +2,17 @@ package main
 
 import "fmt"
 
+type ndtype int
+
+const (
+	ndUnknown = iota
+	ndEmpty
+	ndComment
+)
+
 type node struct {
-	empty   bool
+	typ ndtype
+
 	comment string
 }
 
@@ -58,11 +67,11 @@ func (p *parser) program() *node {
 
 // empty = "\n"
 func (p *parser) empty() *node {
-	return &node{empty: true}
+	return &node{typ: ndEmpty}
 }
 
 // comment = "#" "arbitrary comment message until \n"
 func (p *parser) comment() *node {
 	p.expect(tkHash)
-	return &node{comment: p.consumeComment()}
+	return &node{typ: ndComment, comment: p.consumeComment()}
 }
