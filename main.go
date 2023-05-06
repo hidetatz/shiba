@@ -53,6 +53,10 @@ func runmod(mod string) int {
 			return 2
 		}
 
+		if len(tokens) == 0 {
+			continue
+		}
+
 		node, err := parse(tokens)
 		if err != nil {
 			werr("%s:%d %s", mod, l, err)

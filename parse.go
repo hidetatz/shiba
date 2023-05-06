@@ -1,22 +1,59 @@
 package main
 
-import "fmt"
-
-type ndtype int
-
-const (
-	ndUnknown = iota
-	ndEmpty
-	ndComment
-	ndAssign
+import (
+	"fmt"
+	"strconv"
 )
 
-type node struct {
-	typ ndtype
+/*
+ * AST
+ */
 
-	leftIdent string
-	rightVal  string
-	comment   string
+type node interface {
+	isnode()
+}
+
+type expr interface {
+	node
+	isexpr()
+}
+
+type stmt interface {
+	node
+	isstmt()
+}
+
+// comment does not effect the program.
+type commentStmt struct {
+	stmt
+	message string
+}
+
+// ident = value
+type assignStmt struct {
+	stmt
+	ident *identExpr
+	right expr
+}
+
+type identExpr struct {
+	expr
+	name string
+}
+
+type stringExpr struct {
+	expr
+	val string
+}
+
+type int64Expr struct {
+	expr
+	val int64
+}
+
+type float64Expr struct {
+	expr
+	val float64
 }
 
 type parser struct {
@@ -24,10 +61,38 @@ type parser struct {
 	cur    int
 }
 
-func parse(tokens []*token) (*node, error) {
+/*
+ * parser helpers
+ */
+
+func (p *parser) isnext(t tktype) bool {
+	return p.tokens[p.cur].typ == t
+}
+
+func (p *parser) next() string {
+	c := p.tokens[p.cur]
+	p.cur++
+	return c.literal
+}
+
+func (p *parser) must(t tktype) string {
+	c := p.tokens[p.cur]
+	if c.typ != t {
+		panic(fmt.Sprint("%s is expected but %s is found!", t, p.tokens[p.cur]))
+	}
+
+	p.cur++
+	return c.literal
+}
+
+/*
+ * Parse implementation
+ */
+
+func parse(tokens []*token) (n node, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
+			err = fmt.Errorf("parse error: %v", r)
 		}
 	}()
 
@@ -36,77 +101,71 @@ func parse(tokens []*token) (*node, error) {
 	return p.program(), nil
 }
 
-func (p *parser) next(t tktype) bool {
-	return p.tokens[p.cur].typ == t
-}
-
-func (p *parser) consumeComment() string {
-	c := p.tokens[p.cur].strval
-	p.cur++
-	return c
-}
-
-func (p *parser) expectIdent() string {
-	if p.tokens[p.cur].typ != tkIdent {
-		panic(fmt.Sprint("identiier is expected but %s is found!", p.tokens[p.cur]))
-	}
-
-	i := p.tokens[p.cur].strval
-	p.cur++
-	return i
-}
-
-func (p *parser) expectStr() string {
-	if p.tokens[p.cur].typ != tkStr {
-		panic(fmt.Sprint("a string value is expected but %s is found!", p.tokens[p.cur]))
-	}
-
-	i := p.tokens[p.cur].strval
-	p.cur++
-	return i
-}
-
-func (p *parser) expect(t tktype) {
-	if p.tokens[p.cur].typ != t {
-		panic(fmt.Sprint("%s is expected but %s is found!", t, p.tokens[p.cur]))
-	}
-
-	p.cur++
-	return
-}
-
-// program = (empty | comment | decl)
-func (p *parser) program() *node {
-	if p.next(tkEmpty) {
-		return p.empty()
-	}
-
-	if p.next(tkHash) {
+// program = (comment | decl)
+func (p *parser) program() node {
+	if p.isnext(tkHash) {
 		return p.comment()
 	}
 
-	if p.next(tkIdent) {
+	if p.isnext(tkIdent) {
 		return p.decl()
 	}
 
 	panic("unknown token")
 }
 
-// empty = "\n"
-func (p *parser) empty() *node {
-	return &node{typ: ndEmpty}
-}
-
 // comment = "#" "arbitrary comment message until \n"
-func (p *parser) comment() *node {
-	p.expect(tkHash)
-	return &node{typ: ndComment, comment: p.consumeComment()}
+func (p *parser) comment() node {
+	p.must(tkHash)
+	return &commentStmt{message: p.must(tkComment)}
 }
 
-// decl = ident "=" strval
-func (p *parser) decl() *node {
-	i := p.expectIdent()
-	p.expect(tkAssign)
-	s := p.expectStr()
-	return &node{typ: ndAssign, leftIdent: i, rightVal: s}
+// decl = ident "=" (strval | ival | fval)
+func (p *parser) decl() *assignStmt {
+	a := &assignStmt{}
+	a.ident = p.ident()
+	p.must(tkAssign)
+
+	switch {
+	case p.isnext(tkStr):
+		a.right = p.strval()
+
+	case p.isnext(tkI64):
+		a.right = p.int64val()
+
+	case p.isnext(tkF64):
+		a.right = p.float64val()
+	}
+
+	panic("cannot parse declaraton")
+}
+
+func (p *parser) ident() *identExpr {
+	return &identExpr{name: p.must(tkIdent)}
+}
+
+func (p *parser) strval() *stringExpr {
+	return &stringExpr{val: p.must(tkStr)}
+}
+
+// 123
+func (p *parser) int64val() *int64Expr {
+	s := p.must(tkI64)
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		panic(fmt.Sprintf("parse %s as int64", s))
+	}
+
+	return &int64Expr{val: i}
+}
+
+// 0.987
+func (p *parser) float64val() *float64Expr {
+	s := p.must(tkF64)
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		panic(fmt.Sprintf("parse %s as float64", s))
+	}
+
+	return &float64Expr{val: f}
 }
