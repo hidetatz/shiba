@@ -31,9 +31,9 @@ type assignStmt struct {
 	right expr
 }
 
-type callExpr() struct {
+type callExpr struct {
 	expr
-	fnname string
+	fnname *identExpr
 	args []expr
 }
 

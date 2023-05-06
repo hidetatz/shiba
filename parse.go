@@ -18,6 +18,10 @@ func (p *parser) isnext(t tktype) bool {
 	return p.tokens[p.cur].typ == t
 }
 
+func (p *parser) isnextnext(t tktype) bool {
+	return p.tokens[p.cur+1].typ == t
+}
+
 func (p *parser) next() string {
 	c := p.tokens[p.cur]
 	p.cur++
@@ -50,23 +54,57 @@ func parse(tokens []*token) (n node, err error) {
 	return p.program(), nil
 }
 
-// program = (comment | decl)
+// program = (comment | expr)
 func (p *parser) program() node {
 	if p.isnext(tkHash) {
 		return p.comment()
 	}
 
-	if p.isnext(tkIdent) {
-		return p.decl()
+	if p.isexpr() {
+		return p.expr()
 	}
 
 	panic("unknown token")
+}
+
+func (p *parser) isexpr() bool {
+	return p.isnext(tkIdent)
+}
+
+// expr = (decl | call)
+func (p *parser) expr() node {
+	if p.isnext(tkIdent) && p.isnextnext(tkAssign) {
+		return p.decl()
+	}
+
+	return p.call()
 }
 
 // comment = "#" "arbitrary comment message until \n"
 func (p *parser) comment() node {
 	p.must(tkHash)
 	return &commentStmt{message: p.must(tkComment)}
+}
+
+// call = ident "(" ( ")" | (ident ",")* ident ")" )
+func (p *parser) call() *callExpr{
+	c := &callExpr{}
+	c.fnname = p.ident()
+	p.must(tkLParen)
+
+	if p.isnext(tkRParen) {
+		p.next()
+		return c
+	}
+
+	for {
+		c.args = append(c.args, p.ident())
+		if !p.isnext(tkComma) {
+			break
+		}
+	}
+
+	return c
 }
 
 // decl = ident "=" (strval | ival | fval)

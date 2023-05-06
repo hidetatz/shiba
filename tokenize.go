@@ -54,6 +54,7 @@ const (
 
 	tkAssign  // =
 	tkHash    // #
+	tkComma   // ,
 	tkLParen  // (
 	tkRParen  // )
 	tkComment // comment message
@@ -88,6 +89,12 @@ func tokenize(line string) ([]*token, error) {
 
 		if rline[i] == '=' {
 			tokens = append(tokens, &token{typ: tkAssign})
+			i++
+			continue
+		}
+
+		if rline[i] == ',' {
+			tokens = append(tokens, &token{typ: tkComma})
 			i++
 			continue
 		}

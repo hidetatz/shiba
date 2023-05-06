@@ -46,3 +46,18 @@ type oFloat64 struct {
 func (s *oFloat64) String() string {
 	return fmt.Sprintf("%f(float64)", s.val)
 }
+
+/*
+ * builtin functions
+ */
+
+func bfPrint(o obj) {
+	switch v := o.(type) {
+	case *oString:
+		fmt.Println(v)
+	case *oInt64:
+		fmt.Println(v)
+	case *oFloat64:
+		fmt.Println(v)
+	}
+}
