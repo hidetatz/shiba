@@ -8,12 +8,15 @@ const (
 	ndUnknown = iota
 	ndEmpty
 	ndComment
+	ndAssign
 )
 
 type node struct {
 	typ ndtype
 
-	comment string
+	leftIdent string
+	rightVal  string
+	comment   string
 }
 
 type parser struct {
@@ -38,9 +41,29 @@ func (p *parser) next(t tktype) bool {
 }
 
 func (p *parser) consumeComment() string {
-	c := p.tokens[p.cur].comment
+	c := p.tokens[p.cur].strval
 	p.cur++
 	return c
+}
+
+func (p *parser) expectIdent() string {
+	if p.tokens[p.cur].typ != tkIdent {
+		panic(fmt.Sprint("identiier is expected but %s is found!", p.tokens[p.cur]))
+	}
+
+	i := p.tokens[p.cur].strval
+	p.cur++
+	return i
+}
+
+func (p *parser) expectStr() string {
+	if p.tokens[p.cur].typ != tkStr {
+		panic(fmt.Sprint("a string value is expected but %s is found!", p.tokens[p.cur]))
+	}
+
+	i := p.tokens[p.cur].strval
+	p.cur++
+	return i
 }
 
 func (p *parser) expect(t tktype) {
@@ -52,7 +75,7 @@ func (p *parser) expect(t tktype) {
 	return
 }
 
-// program = (empty | comment)
+// program = (empty | comment | decl)
 func (p *parser) program() *node {
 	if p.next(tkEmpty) {
 		return p.empty()
@@ -60,6 +83,10 @@ func (p *parser) program() *node {
 
 	if p.next(tkHash) {
 		return p.comment()
+	}
+
+	if p.next(tkIdent) {
+		return p.decl()
 	}
 
 	panic("unknown token")
@@ -74,4 +101,12 @@ func (p *parser) empty() *node {
 func (p *parser) comment() *node {
 	p.expect(tkHash)
 	return &node{typ: ndComment, comment: p.consumeComment()}
+}
+
+// decl = ident "=" strval
+func (p *parser) decl() *node {
+	i := p.expectIdent()
+	p.expect(tkAssign)
+	s := p.expectStr()
+	return &node{typ: ndAssign, leftIdent: i, rightVal: s}
 }

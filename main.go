@@ -41,7 +41,7 @@ func runmod(mod string) int {
 
 	sc := bufio.NewScanner(f)
 
-	s := shiba{}
+	s := &shiba{env: &env{map[string]*value{}}}
 
 	l := 1
 	for sc.Scan() {
@@ -49,17 +49,17 @@ func runmod(mod string) int {
 
 		tokens, err := tokenize(line)
 		if err != nil {
-			werr("%s:%d %s", fname, l, err)
+			werr("%s:%d %s", mod, l, err)
 			return 2
 		}
 
 		node, err := parse(tokens)
 		if err != nil {
-			werr("%s:%d %s", fname, l, err)
+			werr("%s:%d %s", mod, l, err)
 			return 3
 		}
 
-		s.eval(node)
+		s.eval(mod, node)
 
 		l++
 	}
