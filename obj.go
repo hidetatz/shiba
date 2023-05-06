@@ -4,14 +4,9 @@ import (
 	"fmt"
 )
 
-type vType int
-
-const (
-	vtString vType = iota
-	vtInt64
-	vtFloat64
-)
-
+/*
+ * builtin types in shiba
+ */
 type objtype int
 
 const (
