@@ -3,7 +3,7 @@
 # abc
    # def
 
-v1 = "abc"
+v1="abc"
    v2    =        "def"
 v1 = "ghi"
 v1 = 123

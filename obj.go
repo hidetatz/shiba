@@ -51,4 +51,3 @@ type oFloat64 struct {
 func (s *oFloat64) String() string {
 	return fmt.Sprintf("%f(float64)", s.val)
 }
-

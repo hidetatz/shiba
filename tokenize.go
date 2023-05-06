@@ -31,9 +31,9 @@ func (t *token) String() string {
 }
 
 type tokenizeErr struct {
-	line string
+	line   string
 	reason string
-	at int
+	at     int
 }
 
 func newTokenizeErr(line, reason string, at int) *tokenizeErr {
@@ -94,7 +94,6 @@ func tokenize(line string) ([]*token, error) {
 
 		// i64 or f64
 		if isdigit(rline[i]) {
-			i++
 			isfloat := false
 			s := ""
 			for {
@@ -144,7 +143,7 @@ func tokenize(line string) ([]*token, error) {
 
 		// identifier
 		ident := ""
-		for !isspace(rline[i]) {
+		for isidentletter(rline[i]) {
 			ident += string(rline[i])
 			i++
 		}
@@ -155,7 +154,6 @@ func tokenize(line string) ([]*token, error) {
 			// keywords
 			tokens = append(tokens, &token{typ: typ})
 		}
-		i++
 	}
 
 	return tokens, nil
@@ -166,6 +164,10 @@ func lookupIdent(ident string) tktype {
 	}
 
 	return tkIdent
+}
+
+func isidentletter(r rune) bool {
+	return ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9') || r == '_'
 }
 
 func isspace(r rune) bool {
