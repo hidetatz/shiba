@@ -30,22 +30,13 @@ func (o *oNil) String() string {
 	return "<nil>"
 }
 
-type oIdent struct {
-	obj
-	name string
-}
-
-func (o *oIdent) String() string {
-	return fmt.Sprintf("%s(ident)", o.name)
-}
-
 type oString struct {
 	obj
 	val string
 }
 
 func (o *oString) String() string {
-	return fmt.Sprintf("%s(string)", o.val)
+	return fmt.Sprintf("%s", o.val)
 }
 
 type oInt64 struct {
@@ -54,7 +45,7 @@ type oInt64 struct {
 }
 
 func (o *oInt64) String() string {
-	return fmt.Sprintf("%d(int64)", o.val)
+	return fmt.Sprintf("%d", o.val)
 }
 
 type oFloat64 struct {
@@ -63,7 +54,7 @@ type oFloat64 struct {
 }
 
 func (o *oFloat64) String() string {
-	return fmt.Sprintf("%f(float64)", o.val)
+	return fmt.Sprintf("%f", o.val)
 }
 
 type oFn struct {

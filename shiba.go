@@ -67,7 +67,12 @@ func (s *shiba) eval(mod string, n node) (obj, error) {
 		return nil, fmt.Errorf("function %s is undefined", fname)
 
 	case *identExpr:
-		return &oIdent{name: v.name}, nil
+		o, ok := s.getenv(resolvevar(mod, v.name))
+		if !ok {
+			return nil, fmt.Errorf("unknown var or func name: %s", v.name)
+		}
+
+		return o, nil
 
 	case *stringExpr:
 		return &oString{val: v.val}, nil
@@ -85,6 +90,12 @@ func (s *shiba) eval(mod string, n node) (obj, error) {
 // todo: check if the var is writable from caller
 func (s *shiba) setenv(ident string, obj obj) {
 	s.env.v[ident] = obj
+}
+
+// todo: check if the var is writable from caller
+func (s *shiba) getenv(ident string) (obj, bool) {
+	o, ok := s.env.v[ident]
+	return o, ok
 }
 
 // todo: check if the func is callable from caller

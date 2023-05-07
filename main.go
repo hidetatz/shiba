@@ -46,15 +46,12 @@ func runmod(mod string) int {
 	l := 1
 	for sc.Scan() {
 		line := sc.Text()
-		fmt.Println("line ", line)
 
 		tokens, err := tokenize(line)
 		if err != nil {
 			werr("%s:%d %s", mod, l, err)
 			return 2
 		}
-
-		fmt.Println("tokens ", tokens)
 
 		if len(tokens) == 0 {
 			l++
