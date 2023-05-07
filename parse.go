@@ -86,8 +86,8 @@ func (p *parser) comment() node {
 	return &commentStmt{message: p.must(tkComment)}
 }
 
-// call = ident "(" ( ")" | (ident ",")* ident ")" )
-func (p *parser) call() *callExpr{
+// call = ident "(" funcarg ("," funcarg)*)? ")"
+func (p *parser) call() *callExpr {
 	c := &callExpr{}
 	c.fnname = p.ident()
 	p.must(tkLParen)
@@ -98,13 +98,33 @@ func (p *parser) call() *callExpr{
 	}
 
 	for {
-		c.args = append(c.args, p.ident())
+		c.args = append(c.args, p.funcarg())
 		if !p.isnext(tkComma) {
 			break
 		}
+		p.must(tkComma)
 	}
 
 	return c
+}
+
+// funcarg = (ident | strval | ival | fval)
+func (p *parser) funcarg() expr {
+	switch {
+	case p.isnext(tkIdent):
+		return p.ident()
+
+	case p.isnext(tkStr):
+		return p.strval()
+
+	case p.isnext(tkI64):
+		return p.int64val()
+
+	case p.isnext(tkF64):
+		return p.float64val()
+	}
+
+	panic("invalid as function parameter")
 }
 
 // decl = ident "=" (strval | ival | fval)

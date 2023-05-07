@@ -34,7 +34,7 @@ type assignStmt struct {
 type callExpr struct {
 	expr
 	fnname *identExpr
-	args []expr
+	args   []expr
 }
 
 type identExpr struct {
@@ -56,4 +56,3 @@ type float64Expr struct {
 	expr
 	val float64
 }
-

@@ -1,0 +1,3 @@
+v1="abc"
+print(v1)
+print("aaa", v1, 123)

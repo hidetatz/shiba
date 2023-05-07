@@ -6,12 +6,12 @@ import (
 )
 
 type env struct {
-	m map[string]obj
+	v map[string]obj
 }
 
 func (e *env) String() string {
 	var b strings.Builder
-	for k, v := range e.m {
+	for k, v := range e.v {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k, v))
 	}
 
@@ -40,6 +40,35 @@ func (s *shiba) eval(mod string, n node) (obj, error) {
 
 		s.setenv(resolvevar(mod, ident.name), val)
 
+	case *callExpr:
+		fname := v.fnname.name
+		args := []obj{}
+		for _, a := range v.args {
+			o, err := s.eval(mod, a)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, o)
+		}
+
+		_, ok := s.lookupFn(fname)
+		if ok {
+			// user-defined function. todo: impl
+			return nil, nil
+		}
+
+		bf, ok := s.lookupBuiltinFn(fname)
+		if ok {
+			o := bf.f(args...)
+			return o, nil
+		}
+
+		return nil, fmt.Errorf("function %s is undefined", fname)
+
+	case *identExpr:
+		return &oIdent{name: v.name}, nil
+
 	case *stringExpr:
 		return &oString{val: v.val}, nil
 
@@ -50,11 +79,29 @@ func (s *shiba) eval(mod string, n node) (obj, error) {
 		return &oFloat64{val: v.val}, nil
 	}
 
-	fmt.Println(s.env)
-
 	return nil, fmt.Errorf("unknown node")
 }
 
+// todo: check if the var is writable from caller
 func (s *shiba) setenv(ident string, obj obj) {
-	s.env.m[ident] = obj
+	s.env.v[ident] = obj
+}
+
+// todo: check if the func is callable from caller
+func (s *shiba) lookupFn(fnname string) (obj, bool) {
+	o, ok := s.env.v[fnname]
+	if !ok {
+		return nil, false
+	}
+
+	if ofn, ok := o.(*oFn); ok {
+		return ofn, true
+	}
+
+	return nil, false
+}
+
+func (s *shiba) lookupBuiltinFn(fnname string) (*oBuiltinFn, bool) {
+	o, ok := bulitinFns[fnname]
+	return o, ok
 }

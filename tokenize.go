@@ -21,10 +21,22 @@ func (t *token) String() string {
 		return "{=}"
 	case tkHash:
 		return "{#}"
+	case tkComma:
+		return "{,}"
+	case tkLParen:
+		return "{(}"
+	case tkRParen:
+		return "{)}"
 	case tkComment:
-		return fmt.Sprintf("{%s}", t.literal)
-	case tkIdent, tkStr, tkI64, tkF64:
-		return fmt.Sprintf("{%s}", t.literal)
+		return fmt.Sprintf("{%s(comment)}", t.literal)
+	case tkIdent:
+		return fmt.Sprintf("{%s(ident)}", t.literal)
+	case tkStr:
+		return fmt.Sprintf("{\"%s\"}", t.literal)
+	case tkI64:
+		return fmt.Sprintf("{%s(i64)}", t.literal)
+	case tkF64:
+		return fmt.Sprintf("{%s(f64)}", t.literal)
 	}
 
 	return "{?}"
