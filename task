@@ -2,7 +2,7 @@
 
 # apply formatter and import
 goimports() {
-	docker run --rm -v $(pwd):/data cytopia/goimports -w .
+	goimports -w .
 }
 
 # build go files
