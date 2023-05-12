@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"unicode"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestE2E(t *testing.T) {
@@ -15,23 +17,36 @@ func TestE2E(t *testing.T) {
 	}{
 		"assign": {
 			content: d(`
-					a = 99
-					print(a)
-				`),
+				a = 99
+				print(a)
+			`),
 			out: d(`
-					99
-				`),
+				99
+			`),
+		},
+		"assign2": {
+			content: d(`
+				a = 99
+				print(a)
+				a = "abc"
+				print(a)
+				b = "999"
+				print(a, b)
+			`),
+			out: d(`
+				99
+				abc
+				abc 999
+			`),
 		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
 			fname := strings.ReplaceAll(name, " ", "_") + ".sb"
 
-			f, err := os.Create("tests/" + fname)
+			f, err := os.OpenFile("tests/" + fname, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
-				t.Fatalf("create test sb file: %s", fname)
+				t.Fatalf("create test sb file: %s, err: %s", fname, err)
 			}
 			defer f.Close()
 
@@ -39,13 +54,13 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("write test sb file: %s", fname)
 			}
 
-			result, err := exec.Command("./shiba", fname).CombinedOutput()
+			result, err := exec.Command("./shiba", "tests/" + fname).CombinedOutput()
 			if err != nil {
 				t.Fatalf("run test sb file (%s): %s\n[%s]", fname, result, err)
 			}
 
-			if string(result) != tc.out {
-				t.Fatalf("(%s):\nexpected: %s\ngot:%s", fname, result, tc.out)
+			if diff := cmp.Diff(tc.out, string(result)); diff != "" {
+				t.Fatalf("(-want +got):\n%s", diff)
 			}
 		})
 	}

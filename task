@@ -7,19 +7,20 @@ goimports() {
 
 # build go files
 build() {
-	docker run --rm --mount type=bind,source="$(pwd)",target=/go golang:1.20.4-bullseye go build -o shiba *.go && sudo chown $USER:$USER shiba
+	go build -o shiba *.go
 }
 
 # run go test
 gotest() {
 	clean
 	build
-	docker run --rm --mount type=bind,source="$(pwd)",target=/go golang:1.20.4-bullseye go test ./e2e_test.go
+	mkdir -p tests
+	go test ./...
 }
 
 # cleanup files
 clean() {
-	rm -f shiba
+	rm -f shiba tests/*
 }
 
 # shows the help

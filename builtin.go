@@ -10,12 +10,14 @@ var bulitinFns = map[string]*oBuiltinFn{
 	"print": &oBuiltinFn{
 		name: "print",
 		f: func(args ...obj) obj {
-			for _, arg := range args {
+			for i, arg := range args {
 				fmt.Print(arg)
-				fmt.Print(" ")
+				if i != len(args) - 1 {
+					fmt.Print(" ")
+				}
 			}
 
-			fmt.Println()
+			fmt.Println("")
 
 			return NIL
 		},

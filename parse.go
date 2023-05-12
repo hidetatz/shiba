@@ -31,7 +31,7 @@ func (p *parser) next() string {
 func (p *parser) must(t tktype) string {
 	c := p.tokens[p.cur]
 	if c.typ != t {
-		panic(fmt.Sprint("%s is expected but %s is found!", t, p.tokens[p.cur]))
+		panic(fmt.Sprintf("%v is expected but %v is found!", t, p.tokens[p.cur]))
 	}
 
 	p.cur++
