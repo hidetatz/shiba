@@ -6,9 +6,9 @@ import (
 
 var NIL = &oNil{}
 
-var bulitinFns = map[string]*oBuiltinFn {
+var bulitinFns = map[string]*oBuiltinFn{
 	"print": &oBuiltinFn{
-		name:     "print",
+		name: "print",
 		f: func(args ...obj) obj {
 			for _, arg := range args {
 				fmt.Print(arg)

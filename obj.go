@@ -72,7 +72,7 @@ func (o *oFn) String() string {
 type oBuiltinFn struct {
 	obj
 	name string
-	f func(objs ...obj) obj
+	f    func(objs ...obj) obj
 }
 
 func (o *oBuiltinFn) String() string {
