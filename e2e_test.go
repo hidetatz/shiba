@@ -3,6 +3,7 @@ package main_test
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 	"unicode"
@@ -40,11 +41,14 @@ func TestE2E(t *testing.T) {
 			`),
 		},
 	}
+
+	td := t.TempDir()
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			fname := strings.ReplaceAll(name, " ", "_") + ".sb"
+			dfname := filepath.Join(td, fname)
 
-			f, err := os.OpenFile("tests/"+fname, os.O_RDWR|os.O_CREATE, 0755)
+			f, err := os.OpenFile(dfname, os.O_RDWR|os.O_CREATE, 0755)
 			if err != nil {
 				t.Fatalf("create test sb file: %s, err: %s", fname, err)
 			}
@@ -54,7 +58,7 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("write test sb file: %s", fname)
 			}
 
-			result, err := exec.Command("./shiba", "tests/"+fname).CombinedOutput()
+			result, err := exec.Command("./shiba", dfname).CombinedOutput()
 			if err != nil {
 				t.Fatalf("run test sb file (%s): %s\n[%s]", fname, result, err)
 			}
