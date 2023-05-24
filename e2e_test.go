@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"unicode"
 
+	"github.com/MakeNowJust/heredoc/v2"
 	"github.com/google/go-cmp/cmp"
 )
+
+var d = heredoc.Doc
 
 func TestE2E(t *testing.T) {
 	tests := map[string]struct {
@@ -21,7 +23,7 @@ func TestE2E(t *testing.T) {
 				a = 99
 				print(a)
 			`),
-			out: d(`
+			out: heredoc.Doc(`
 				99
 			`),
 		},
@@ -68,66 +70,4 @@ func TestE2E(t *testing.T) {
 			}
 		})
 	}
-}
-
-/*
- * test helper
- */
-
-// copy-pasted (and slightly modified) from https://github.com/makenowjust/heredoc/blob/e9091a26100e/heredoc.go
-func d(raw string) string {
-	skipFirstLine := false
-	if len(raw) > 0 && raw[0] == '\n' {
-		raw = raw[1:]
-	} else {
-		skipFirstLine = true
-	}
-
-	lines := strings.Split(raw, "\n")
-
-	minIndentSize := getMinIndent(lines, skipFirstLine)
-	lines = removeIndentation(lines, minIndentSize, skipFirstLine)
-
-	return strings.Join(lines, "\n")
-}
-
-func getMinIndent(lines []string, skipFirstLine bool) int {
-	minIndentSize := int(^uint(0) >> 1) // maxInt
-
-	for i, line := range lines {
-		if i == 0 && skipFirstLine {
-			continue
-		}
-
-		indentSize := 0
-		for _, r := range []rune(line) {
-			if unicode.IsSpace(r) {
-				indentSize += 1
-			} else {
-				break
-			}
-		}
-
-		if len(line) == indentSize {
-			if i == len(lines)-1 && indentSize < minIndentSize {
-				lines[i] = ""
-			}
-		} else if indentSize < minIndentSize {
-			minIndentSize = indentSize
-		}
-	}
-	return minIndentSize
-}
-
-func removeIndentation(lines []string, n int, skipFirstLine bool) []string {
-	for i, line := range lines {
-		if i == 0 && skipFirstLine {
-			continue
-		}
-
-		if len(lines[i]) >= n {
-			lines[i] = line[n:]
-		}
-	}
-	return lines
 }
