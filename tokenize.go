@@ -19,6 +19,8 @@ func (t *token) String() string {
 		return "{unknown token}"
 	case tkAssign:
 		return "{=}"
+	case tkPlus:
+		return "{+}"
 	case tkHash:
 		return "{#}"
 	case tkComma:
@@ -65,6 +67,7 @@ const (
 	tkIdent // identifier
 
 	tkAssign  // =
+	tkPlus    // +
 	tkHash    // #
 	tkComma   // ,
 	tkLParen  // (
@@ -101,6 +104,12 @@ func tokenize(line string) ([]*token, error) {
 
 		if rline[i] == '=' {
 			tokens = append(tokens, &token{typ: tkAssign})
+			i++
+			continue
+		}
+
+		if rline[i] == '+' {
+			tokens = append(tokens, &token{typ: tkPlus})
 			i++
 			continue
 		}
