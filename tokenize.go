@@ -7,6 +7,7 @@ import (
 
 type token struct {
 	typ tktype
+	at int
 
 	// As of tokenize, every token is represented as literal despite of the type
 	// such as number, "string", identifier, comment, panctuator etc.
@@ -21,6 +22,14 @@ func (t *token) String() string {
 		return "{=}"
 	case tkPlus:
 		return "{+}"
+	case tkHyphen:
+		return "{-}"
+	case tkStar:
+		return "{*}"
+	case tkSlash:
+		return "{/}"
+	case tkPercent:
+		return "{%}"
 	case tkHash:
 		return "{#}"
 	case tkComma:
@@ -45,17 +54,13 @@ func (t *token) String() string {
 }
 
 type tokenizeErr struct {
-	line   string
+	line string
 	reason string
 	at     int
 }
 
-func newTokenizeErr(line, reason string, at int) *tokenizeErr {
-	return &tokenizeErr{line, reason, at}
-}
-
 func (e *tokenizeErr) Error() string {
-	return fmt.Sprintf("error in tokenization: %s\n%s\n%s^ around here", e.reason, e.line, strings.Repeat(" ", e.at))
+	return fmt.Sprintf("error in tokenization: %s\n%s\n%s^ around here", e.reason, e.line, strings.Repeat(" ", e.at-1))
 }
 
 type tktype int
@@ -68,6 +73,10 @@ const (
 
 	tkAssign  // =
 	tkPlus    // +
+	tkHyphen    // -
+	tkStar    // *
+	tkSlash    // /
+	tkPercent  // %
 	tkHash    // #
 	tkComma   // ,
 	tkLParen  // (
@@ -85,115 +94,123 @@ func tokenize(line string) ([]*token, error) {
 		return nil, nil
 	}
 
-	rline := []rune(line)
+	rs := []rune(line)
 	i := 0
-	for i < len(rline) {
-		// skip spaces
-		if isspace(rline[i]) {
-			i++
-			continue
-		}
 
-		if rline[i] == '#' {
-			tokens = append(tokens, &token{typ: tkHash})
+	newtoken := func(t tktype) *token {
+		return &token{typ: t, at: i}
+	}
 
-			// Figure out the comment message. This is needed for the code formatter.
-			tokens = append(tokens, &token{typ: tkComment, literal: line[i:]})
-			break // The rest must be comment after '#' so tokenize finishes here
-		}
+	appendtoken := func(tk *token) {
+		tokens = append(tokens, tk)
+	}
 
-		if rline[i] == '=' {
-			tokens = append(tokens, &token{typ: tkAssign})
-			i++
-			continue
-		}
+	newtokenizeErr := func(reason string) *tokenizeErr{
+		return &tokenizeErr{line, reason, i}
+	}
 
-		if rline[i] == '+' {
-			tokens = append(tokens, &token{typ: tkPlus})
-			i++
-			continue
-		}
+	for i < len(rs) {
+		switch {
+		case isspace(rs[i]):
+			// fallthrough. skip space
 
-		if rline[i] == ',' {
-			tokens = append(tokens, &token{typ: tkComma})
-			i++
-			continue
-		}
+		case rs[i] == '#':
+			// comment
+			appendtoken(newtoken(tkHash))
+			t := newtoken(tkComment)
+			t.literal = line[i:]
+			appendtoken(t)
+			break
 
-		if rline[i] == '(' {
-			tokens = append(tokens, &token{typ: tkLParen})
-			i++
-			continue
-		}
+		case rs[i] == '=':
+			appendtoken(newtoken(tkAssign))
 
-		if rline[i] == ')' {
-			tokens = append(tokens, &token{typ: tkRParen})
-			i++
-			continue
-		}
+		case rs[i] == '+':
+			appendtoken(newtoken(tkPlus))
 
-		// i64 or f64
-		if isdigit(rline[i]) {
-			isfloat := false
-			s := ""
-			for {
-				if len(rline) <= i {
-					break
-				}
+		case rs[i] == '-':
+			 appendtoken(newtoken(tkHyphen))
 
-				if isdigit(rline[i]) {
-					s += string(rline[i])
-					i++
-				} else if isdot(rline[i]) {
-					if isfloat {
-						// multiple dots
-						return nil, newTokenizeErr(line, "invalid decimal expression", i)
-					}
+		case rs[i] == '*':
+			appendtoken(newtoken(tkStar))
 
-					isfloat = true
-					s += string(rline[i])
-					i++
-				} else {
-					break
-				}
-			}
+		case rs[i] == '/':
+			appendtoken(newtoken(tkSlash))
 
-			if isfloat {
-				tokens = append(tokens, &token{typ: tkF64, literal: s})
-			} else {
-				tokens = append(tokens, &token{typ: tkI64, literal: s})
-			}
+		case rs[i] == '%':
+			appendtoken(newtoken(tkPercent))
 
-			continue
-		}
+		case rs[i] == ',':
+			appendtoken(newtoken(tkComma))
 
-		// "string value"
-		if rline[i] == '"' {
-			i++
+		case rs[i] == '(':
+			appendtoken(newtoken(tkLParen))
+
+		case rs[i] == ')':
+			appendtoken(newtoken(tkRParen))
+
+		case rs[i] == '"':
+			i++ // skip left quote
 			str := ""
 			// read until terminating " is found
-			for rline[i] != '"' {
-				str += string(rline[i])
+			// todo: handle intermediate quote
+			for rs[i] != '"' {
+				str += string(rs[i])
 				i++
 			}
-			i++
-			tokens = append(tokens, &token{typ: tkStr, literal: str})
-			continue
+			// right quote is skipped at the bottom
+			t := newtoken(tkStr)
+			t.literal = str
+			appendtoken(t)
+
+		case isdigit(rs[i]):
+			// i64 or f64
+			s := ""
+			for i <= len(rs) - 1 && (isdigit(rs[i]) || isdot(rs[i])) {
+				if len(rs) <= i {
+					break
+				}
+
+				s += string(rs[i])
+				i++
+			}
+
+			var t *token
+			switch strings.Count(s, ".") {
+			case 0:
+				t = newtoken(tkI64)
+			case 1:
+				t = newtoken(tkF64)
+			default:
+				return nil, newtokenizeErr("invalid decimal expression")
+			}
+
+			t.literal = s
+			appendtoken(t)
+
+			continue // needed not to increment i again
+
+		default:
+			// identifier or keyword
+			ident := ""
+			for isidentletter(rs[i]) {
+				ident += string(rs[i])
+				i++
+			}
+			typ := lookupIdent(ident)
+			if typ == tkIdent {
+				t := newtoken(tkIdent)
+				t.literal = ident
+				appendtoken(t)
+			} else {
+				// keywords
+				appendtoken(newtoken(typ))
+			}
+
+			continue // needed not to increment i again
 		}
 
-		// identifier
-		ident := ""
-		for isidentletter(rline[i]) {
-			ident += string(rline[i])
-			i++
-		}
-		typ := lookupIdent(ident)
-		if typ == tkIdent {
-			tokens = append(tokens, &token{typ: tkIdent, literal: ident})
-		} else {
-			// keywords
-			tokens = append(tokens, &token{typ: typ})
-		}
+		i++
 	}
 
 	return tokens, nil
@@ -201,6 +218,7 @@ func tokenize(line string) ([]*token, error) {
 
 func lookupIdent(ident string) tktype {
 	switch ident {
+		// todo: keywords are defined here
 	}
 
 	return tkIdent
@@ -212,7 +230,6 @@ func isidentletter(r rune) bool {
 
 func isspace(r rune) bool {
 	return r == ' ' || r == '\t'
-
 }
 
 func isdot(r rune) bool {
