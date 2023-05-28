@@ -15,6 +15,7 @@ const (
 	tInt64
 	tFloat64
 	tFn
+	tVar
 )
 
 type obj interface {

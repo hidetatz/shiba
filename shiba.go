@@ -26,24 +26,25 @@ func resolvevar(mod, varname string) string {
 	return fmt.Sprintf("%s/%s", mod, varname)
 }
 
-func (s *shiba) eval(mod string, n node) (obj, error) {
-	switch v := n.(type) {
-	case *commentStmt:
+func (s *shiba) eval(mod string, n *node) (obj, error) {
+	switch n.typ {
+	case ndComment:
 		return nil, nil
 
-	case *assignStmt:
-		ident := v.ident
-		val, err := s.eval(mod, v.right)
+	case ndAssign:
+		l := n.lhs.ident
+
+		r, err := s.eval(mod, n.rhs)
 		if err != nil {
 			return nil, err
 		}
 
-		s.setenv(resolvevar(mod, ident.name), val)
+		s.setenv(resolvevar(mod, l), r)
 
-	case *callExpr:
-		fname := v.fnname.name
+	case ndFuncall:
+		fname := n.fnname.ident
 		args := []obj{}
-		for _, a := range v.args {
+		for _, a := range n.args.nodes {
 			o, err := s.eval(mod, a)
 			if err != nil {
 				return nil, err
@@ -66,22 +67,22 @@ func (s *shiba) eval(mod string, n node) (obj, error) {
 
 		return nil, fmt.Errorf("function %s is undefined", fname)
 
-	case *identExpr:
-		o, ok := s.getenv(resolvevar(mod, v.name))
+	case ndIdent:
+		o, ok := s.getenv(resolvevar(mod, n.ident))
 		if !ok {
-			return nil, fmt.Errorf("unknown var or func name: %s", v.name)
+			return nil, fmt.Errorf("unknown var or func name: %s", n.ident)
 		}
 
 		return o, nil
 
-	case *stringExpr:
-		return &oString{val: v.val}, nil
+	case ndStr:
+		return &oString{val: n.sval}, nil
 
-	case *int64Expr:
-		return &oInt64{val: v.val}, nil
+	case ndI64:
+		return &oInt64{val: n.ival}, nil
 
-	case *float64Expr:
-		return &oFloat64{val: v.val}, nil
+	case ndF64:
+		return &oFloat64{val: n.fval}, nil
 	}
 
 	return nil, fmt.Errorf("unknown node")

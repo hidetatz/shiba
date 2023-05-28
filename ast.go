@@ -1,58 +1,53 @@
 package main
 
-/*
- * AST
- */
+type ndType int
 
-type node interface {
-	isnode()
+const (
+	ndComment = iota
+
+	ndAdd
+	ndSub
+	ndMul
+	ndDiv
+	ndMod
+
+	ndAssign
+	ndFuncall
+
+	ndArgs
+	ndIdent
+
+	ndStr
+	ndI64
+	ndF64
+)
+
+type node struct {
+	typ ndType
+
+	next *node
+
+	comment string
+
+	ident string
+
+	// infix operation
+	lhs *node
+	rhs *node
+
+	// func call
+	fnname *node
+	args *node
+
+	// primitive values
+	nodes []*node
+	sval string
+	ival int64
+	fval float64
 }
 
-type expr interface {
-	node
-	isexpr()
-}
-
-type stmt interface {
-	node
-	isstmt()
-}
-
-// comment does not effect the program.
-type commentStmt struct {
-	stmt
-	message string
-}
-
-// ident = value
-type assignStmt struct {
-	stmt
-	ident *identExpr
-	right expr
-}
-
-type callExpr struct {
-	expr
-	fnname *identExpr
-	args   []expr
-}
-
-type identExpr struct {
-	expr
-	name string
-}
-
-type stringExpr struct {
-	expr
-	val string
-}
-
-type int64Expr struct {
-	expr
-	val int64
-}
-
-type float64Expr struct {
-	expr
-	val float64
+func newnode(typ ndType) *node {
+	return &node{
+		typ: typ,
+	}
 }
