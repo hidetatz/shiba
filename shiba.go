@@ -6,7 +6,7 @@ import (
 )
 
 type env struct {
-	v map[string]obj
+	v map[string]*obj
 }
 
 func (e *env) String() string {
@@ -26,7 +26,7 @@ func resolvevar(mod, varname string) string {
 	return fmt.Sprintf("%s/%s", mod, varname)
 }
 
-func (s *shiba) eval(mod string, n *node) (obj, error) {
+func (s *shiba) eval(mod string, n *node) (*obj, error) {
 	switch n.typ {
 	case ndComment:
 		return nil, nil
@@ -43,7 +43,7 @@ func (s *shiba) eval(mod string, n *node) (obj, error) {
 
 	case ndFuncall:
 		fname := n.fnname.ident
-		args := []obj{}
+		args := []*obj{}
 		for _, a := range n.args.nodes {
 			o, err := s.eval(mod, a)
 			if err != nil {
@@ -61,7 +61,7 @@ func (s *shiba) eval(mod string, n *node) (obj, error) {
 
 		bf, ok := s.lookupBuiltinFn(fname)
 		if ok {
-			o := bf.f(args...)
+			o := bf(args...)
 			return o, nil
 		}
 
@@ -75,45 +75,176 @@ func (s *shiba) eval(mod string, n *node) (obj, error) {
 
 		return o, nil
 
+	case ndAdd:
+		l, err := s.eval(mod, n.lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := s.eval(mod, n.rhs)
+		if err != nil {
+			return nil, err
+		}
+
+
+		switch {
+		case l.typ == tString && r.typ == tString:
+			return &obj{typ: tString, sval: l.sval + r.sval}, nil
+
+		case l.typ == tInt64 && r.typ == tInt64:
+			return &obj{typ: tInt64, ival: l.ival + r.ival}, nil
+
+		case l.typ == tFloat64 && r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: l.fval + r.fval}, nil
+
+		case l.typ == tInt64&& r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}, nil
+
+		case l.typ == tFloat64 && r.typ == tInt64:
+			return &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}, nil
+		}
+
+		return nil, fmt.Errorf("unsupported add operation")
+
+	case ndSub:
+		l, err := s.eval(mod, n.lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := s.eval(mod, n.rhs)
+		if err != nil {
+			return nil, err
+		}
+
+
+		switch {
+		case l.typ == tInt64 && r.typ == tInt64:
+			return &obj{typ: tInt64, ival: l.ival - r.ival}, nil
+
+		case l.typ == tFloat64 && r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: l.fval - r.fval}, nil
+
+		case l.typ == tInt64&& r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}, nil
+
+		case l.typ == tFloat64 && r.typ == tInt64:
+			return &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}, nil
+		}
+
+		return nil, fmt.Errorf("unsupported sub operation")
+
+	case ndMul:
+		l, err := s.eval(mod, n.lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := s.eval(mod, n.rhs)
+		if err != nil {
+			return nil, err
+		}
+
+
+		switch {
+		case l.typ == tString && r.typ == tInt64:
+			return &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}, nil
+
+		case l.typ == tInt64 && r.typ == tString:
+			return &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}, nil
+
+		case l.typ == tInt64 && r.typ == tInt64:
+			return &obj{typ: tInt64, ival: l.ival * r.ival}, nil
+
+		case l.typ == tFloat64 && r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: l.fval * r.fval}, nil
+
+		case l.typ == tInt64&& r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}, nil
+
+		case l.typ == tFloat64 && r.typ == tInt64:
+			return &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}, nil
+		}
+
+		return nil, fmt.Errorf("unsupported multiply operation")
+
+	case ndDiv:
+		l, err := s.eval(mod, n.lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := s.eval(mod, n.rhs)
+		if err != nil {
+			return nil, err
+		}
+
+
+		switch {
+		case l.typ == tInt64 && r.typ == tInt64:
+			return &obj{typ: tInt64, ival: l.ival / r.ival}, nil
+
+		case l.typ == tFloat64 && r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: l.fval / r.fval}, nil
+
+		case l.typ == tInt64&& r.typ == tFloat64:
+			return &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}, nil
+
+		case l.typ == tFloat64 && r.typ == tInt64:
+			return &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}, nil
+		}
+
+		return nil, fmt.Errorf("unsupported divide operation")
+		
+	case ndMod:
+		l, err := s.eval(mod, n.lhs)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := s.eval(mod, n.rhs)
+		if err != nil {
+			return nil, err
+		}
+
+
+		switch {
+		case l.typ == tInt64 && r.typ == tInt64:
+			return &obj{typ: tInt64, ival: l.ival % r.ival}, nil
+		}
+
+		return nil, fmt.Errorf("unsupported divide operation")
+
 	case ndStr:
-		return &oString{val: n.sval}, nil
+		return &obj{typ: tString, sval: n.sval}, nil
 
 	case ndI64:
-		return &oInt64{val: n.ival}, nil
+		return &obj{typ: tInt64, ival: n.ival}, nil
 
 	case ndF64:
-		return &oFloat64{val: n.fval}, nil
+		return &obj{typ: tFloat64, fval: n.fval}, nil
 	}
 
 	return nil, fmt.Errorf("unknown node")
 }
 
 // todo: check if the var is writable from caller
-func (s *shiba) setenv(ident string, obj obj) {
-	s.env.v[ident] = obj
+func (s *shiba) setenv(ident string, o *obj) {
+	s.env.v[ident] = o
 }
 
 // todo: check if the var is writable from caller
-func (s *shiba) getenv(ident string) (obj, bool) {
+func (s *shiba) getenv(ident string) (*obj, bool) {
 	o, ok := s.env.v[ident]
 	return o, ok
 }
 
 // todo: check if the func is callable from caller
-func (s *shiba) lookupFn(fnname string) (obj, bool) {
-	o, ok := s.env.v[fnname]
-	if !ok {
-		return nil, false
-	}
-
-	if ofn, ok := o.(*oFn); ok {
-		return ofn, true
-	}
-
+func (s *shiba) lookupFn(fnname string) (*obj, bool) {
 	return nil, false
 }
 
-func (s *shiba) lookupBuiltinFn(fnname string) (*oBuiltinFn, bool) {
+func (s *shiba) lookupBuiltinFn(fnname string) (func(objs ...*obj) *obj, bool) {
 	o, ok := bulitinFns[fnname]
 	return o, ok
-}
+} 

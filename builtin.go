@@ -4,22 +4,35 @@ import (
 	"fmt"
 )
 
-var NIL = &oNil{}
+var NIL = &obj{typ: tNil}
 
-var bulitinFns = map[string]*oBuiltinFn{
-	"print": &oBuiltinFn{
-		name: "print",
-		f: func(args ...obj) obj {
-			for i, arg := range args {
-				fmt.Print(arg)
-				if i != len(args)-1 {
-					fmt.Print(" ")
-				}
-			}
+	
+// var bulitinFns = map[string]func(objs ...obj) obj{
+// 	"print": func(objs ...obj) obj{ return nil },
+// 			for i, arg := range args {
+// 				fmt.Print(arg)
+// 				if i != len(args)-1 {
+// 					fmt.Print(" ")
+// 				}
+// 			}
+// 
+// 			fmt.Println("")
+// 
+// 			return NIL
+// 	},
+// }
 
-			fmt.Println("")
-
-			return NIL
-		},
+var bulitinFns = map[string]func(objs ...*obj) *obj{
+	"print": func(args ...*obj) *obj {
+ 			for i, arg := range args {
+ 				fmt.Print(arg)
+ 				if i != len(args)-1 {
+ 					fmt.Print(" ")
+ 				}
+ 			}
+ 
+ 			fmt.Println("")
+ 
+ 			return NIL
 	},
 }

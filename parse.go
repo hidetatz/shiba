@@ -15,10 +15,18 @@ type parser struct {
  */
 
 func (p *parser) isnext(t tktype) bool {
+	if len(p.tokens) <= p.cur {
+		return false
+	}
+
 	return p.tokens[p.cur].typ == t
 }
 
 func (p *parser) isnextnext(t tktype) bool {
+	if len(p.tokens) - 1 <= p.cur {
+		return false
+	}
+
 	return p.tokens[p.cur+1].typ == t
 }
 
@@ -48,8 +56,7 @@ func parse(tokens []*token) (n *node, err error) {
 	// Returning error will make the parser code not easy to read.
 	defer func() {
 		if r := recover(); r != nil {
-			rs := r.(string)
-			err = fmt.Errorf(rs)
+			err = fmt.Errorf("%v", r)
 		}
 	}()
 
@@ -108,13 +115,13 @@ func (p *parser) assign() *node {
  * expression
  */
 
-// expr = funcall | unary
+// expr = funcall | add
 func (p *parser) expr() *node {
 	if p.isnext(tkIdent) && p.isnextnext(tkLParen) {
 		return p.funcall()
 	}
 
-	return p.unary()
+	return p.add()
 }
 
 // funcall = ident "(" funargs? ")"
@@ -154,11 +161,73 @@ func (p *parser) funargs() *node {
 
 // add = mul ("+" mul | "-" mul)*
 func (p *parser) add() *node {
-	// m := p.mul()
+	var n *node
+	m := p.mul()
 
-	// for {
-	// }
-	return nil
+	for {
+		switch {
+		case p.isnext(tkPlus):
+			p.next()
+			n2 := newnode(ndAdd)
+			n2.lhs = m
+			n2.rhs = p.mul()
+			n = n2
+
+		case p.isnext(tkHyphen):
+			p.next()
+			n2 := newnode(ndSub)
+			n2.lhs = m
+			n2.rhs = p.mul()
+			n = n2
+
+		default:
+			goto done
+		}
+
+		m = n
+	}
+	done:
+
+	return m
+}
+
+// mul = unary ("*" unary | "/" unary | "%" unary)*
+func (p *parser) mul() *node {
+	var n *node
+	m := p.unary()
+
+	for {
+		switch {
+		case p.isnext(tkStar):
+			p.next()
+			n2 := newnode(ndMul)
+			n2.lhs = m
+			n2.rhs = p.unary()
+			n = n2
+
+		case p.isnext(tkSlash):
+			p.next()
+			n2 := newnode(ndDiv)
+			n2.lhs = m
+			n2.rhs = p.unary()
+			n = n2
+
+		case p.isnext(tkPercent):
+			p.next()
+			n2 := newnode(ndMod)
+			n2.lhs = m
+			n2.rhs = p.unary()
+			n = n2
+
+		default:
+			goto done
+		}
+
+		m = n
+	}
+	done:
+
+	return m
 }
 
 // unary = ident | NUMBER_INT | NUMBER_FLOAT | STRING

@@ -193,7 +193,7 @@ func tokenize(line string) ([]*token, error) {
 		default:
 			// identifier or keyword
 			ident := ""
-			for isidentletter(rs[i]) {
+			for i <= len(rs) - 1 && isidentletter(rs[i]) {
 				ident += string(rs[i])
 				i++
 			}

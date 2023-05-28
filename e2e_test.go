@@ -18,12 +18,85 @@ func TestE2E(t *testing.T) {
 		content string
 		out     string
 	}{
+		"arithmetic1": {
+			content: d(`
+				a = 1 + 2
+				print(a)
+			`),
+			out: d(`
+				3
+			`),
+		},
+		"arithmetic2": {
+			content: d(`
+				a = 1 + 2 * 3
+				print(a)
+			`),
+			out: d(`
+				7
+			`),
+		},
+		"arithmetic3": {
+			content: d(`
+				a = 100 / 10 - 3 + 2 * 5 / 2
+				print(a)
+			`),
+			out: d(`
+				12
+			`),
+		},
+		"arithmetic4": {
+			content: d(`
+				a = 2.5 / 0.5
+				print(a)
+			`),
+			out: d(`
+				5.000000
+			`),
+		},
+		"arithmetic5": {
+			content: d(`
+				a = 2.5 / 0.5 * 10
+				print(a)
+			`),
+			out: d(`
+				50.000000
+			`),
+		},
+		"concat1": {
+			content: d(`
+				a = "xxx"
+				b = "yyy"
+				c = a + b
+				print(c)
+				print(a + b)
+			`),
+			out: d(`
+				xxxyyy
+				xxxyyy
+			`),
+		},
+		"concat2": {
+			content: d(`
+				a = "xxx"
+				b = a * 3
+				print(b)
+				print(a * 3)
+				c = 3 * a
+				print(c)
+			`),
+			out: d(`
+				xxxxxxxxx
+				xxxxxxxxx
+				xxxxxxxxx
+			`),
+		},
 		"assign": {
 			content: d(`
 				a = 99
 				print(a)
 			`),
-			out: heredoc.Doc(`
+			out: d(`
 				99
 			`),
 		},
