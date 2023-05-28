@@ -86,7 +86,6 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
-
 		switch {
 		case l.typ == tString && r.typ == tString:
 			return &obj{typ: tString, sval: l.sval + r.sval}, nil
@@ -97,7 +96,7 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		case l.typ == tFloat64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: l.fval + r.fval}, nil
 
-		case l.typ == tInt64&& r.typ == tFloat64:
+		case l.typ == tInt64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}, nil
 
 		case l.typ == tFloat64 && r.typ == tInt64:
@@ -117,7 +116,6 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
-
 		switch {
 		case l.typ == tInt64 && r.typ == tInt64:
 			return &obj{typ: tInt64, ival: l.ival - r.ival}, nil
@@ -125,7 +123,7 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		case l.typ == tFloat64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: l.fval - r.fval}, nil
 
-		case l.typ == tInt64&& r.typ == tFloat64:
+		case l.typ == tInt64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}, nil
 
 		case l.typ == tFloat64 && r.typ == tInt64:
@@ -145,7 +143,6 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
-
 		switch {
 		case l.typ == tString && r.typ == tInt64:
 			return &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}, nil
@@ -159,7 +156,7 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		case l.typ == tFloat64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: l.fval * r.fval}, nil
 
-		case l.typ == tInt64&& r.typ == tFloat64:
+		case l.typ == tInt64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}, nil
 
 		case l.typ == tFloat64 && r.typ == tInt64:
@@ -179,7 +176,6 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
-
 		switch {
 		case l.typ == tInt64 && r.typ == tInt64:
 			return &obj{typ: tInt64, ival: l.ival / r.ival}, nil
@@ -187,7 +183,7 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		case l.typ == tFloat64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: l.fval / r.fval}, nil
 
-		case l.typ == tInt64&& r.typ == tFloat64:
+		case l.typ == tInt64 && r.typ == tFloat64:
 			return &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}, nil
 
 		case l.typ == tFloat64 && r.typ == tInt64:
@@ -195,7 +191,7 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		}
 
 		return nil, fmt.Errorf("unsupported divide operation")
-		
+
 	case ndMod:
 		l, err := s.eval(mod, n.lhs)
 		if err != nil {
@@ -206,7 +202,6 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 		if err != nil {
 			return nil, err
 		}
-
 
 		switch {
 		case l.typ == tInt64 && r.typ == tInt64:
@@ -247,4 +242,4 @@ func (s *shiba) lookupFn(fnname string) (*obj, bool) {
 func (s *shiba) lookupBuiltinFn(fnname string) (func(objs ...*obj) *obj, bool) {
 	o, ok := bulitinFns[fnname]
 	return o, ok
-} 
+}

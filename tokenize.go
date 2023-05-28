@@ -7,7 +7,7 @@ import (
 
 type token struct {
 	typ tktype
-	at int
+	at  int
 
 	// As of tokenize, every token is represented as literal despite of the type
 	// such as number, "string", identifier, comment, panctuator etc.
@@ -54,7 +54,7 @@ func (t *token) String() string {
 }
 
 type tokenizeErr struct {
-	line string
+	line   string
 	reason string
 	at     int
 }
@@ -73,10 +73,10 @@ const (
 
 	tkAssign  // =
 	tkPlus    // +
-	tkHyphen    // -
+	tkHyphen  // -
 	tkStar    // *
-	tkSlash    // /
-	tkPercent  // %
+	tkSlash   // /
+	tkPercent // %
 	tkHash    // #
 	tkComma   // ,
 	tkLParen  // (
@@ -105,7 +105,7 @@ func tokenize(line string) ([]*token, error) {
 		tokens = append(tokens, tk)
 	}
 
-	newtokenizeErr := func(reason string) *tokenizeErr{
+	newtokenizeErr := func(reason string) *tokenizeErr {
 		return &tokenizeErr{line, reason, i}
 	}
 
@@ -129,7 +129,7 @@ func tokenize(line string) ([]*token, error) {
 			appendtoken(newtoken(tkPlus))
 
 		case rs[i] == '-':
-			 appendtoken(newtoken(tkHyphen))
+			appendtoken(newtoken(tkHyphen))
 
 		case rs[i] == '*':
 			appendtoken(newtoken(tkStar))
@@ -166,7 +166,7 @@ func tokenize(line string) ([]*token, error) {
 		case isdigit(rs[i]):
 			// i64 or f64
 			s := ""
-			for i <= len(rs) - 1 && (isdigit(rs[i]) || isdot(rs[i])) {
+			for i <= len(rs)-1 && (isdigit(rs[i]) || isdot(rs[i])) {
 				if len(rs) <= i {
 					break
 				}
@@ -193,7 +193,7 @@ func tokenize(line string) ([]*token, error) {
 		default:
 			// identifier or keyword
 			ident := ""
-			for i <= len(rs) - 1 && isidentletter(rs[i]) {
+			for i <= len(rs)-1 && isidentletter(rs[i]) {
 				ident += string(rs[i])
 				i++
 			}
@@ -218,7 +218,7 @@ func tokenize(line string) ([]*token, error) {
 
 func lookupIdent(ident string) tktype {
 	switch ident {
-		// todo: keywords are defined here
+	// todo: keywords are defined here
 	}
 
 	return tkIdent

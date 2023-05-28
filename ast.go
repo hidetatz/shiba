@@ -42,13 +42,13 @@ type node struct {
 
 	// func call
 	fnname *node
-	args *node
+	args   *node
 
 	// primitive values
 	nodes []*node
-	sval string
-	ival int64
-	fval float64
+	sval  string
+	ival  int64
+	fval  float64
 }
 
 func newnode(typ ndType) *node {
@@ -77,9 +77,9 @@ func (n *node) String() string {
 		return n.fnname.String() + "(" + n.args.String() + ")"
 	case ndArgs:
 		sb := strings.Builder{}
-		for i, n := range(n.nodes) {
+		for i, n := range n.nodes {
 			sb.WriteString(n.String())
-			if i < len(n.nodes) - 1 {
+			if i < len(n.nodes)-1 {
 				sb.WriteString(", ")
 			}
 		}

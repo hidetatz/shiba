@@ -23,7 +23,7 @@ func (p *parser) isnext(t tktype) bool {
 }
 
 func (p *parser) isnextnext(t tktype) bool {
-	if len(p.tokens) - 1 <= p.cur {
+	if len(p.tokens)-1 <= p.cur {
 		return false
 	}
 
@@ -51,7 +51,7 @@ func (p *parser) must(t tktype) string {
  */
 
 func parse(tokens []*token) (n *node, err error) {
-	// Panic/recover is used to escape from deeply nested recursive descent parser 
+	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
 	defer func() {
@@ -110,7 +110,6 @@ func (p *parser) assign() *node {
 	return n
 }
 
-
 /*
  * expression
  */
@@ -138,7 +137,6 @@ func (p *parser) funcall() *node {
 	n.args = p.funargs()
 	return n
 }
-
 
 // funargs = expr ("," expr)*
 func (p *parser) funargs() *node {
@@ -186,7 +184,7 @@ func (p *parser) add() *node {
 
 		m = n
 	}
-	done:
+done:
 
 	return m
 }
@@ -225,7 +223,7 @@ func (p *parser) mul() *node {
 
 		m = n
 	}
-	done:
+done:
 
 	return m
 }
