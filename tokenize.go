@@ -38,6 +38,10 @@ func (t *token) String() string {
 		return "{(}"
 	case tkRParen:
 		return "{)}"
+	case tkDef:
+		return "{def}"
+	case tkEnd:
+		return "{fn}"
 	case tkComment:
 		return fmt.Sprintf("{%s(comment)}", t.literal)
 	case tkIdent:
@@ -81,6 +85,7 @@ const (
 	tkComma   // ,
 	tkLParen  // (
 	tkRParen  // )
+	tkFn      // fn
 	tkComment // comment message
 	tkStr     // "string value"
 	tkI64     // int64
@@ -218,7 +223,8 @@ func tokenize(line string) ([]*token, error) {
 
 func lookupIdent(ident string) tktype {
 	switch ident {
-	// todo: keywords are defined here
+	case "def":
+		return tkDef
 	}
 
 	return tkIdent
