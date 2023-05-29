@@ -189,7 +189,7 @@ done:
 	return m
 }
 
-// mul = unary ("*" unary | "/" unary | "%" unary)*
+// mul = unary ("(" add ")" | "*" unary | "/" unary | "%" unary)*
 func (p *parser) mul() *node {
 	var n *node
 	m := p.unary()
@@ -232,6 +232,12 @@ done:
 func (p *parser) unary() *node {
 	var n *node
 	switch {
+	case p.isnext(tkLParen):
+		p.next()
+		n := p.expr()
+		p.must(tkRParen)
+		return n
+
 	case p.isnext(tkIdent):
 		return p.ident()
 

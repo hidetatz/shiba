@@ -78,6 +78,24 @@ func TestE2E(t *testing.T) {
 				1
 			`),
 		},
+		"arithmetic7": {
+			content: d(`
+				a = (1+2) * (3-2)
+				print(a)
+			`),
+			out: d(`
+				3
+			`),
+		},
+		"arithmetic8": {
+			content: d(`
+				a = (1*2) + ((3-2) * 12 +(1*5))
+				print(a)
+			`),
+			out: d(`
+				19
+			`),
+		},
 		"concat1": {
 			content: d(`
 				a = "xxx"
