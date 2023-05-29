@@ -63,6 +63,21 @@ func TestE2E(t *testing.T) {
 				50.000000
 			`),
 		},
+		"arithmetic6": {
+			content: d(`
+				a = 1
+				b = 2
+				c = 3
+				d = 4
+				e = a * b - c + d * a / b
+				print(e)
+				print(a * b - c + d * a / b)
+			`),
+			out: d(`
+				1
+				1
+			`),
+		},
 		"concat1": {
 			content: d(`
 				a = "xxx"
