@@ -86,24 +86,30 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
+		var o *obj
+
 		switch {
 		case l.typ == tString && r.typ == tString:
-			return &obj{typ: tString, sval: l.sval + r.sval}, nil
+			o = &obj{typ: tString, sval: l.sval + r.sval}
 
 		case l.typ == tInt64 && r.typ == tInt64:
-			return &obj{typ: tInt64, ival: l.ival + r.ival}, nil
+			o = &obj{typ: tInt64, ival: l.ival + r.ival}
 
 		case l.typ == tFloat64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: l.fval + r.fval}, nil
+			o = &obj{typ: tFloat64, fval: l.fval + r.fval}
 
 		case l.typ == tInt64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}, nil
+			o = &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}
 
 		case l.typ == tFloat64 && r.typ == tInt64:
-			return &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}, nil
+			o = &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}
+
+		default:
+			return nil, fmt.Errorf("unsupported add operation")
 		}
 
-		return nil, fmt.Errorf("unsupported add operation")
+		return o, nil
+
 
 	case ndSub:
 		l, err := s.eval(mod, n.lhs)
@@ -116,21 +122,26 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
+		var o *obj
+
 		switch {
 		case l.typ == tInt64 && r.typ == tInt64:
-			return &obj{typ: tInt64, ival: l.ival - r.ival}, nil
+			o = &obj{typ: tInt64, ival: l.ival - r.ival}
 
 		case l.typ == tFloat64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: l.fval - r.fval}, nil
+			o = &obj{typ: tFloat64, fval: l.fval - r.fval}
 
 		case l.typ == tInt64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}, nil
+			o = &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}
 
 		case l.typ == tFloat64 && r.typ == tInt64:
-			return &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}, nil
+			o = &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}
+
+		default:
+			return nil, fmt.Errorf("unsupported sub operation")
 		}
 
-		return nil, fmt.Errorf("unsupported sub operation")
+		return o, nil
 
 	case ndMul:
 		l, err := s.eval(mod, n.lhs)
@@ -143,27 +154,33 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
+		var o *obj
+
 		switch {
 		case l.typ == tString && r.typ == tInt64:
-			return &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}, nil
+			o = &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}
 
 		case l.typ == tInt64 && r.typ == tString:
-			return &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}, nil
+			o = &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}
 
 		case l.typ == tInt64 && r.typ == tInt64:
-			return &obj{typ: tInt64, ival: l.ival * r.ival}, nil
+			o = &obj{typ: tInt64, ival: l.ival * r.ival}
 
 		case l.typ == tFloat64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: l.fval * r.fval}, nil
+			o = &obj{typ: tFloat64, fval: l.fval * r.fval}
 
 		case l.typ == tInt64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}, nil
+			o = &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}
 
 		case l.typ == tFloat64 && r.typ == tInt64:
-			return &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}, nil
+			o = &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}
+
+		default:
+			return nil, fmt.Errorf("unsupported multiply operation")
 		}
 
-		return nil, fmt.Errorf("unsupported multiply operation")
+		return o, nil
+
 
 	case ndDiv:
 		l, err := s.eval(mod, n.lhs)
@@ -176,21 +193,26 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
+		var o *obj
+
 		switch {
 		case l.typ == tInt64 && r.typ == tInt64:
-			return &obj{typ: tInt64, ival: l.ival / r.ival}, nil
+			o = &obj{typ: tInt64, ival: l.ival / r.ival}
 
 		case l.typ == tFloat64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: l.fval / r.fval}, nil
+			o = &obj{typ: tFloat64, fval: l.fval / r.fval}
 
 		case l.typ == tInt64 && r.typ == tFloat64:
-			return &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}, nil
+			o = &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}
 
 		case l.typ == tFloat64 && r.typ == tInt64:
-			return &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}, nil
+			o = &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}
+
+		default:
+			return nil, fmt.Errorf("unsupported divide operation")
 		}
 
-		return nil, fmt.Errorf("unsupported divide operation")
+		return o, nil
 
 	case ndMod:
 		l, err := s.eval(mod, n.lhs)
@@ -203,21 +225,25 @@ func (s *shiba) eval(mod string, n *node) (*obj, error) {
 			return nil, err
 		}
 
-		switch {
-		case l.typ == tInt64 && r.typ == tInt64:
-			return &obj{typ: tInt64, ival: l.ival % r.ival}, nil
+		if l.typ != tInt64 || r.typ != tInt64 {
+			return nil, fmt.Errorf("unsupported divide operation")
 		}
 
-		return nil, fmt.Errorf("unsupported divide operation")
+		o := &obj{typ: tInt64, ival: l.ival % r.ival}
+
+		return o, nil
 
 	case ndStr:
 		return &obj{typ: tString, sval: n.sval}, nil
 
 	case ndI64:
-		return &obj{typ: tInt64, ival: n.ival}, nil
+		o := &obj{typ: tInt64, ival: n.ival}
+		return o, nil
+
 
 	case ndF64:
-		return &obj{typ: tFloat64, fval: n.fval}, nil
+		o := &obj{typ: tFloat64, fval: n.fval}
+		return o, nil
 	}
 
 	return nil, fmt.Errorf("unknown node")

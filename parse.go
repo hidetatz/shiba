@@ -228,8 +228,29 @@ done:
 	return m
 }
 
-// unary = ident | NUMBER_INT | NUMBER_FLOAT | STRING
+// unary   = ("+" | "-")? primary
 func (p *parser) unary() *node {
+	if p.isnext(tkPlus) {
+		p.next()
+		return p.primary()
+	}
+
+	if p.isnext(tkHyphen) {
+		// -primary is replaced with 0 - primary sub
+		p.next()
+		nn := newnode(ndSub)
+		nn.lhs = newnode(ndI64)
+		nn.lhs.ival = 0
+		nn.rhs = p.primary()
+		return nn
+	}
+
+
+	return p.primary()
+}
+
+// primary = ident | NUMBER_INT | NUMBER_FLOAT | STRING
+func (p *parser) primary() *node {
 	var n *node
 	switch {
 	case p.isnext(tkLParen):

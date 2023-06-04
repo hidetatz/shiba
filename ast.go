@@ -62,15 +62,15 @@ func (n *node) String() string {
 	case ndComment:
 		return "# " + n.comment
 	case ndAdd:
-		return n.lhs.String() + " + " + n.rhs.String()
+		return "(" + n.lhs.String() + " + " + n.rhs.String() + ")"
 	case ndSub:
-		return n.lhs.String() + " - " + n.rhs.String()
+		return "(" + n.lhs.String() + " - " + n.rhs.String() + ")"
 	case ndMul:
-		return n.lhs.String() + " * " + n.rhs.String()
+		return "(" + n.lhs.String() + " * " + n.rhs.String() + ")"
 	case ndDiv:
-		return n.lhs.String() + " / " + n.rhs.String()
+		return "(" + n.lhs.String() + " / " + n.rhs.String() + ")"
 	case ndMod:
-		return n.lhs.String() + " % " + n.rhs.String()
+		return "(" + n.lhs.String() + " % " + n.rhs.String() + ")"
 	case ndAssign:
 		return n.lhs.String() + " = " + n.rhs.String()
 	case ndFuncall:

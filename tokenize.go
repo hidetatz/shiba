@@ -41,7 +41,7 @@ func (t *token) String() string {
 	case tkDef:
 		return "{def}"
 	case tkEnd:
-		return "{fn}"
+		return "{end}"
 	case tkComment:
 		return fmt.Sprintf("{%s(comment)}", t.literal)
 	case tkIdent:
@@ -85,7 +85,8 @@ const (
 	tkComma   // ,
 	tkLParen  // (
 	tkRParen  // )
-	tkFn      // fn
+	tkDef     // def
+	tkEnd     // end
 	tkComment // comment message
 	tkStr     // "string value"
 	tkI64     // int64
