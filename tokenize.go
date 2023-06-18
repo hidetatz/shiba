@@ -38,14 +38,14 @@ func (t *token) String() string {
 		return "{(}"
 	case tkRParen:
 		return "{)}"
+	case tkLBrace:
+		return "{{}"
+	case tkRBrace:
+		return "{}}"
 	case tkIf:
 		return "{if}"
-	case tkThen:
-		return "{then}"
 	case tkDef:
 		return "{def}"
-	case tkEnd:
-		return "{end}"
 	case tkComment:
 		return fmt.Sprintf("{%s(comment)}", t.literal)
 	case tkIdent:
@@ -89,6 +89,8 @@ const (
 	tkComma   // ,
 	tkLParen  // (
 	tkRParen  // )
+	tkLBrace  // {
+	tkRBrace  // }
 	tkIf      // if
 	tkThen    // then
 	tkDef     // def
@@ -99,7 +101,7 @@ const (
 	tkF64     // float64
 )
 
-func tokenizeLine(line string) ([]*token, error) {
+func tokenize(line string) ([]*token, error) {
 	tokens := []*token{}
 
 	if line == "" {
@@ -160,6 +162,12 @@ func tokenizeLine(line string) ([]*token, error) {
 
 		case rs[i] == ')':
 			appendtoken(newtoken(tkRParen))
+
+		case rs[i] == '{':
+			appendtoken(newtoken(tkLBrace))
+
+		case rs[i] == '}':
+			appendtoken(newtoken(tkRBrace))
 
 		case rs[i] == '"':
 			i++ // skip left quote
@@ -232,8 +240,6 @@ func lookupIdent(ident string) tktype {
 	switch ident {
 	case "if":
 		return tkIf
-	case "then":
-		return tkThen
 	case "def":
 		return tkDef
 	}

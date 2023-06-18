@@ -1,37 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"strings"
 )
-
-type module struct {
-	name    string
-	curline int // starts from 1
-	f       *os.File
-	lines   []string
-	bottom  int
-}
-
-func (m *module) close() error {
-	return m.f.Close()
-}
-
-func (m *module) hasNextLine() bool {
-	return m.curline <= m.bottom
-}
-
-func (m *module) nextLine() (string, bool) {
-	if !m.hasNextLine() {
-		return "", false
-	}
-
-	l := m.lines[m.curline-1] // because curline starts from 1
-	m.curline++
-	return l, true
-}
 
 type environment struct {
 	v map[string]*obj
@@ -48,104 +20,75 @@ func (e *environment) String() string {
 	return b.String()
 }
 
-func loadmod(mod string) (*module, error) {
-	f, err := os.Open(mod)
-	if err != nil {
-		return nil, err
-	}
-
-	bottom := 0
-	lines := []string{}
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
-		bottom++
-	}
-
-	return &module{
-		name:    mod,
-		curline: 1,
-		f:       f,
-		lines:   lines,
-		bottom:  bottom,
-	}, nil
-}
-
 func runmod(mod string) int {
 	m, err := loadmod(mod)
 	if err != nil {
 		werr("load the module: %v", err)
 		return 1
 	}
-	defer m.close()
 
-	for m.hasNextLine() {
-		var stmt *node
+	for m.remains() {
+		// read statement from module
+		str := readstmt(m)
+		if str == "" {
+			return 0
+		}
 
-		for {
-			line, ok := m.nextLine()
-			if !ok {
-				werr("%s:%d empty line is not permitted here", m.name, m.curline)
-				return 2
-			}
+		// try tokenization
+		tks, err := tokenize(str)
+		if err != nil {
+			werr("%s:%d %s", m.name, m.line, err)
+			return 3
+		}
 
-			tks, err := tokenizeLine(line)
-			if err != nil {
-				werr("%s:%d %s", m.name, m.curline, err)
-				return 3
-			}
+		if tks[0].typ == tkIf {
+			// if token startw with "if", 
+			for {
+				s := readstmt(m)
+				if s == "" {
+					werr("%s:%d %s", m.name, m.line, "if statement does not finish properly")
+					return 0
+				}
 
-			n, err := parseLine(tks)
-			if err != nil {
-				werr("%s:%d %s", m.name, m.curline, err)
-				return 4
-			}
+				ts, err := tokenize(str)
+				if err != nil {
+					werr("%s:%d %s", m.name, m.line, err)
+					return 3
+				}
 
-			stmt = n
-
-			if !n.wip {
-				break
+				tks = append(tks, ts...)
+				if tks[len(tks) - 1].typ == tkRBrace {
+					break
+				}
 			}
 		}
 
-		_, err := eval(m, stmt)
+		stmt, err := parse(tks)
 		if err != nil {
-			werr("%s:%d %s", m.name, m.curline, err)
+			werr("%s:%d %s", m.name, m.line, err)
+			return 4
+		}
+
+		_, err = eval(m, stmt)
+		if err != nil {
+			werr("%s:%d %s", m.name, m.line, err)
 			return 5
 		}
 	}
 
 	return 0
+}
 
-	// for sc.Scan() {
-	// 	line := sc.Text()
+func readstmt(m *module) string {
+	str := ""
+	for m.remains() {
+		r := m.next()
+		if r == '\n' || r == ';' {
+			break
+		}
 
-	// 	tokens, err := tokenize(line)
-	// 	if err != nil {
-	// 		werr("%s:%d %s", mod, l, err)
-	// 		return 2
-	// 	}
+		str += string(r)
+	}
 
-	// 	if len(tokens) == 0 {
-	// 		l++
-	// 		continue
-	// 	}
-
-	// 	// fmt.Println(tokens)
-
-	// 	node, err := parse(tokens)
-	// 	if err != nil {
-	// 		werr("%s:%d %s", mod, l, err)
-	// 		return 3
-	// 	}
-
-	// 	// fmt.Println(node)
-
-	// 	s.eval(mod, node)
-
-	// 	l++
-	// }
-
-	// return 0
+	return str
 }

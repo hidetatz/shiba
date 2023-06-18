@@ -31,7 +31,6 @@ const (
 
 type node struct {
 	typ ndType
-	wip bool
 
 	comment string
 
