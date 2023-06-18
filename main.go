@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 )
@@ -27,55 +26,10 @@ func run(args []string) int {
 		return 1
 	}
 
+	env = &environment{
+		v: map[string]*obj{},
+	}
+
 	mod := args[1]
 	return runmod(mod)
-}
-
-func runmod(mod string) int {
-	f, err := os.Open(mod)
-	if err != nil {
-		werr("open the file: %v", err)
-		return 1
-	}
-	defer f.Close()
-
-	sc := bufio.NewScanner(f)
-
-	s := &shiba{
-		env: &env{
-			v: map[string]*obj{},
-		},
-	}
-
-	l := 1
-	for sc.Scan() {
-		line := sc.Text()
-
-		tokens, err := tokenize(line)
-		if err != nil {
-			werr("%s:%d %s", mod, l, err)
-			return 2
-		}
-
-		if len(tokens) == 0 {
-			l++
-			continue
-		}
-
-		// fmt.Println(tokens)
-
-		node, err := parse(tokens)
-		if err != nil {
-			werr("%s:%d %s", mod, l, err)
-			return 3
-		}
-
-		// fmt.Println(node)
-
-		s.eval(mod, node)
-
-		l++
-	}
-
-	return 0
 }

@@ -38,6 +38,10 @@ func (t *token) String() string {
 		return "{(}"
 	case tkRParen:
 		return "{)}"
+	case tkIf:
+		return "{if}"
+	case tkThen:
+		return "{then}"
 	case tkDef:
 		return "{def}"
 	case tkEnd:
@@ -85,6 +89,8 @@ const (
 	tkComma   // ,
 	tkLParen  // (
 	tkRParen  // )
+	tkIf      // if
+	tkThen    // then
 	tkDef     // def
 	tkEnd     // end
 	tkComment // comment message
@@ -93,7 +99,7 @@ const (
 	tkF64     // float64
 )
 
-func tokenize(line string) ([]*token, error) {
+func tokenizeLine(line string) ([]*token, error) {
 	tokens := []*token{}
 
 	if line == "" {
@@ -224,6 +230,10 @@ func tokenize(line string) ([]*token, error) {
 
 func lookupIdent(ident string) tktype {
 	switch ident {
+	case "if":
+		return tkIf
+	case "then":
+		return tkThen
 	case "def":
 		return tkDef
 	}

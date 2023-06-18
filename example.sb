@@ -23,16 +23,7 @@ fn add2(a, b) {
 	r = a + b
 }
 
-c = -1
-d = a * c
-e = add(d, a)
-add2(d, a)
-
-f = add(add(a, r), e)
-
 g = anothermod.sub(c, d)
-
-h = a + c - (g - (f / d))
 
 if h == 0 {
     print("zero")

@@ -1,15 +1,45 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"strings"
 )
 
-type env struct {
+type module struct {
+	name    string
+	curline int // starts from 1
+	f       *os.File
+	lines   []string
+	bottom  int
+}
+
+func (m *module) close() error {
+	return m.f.Close()
+}
+
+func (m *module) hasNextLine() bool {
+	return m.curline <= m.bottom
+}
+
+func (m *module) nextLine() (string, bool) {
+	if !m.hasNextLine() {
+		return "", false
+	}
+
+	l := m.lines[m.curline-1] // because curline starts from 1
+	m.curline++
+	return l, true
+}
+
+type environment struct {
 	v map[string]*obj
 }
 
-func (e *env) String() string {
+var env *environment
+
+func (e *environment) String() string {
 	var b strings.Builder
 	for k, v := range e.v {
 		b.WriteString(fmt.Sprintf("%s: %s\n", k, v))
@@ -18,254 +48,104 @@ func (e *env) String() string {
 	return b.String()
 }
 
-type shiba struct {
-	env *env
-}
-
-func resolvevar(mod, varname string) string {
-	return fmt.Sprintf("%s/%s", mod, varname)
-}
-
-func (s *shiba) eval(mod string, n *node) (*obj, error) {
-	switch n.typ {
-	case ndComment:
-		return nil, nil
-
-	case ndAssign:
-		l := n.lhs.ident
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		s.setenv(resolvevar(mod, l), r)
-
-	case ndFuncall:
-		fname := n.fnname.ident
-		args := []*obj{}
-		for _, a := range n.args.nodes {
-			o, err := s.eval(mod, a)
-			if err != nil {
-				return nil, err
-			}
-
-			args = append(args, o)
-		}
-
-		_, ok := s.lookupFn(fname)
-		if ok {
-			// user-defined function. todo: impl
-			return nil, nil
-		}
-
-		bf, ok := s.lookupBuiltinFn(fname)
-		if ok {
-			o := bf(args...)
-			return o, nil
-		}
-
-		return nil, fmt.Errorf("function %s is undefined", fname)
-
-	case ndIdent:
-		o, ok := s.getenv(resolvevar(mod, n.ident))
-		if !ok {
-			return nil, fmt.Errorf("unknown var or func name: %s", n.ident)
-		}
-
-		return o, nil
-
-	case ndAdd:
-		l, err := s.eval(mod, n.lhs)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		var o *obj
-
-		switch {
-		case l.typ == tString && r.typ == tString:
-			o = &obj{typ: tString, sval: l.sval + r.sval}
-
-		case l.typ == tInt64 && r.typ == tInt64:
-			o = &obj{typ: tInt64, ival: l.ival + r.ival}
-
-		case l.typ == tFloat64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: l.fval + r.fval}
-
-		case l.typ == tInt64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}
-
-		case l.typ == tFloat64 && r.typ == tInt64:
-			o = &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}
-
-		default:
-			return nil, fmt.Errorf("unsupported add operation")
-		}
-
-		return o, nil
-
-
-	case ndSub:
-		l, err := s.eval(mod, n.lhs)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		var o *obj
-
-		switch {
-		case l.typ == tInt64 && r.typ == tInt64:
-			o = &obj{typ: tInt64, ival: l.ival - r.ival}
-
-		case l.typ == tFloat64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: l.fval - r.fval}
-
-		case l.typ == tInt64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}
-
-		case l.typ == tFloat64 && r.typ == tInt64:
-			o = &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}
-
-		default:
-			return nil, fmt.Errorf("unsupported sub operation")
-		}
-
-		return o, nil
-
-	case ndMul:
-		l, err := s.eval(mod, n.lhs)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		var o *obj
-
-		switch {
-		case l.typ == tString && r.typ == tInt64:
-			o = &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}
-
-		case l.typ == tInt64 && r.typ == tString:
-			o = &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}
-
-		case l.typ == tInt64 && r.typ == tInt64:
-			o = &obj{typ: tInt64, ival: l.ival * r.ival}
-
-		case l.typ == tFloat64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: l.fval * r.fval}
-
-		case l.typ == tInt64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}
-
-		case l.typ == tFloat64 && r.typ == tInt64:
-			o = &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}
-
-		default:
-			return nil, fmt.Errorf("unsupported multiply operation")
-		}
-
-		return o, nil
-
-
-	case ndDiv:
-		l, err := s.eval(mod, n.lhs)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		var o *obj
-
-		switch {
-		case l.typ == tInt64 && r.typ == tInt64:
-			o = &obj{typ: tInt64, ival: l.ival / r.ival}
-
-		case l.typ == tFloat64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: l.fval / r.fval}
-
-		case l.typ == tInt64 && r.typ == tFloat64:
-			o = &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}
-
-		case l.typ == tFloat64 && r.typ == tInt64:
-			o = &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}
-
-		default:
-			return nil, fmt.Errorf("unsupported divide operation")
-		}
-
-		return o, nil
-
-	case ndMod:
-		l, err := s.eval(mod, n.lhs)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := s.eval(mod, n.rhs)
-		if err != nil {
-			return nil, err
-		}
-
-		if l.typ != tInt64 || r.typ != tInt64 {
-			return nil, fmt.Errorf("unsupported divide operation")
-		}
-
-		o := &obj{typ: tInt64, ival: l.ival % r.ival}
-
-		return o, nil
-
-	case ndStr:
-		return &obj{typ: tString, sval: n.sval}, nil
-
-	case ndI64:
-		o := &obj{typ: tInt64, ival: n.ival}
-		return o, nil
-
-
-	case ndF64:
-		o := &obj{typ: tFloat64, fval: n.fval}
-		return o, nil
+func loadmod(mod string) (*module, error) {
+	f, err := os.Open(mod)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, fmt.Errorf("unknown node")
+	bottom := 0
+	lines := []string{}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+		bottom++
+	}
+
+	return &module{
+		name:    mod,
+		curline: 1,
+		f:       f,
+		lines:   lines,
+		bottom:  bottom,
+	}, nil
 }
 
-// todo: check if the var is writable from caller
-func (s *shiba) setenv(ident string, o *obj) {
-	s.env.v[ident] = o
-}
+func runmod(mod string) int {
+	m, err := loadmod(mod)
+	if err != nil {
+		werr("load the module: %v", err)
+		return 1
+	}
+	defer m.close()
 
-// todo: check if the var is writable from caller
-func (s *shiba) getenv(ident string) (*obj, bool) {
-	o, ok := s.env.v[ident]
-	return o, ok
-}
+	for m.hasNextLine() {
+		var stmt *node
 
-// todo: check if the func is callable from caller
-func (s *shiba) lookupFn(fnname string) (*obj, bool) {
-	return nil, false
-}
+		for {
+			line, ok := m.nextLine()
+			if !ok {
+				werr("%s:%d empty line is not permitted here", m.name, m.curline)
+				return 2
+			}
 
-func (s *shiba) lookupBuiltinFn(fnname string) (func(objs ...*obj) *obj, bool) {
-	o, ok := bulitinFns[fnname]
-	return o, ok
+			tks, err := tokenizeLine(line)
+			if err != nil {
+				werr("%s:%d %s", m.name, m.curline, err)
+				return 3
+			}
+
+			n, err := parseLine(tks)
+			if err != nil {
+				werr("%s:%d %s", m.name, m.curline, err)
+				return 4
+			}
+
+			stmt = n
+
+			if !n.wip {
+				break
+			}
+		}
+
+		_, err := eval(m, stmt)
+		if err != nil {
+			werr("%s:%d %s", m.name, m.curline, err)
+			return 5
+		}
+	}
+
+	return 0
+
+	// for sc.Scan() {
+	// 	line := sc.Text()
+
+	// 	tokens, err := tokenize(line)
+	// 	if err != nil {
+	// 		werr("%s:%d %s", mod, l, err)
+	// 		return 2
+	// 	}
+
+	// 	if len(tokens) == 0 {
+	// 		l++
+	// 		continue
+	// 	}
+
+	// 	// fmt.Println(tokens)
+
+	// 	node, err := parse(tokens)
+	// 	if err != nil {
+	// 		werr("%s:%d %s", mod, l, err)
+	// 		return 3
+	// 	}
+
+	// 	// fmt.Println(node)
+
+	// 	s.eval(mod, node)
+
+	// 	l++
+	// }
+
+	// return 0
 }

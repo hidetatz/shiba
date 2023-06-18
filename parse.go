@@ -50,7 +50,7 @@ func (p *parser) must(t tktype) string {
  * Parse implementation
  */
 
-func parse(tokens []*token) (n *node, err error) {
+func parseLine(tokens []*token) (n *node, err error) {
 	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
@@ -244,7 +244,6 @@ func (p *parser) unary() *node {
 		nn.rhs = p.primary()
 		return nn
 	}
-
 
 	return p.primary()
 }

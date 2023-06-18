@@ -8,7 +8,7 @@ import (
 type ndType int
 
 const (
-	ndComment = iota
+	ndComment ndType = iota
 
 	ndAdd
 	ndSub
@@ -18,6 +18,8 @@ const (
 
 	ndAssign
 	ndFuncall
+
+	ndIf
 
 	ndArgs
 	ndIdent
@@ -29,8 +31,7 @@ const (
 
 type node struct {
 	typ ndType
-
-	next *node
+	wip bool
 
 	comment string
 
@@ -39,6 +40,8 @@ type node struct {
 	// infix operation
 	lhs *node
 	rhs *node
+
+	cond *node
 
 	// func call
 	fnname *node
