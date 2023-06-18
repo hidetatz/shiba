@@ -208,9 +208,10 @@ func TestE2E(t *testing.T) {
 					a = 3
 					print("3")
 				}
-				print(a)
+				print(a);print(a)
 			`),
 			out: d(`
+				3
 				3
 				3
 			`),
