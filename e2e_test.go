@@ -197,15 +197,21 @@ func TestE2E(t *testing.T) {
 		},
 		"if3": {
 			content: d(`
+				a = 0
 				if 0 {
-					print("0")
-				} elif 0 {
+					a = 1
 					print("1")
+				} elif 0 {
+					a = 2
+					print("2")
 				} else {
+					a = 3
 					print("3")
 				}
+				print(a)
 			`),
 			out: d(`
+				3
 				3
 			`),
 		},
