@@ -13,28 +13,29 @@ const (
 
 	tkIdent // identifier
 
-	tkAssign  // =
-	tkPlus    // +
-	tkHyphen  // -
-	tkStar    // *
-	tkSlash   // /
-	tkPercent // %
-	tkHash    // #
-	tkComma   // ,
-	tkLParen  // (
-	tkRParen  // )
-	tkLBrace  // {
-	tkRBrace  // }
-	tkIf      // if
-	tkElif    // elif
-	tkElse    // else
-	tkThen    // then
-	tkDef     // def
-	tkEnd     // end
-	tkComment // comment message
-	tkStr     // "string value"
-	tkI64     // int64
-	tkF64     // float64
+	tkAssign   // =
+	tkPlus     // +
+	tkHyphen   // -
+	tkStar     // *
+	tkSlash    // /
+	tkPercent  // %
+	tkHash     // #
+	tkComma    // ,
+	tkLParen   // (
+	tkRParen   // )
+	tkLBracket // [
+	tkRBracket // ]
+	tkLBrace   // {
+	tkRBrace   // }
+	tkIf       // if
+	tkElif     // elif
+	tkElse     // else
+	tkFor      // for
+	tkDef      // def
+	tkComment  // comment message
+	tkStr      // "string value"
+	tkI64      // int64
+	tkF64      // float64
 )
 
 func tokenize(line string) ([]*token, error) {
@@ -98,6 +99,12 @@ func tokenize(line string) ([]*token, error) {
 
 		case rs[i] == ')':
 			appendtoken(newtoken(tkRParen))
+
+		case rs[i] == '[':
+			appendtoken(newtoken(tkLBracket))
+
+		case rs[i] == ']':
+			appendtoken(newtoken(tkRBracket))
 
 		case rs[i] == '{':
 			appendtoken(newtoken(tkLBrace))
@@ -180,6 +187,8 @@ func lookupIdent(ident string) tktype {
 		return tkElif
 	case "else":
 		return tkElse
+	case "for":
+		return tkFor
 	case "def":
 		return tkDef
 	}
@@ -236,6 +245,10 @@ func (t *token) String() string {
 		return "{(}"
 	case tkRParen:
 		return "{)}"
+	case tkLBracket:
+		return "{[}"
+	case tkRBracket:
+		return "{]}"
 	case tkLBrace:
 		return "{{}"
 	case tkRBrace:

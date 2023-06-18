@@ -98,6 +98,18 @@ func eval(mod *module, n *node) (*obj, error) {
 
 		return nil, nil
 
+	case ndList:
+		o := &obj{typ: tList}
+		for _, n := range n.nodes {
+			r, err := eval(mod, n)
+			if err != nil {
+				return nil, err
+			}
+			o.objs = append(o.objs, r)
+		}
+
+		return o, nil
+
 	case ndIdent:
 		o, ok := getenv(resolvevar(mod, n.ident))
 		if !ok {

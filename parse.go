@@ -176,10 +176,14 @@ func (p *parser) assign() *node {
  * expression
  */
 
-// expr = funcall | add
+// expr = funcall | list | add
 func (p *parser) expr() *node {
 	if p.isnext(tkIdent) && p.isnextnext(tkLParen) {
 		return p.funcall()
+	}
+
+	if p.isnext(tkLBracket) {
+		return p.list()
 	}
 
 	return p.add()
@@ -217,7 +221,31 @@ func (p *parser) funargs() *node {
 	}
 
 	return a
+}
 
+// list = "[" (expr ("," expr)*)? "]"
+func (p *parser) list() *node {
+	p.must(tkLBracket)
+	n := newnode(ndList)
+
+	if p.isnext(tkRBracket) {
+		p.next()
+		return n
+	}
+
+
+	for {
+		n.nodes = append(n.nodes, p.expr())
+		if p.isnext(tkComma) {
+			p.next()
+			continue
+		}
+
+		break
+	}
+
+	p.must(tkRBracket)
+	return n
 }
 
 // add = mul ("+" mul | "-" mul)*

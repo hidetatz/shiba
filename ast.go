@@ -21,6 +21,8 @@ const (
 
 	ndIf
 
+	ndList
+
 	ndArgs
 	ndIdent
 
@@ -84,6 +86,18 @@ func (n *node) String() string {
 		return n.lhs.String() + " = " + n.rhs.String()
 	case ndFuncall:
 		return n.fnname.String() + "(" + n.args.String() + ")"
+	case ndList:
+		sb := strings.Builder{}
+		sb.WriteString("[")
+		for i, n := range n.nodes {
+			sb.WriteString(n.String())
+			if i < len(n.nodes)-1 {
+				sb.WriteString(", ")
+			}
+		}
+		sb.WriteString("]")
+
+		return sb.String()
 	case ndIf:
 		sb := strings.Builder{}
 		sb.WriteString("if ")

@@ -216,6 +216,15 @@ func TestE2E(t *testing.T) {
 				3
 			`),
 		},
+		"list1": {
+			content: d(`
+				a = [1, "a", 3]
+				print(a)
+			`),
+			out: d(`
+				[1, a, 3]
+			`),
+		},
 	}
 
 	td := t.TempDir()
