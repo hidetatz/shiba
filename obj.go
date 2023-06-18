@@ -30,6 +30,21 @@ type obj struct {
 	bfnbody func(objs ...obj) obj
 }
 
+func (o *obj) isTruethy() bool {
+	switch o.typ {
+	case tNil:
+		return false
+	case tString:
+		return o.sval != ""
+	case tInt64:
+		return o.ival != 0
+	case tFloat64:
+		return o.fval != 0
+	}
+
+	return false
+}
+
 func (o *obj) String() string {
 	switch o.typ {
 	case tNil:

@@ -157,6 +157,58 @@ func TestE2E(t *testing.T) {
 				abc 999
 			`),
 		},
+		"if1": {
+			content: d(`
+				if 0 {
+					print("0")
+				}
+				if 1 {
+					print("1")
+				}
+				if 2 {
+					print("2")
+				}
+				if "" {
+					print("empty")
+				}
+				if "a" {
+					print("not empty")
+				}
+			`),
+			out: d(`
+				1
+				2
+				not empty
+			`),
+		},
+		"if2": {
+			content: d(`
+				if 0 {
+					print("0")
+				} elif 1 {
+					print("1")
+				} elif 2 {
+					print("2")
+				}
+			`),
+			out: d(`
+				1
+			`),
+		},
+		"if3": {
+			content: d(`
+				if 0 {
+					print("0")
+				} elif 0 {
+					print("1")
+				} else {
+					print("3")
+				}
+			`),
+			out: d(`
+				3
+			`),
+		},
 	}
 
 	td := t.TempDir()

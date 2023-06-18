@@ -51,6 +51,53 @@ func eval(mod *module, n *node) (*obj, error) {
 
 		return nil, fmt.Errorf("function %s is undefined", fname)
 
+	case ndIf:
+		evaluated := false
+		for _, opt := range n.conds {
+			var cond *node
+			var blocks []*node
+			// extract key and value
+			for c, b := range opt {
+				cond = c
+				blocks = b
+			}
+
+			r, err := eval(mod, cond)
+			if err != nil {
+				return nil, fmt.Errorf("cannot evaluate if condition: %s", cond)
+			}
+
+			if !r.isTruethy() {
+				continue
+			}
+
+			for _, block := range blocks {
+				_, err := eval(mod, block)
+				if err != nil {
+					return nil, err
+				}
+			}
+			evaluated = true
+			break
+		}
+
+		if evaluated {
+			return nil, nil
+		}
+
+		// when coming here, every if/elif block is not evaluated true.
+		// Evaluate else condition if exists.
+		if n.els != nil {
+			for _, block := range n.els {
+				_, err := eval(mod, block)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+
+		return nil, nil
+
 	case ndIdent:
 		o, ok := getenv(resolvevar(mod, n.ident))
 		if !ok {

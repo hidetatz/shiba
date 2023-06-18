@@ -44,6 +44,10 @@ func (t *token) String() string {
 		return "{}}"
 	case tkIf:
 		return "{if}"
+	case tkElif:
+		return "{elif}"
+	case tkElse:
+		return "{else}"
 	case tkDef:
 		return "{def}"
 	case tkComment:
@@ -92,6 +96,8 @@ const (
 	tkLBrace  // {
 	tkRBrace  // }
 	tkIf      // if
+	tkElif    // elif
+	tkElse    // else
 	tkThen    // then
 	tkDef     // def
 	tkEnd     // end
@@ -240,6 +246,10 @@ func lookupIdent(ident string) tktype {
 	switch ident {
 	case "if":
 		return tkIf
+	case "elif":
+		return tkElif
+	case "else":
+		return tkElse
 	case "def":
 		return tkDef
 	}

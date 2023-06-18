@@ -42,7 +42,7 @@ func runmod(mod string) int {
 		}
 
 		if tks[0].typ == tkIf {
-			// if token startw with "if", 
+			// if token startw with "if",
 			for {
 				s := readstmt(m)
 				if s == "" {
@@ -50,14 +50,14 @@ func runmod(mod string) int {
 					return 0
 				}
 
-				ts, err := tokenize(str)
+				ts, err := tokenize(s)
 				if err != nil {
 					werr("%s:%d %s", m.name, m.line, err)
 					return 3
 				}
 
 				tks = append(tks, ts...)
-				if tks[len(tks) - 1].typ == tkRBrace {
+				if tks[len(tks)-1].typ == tkRBrace {
 					break
 				}
 			}

@@ -91,7 +91,8 @@ func (p *parser) comment() *node {
  */
 
 func (p *parser) isnextstmt() bool {
-	return p.isnext(tkIdent) && p.isnextnext(tkAssign)
+	return p.isnext(tkIf) ||
+		(p.isnext(tkIdent) && p.isnextnext(tkAssign))
 }
 
 // stmt = assign
@@ -102,11 +103,62 @@ func (p *parser) stmt() *node {
 	return p.assign()
 }
 
-// if = "if" expr "then" STATEMENTS ("else if" expr "then" STATEMENTS)* ("else" STATEMENTS)? "end"
+// if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
 func (p *parser) _if() *node {
-	// n := newnode(ndIf)
-	// p.must(tkIf)
-	return nil
+	n := newnode(ndIf)
+	p.must(tkIf)
+	cond := p.expr()
+	p.must(tkLBrace)
+	blocks := []*node{}
+	for {
+		blocks = append(blocks, p.program())
+		if p.isnext(tkRBrace) {
+			p.next()
+			break
+		}
+	}
+
+	n.conds = append(n.conds, map[*node][]*node{cond: blocks})
+
+	// parse multiple elifs
+	for {
+		// parse single elif
+		if !p.isnext(tkElif) {
+			break
+		}
+		p.next()
+
+		cond := p.expr()
+		p.must(tkLBrace)
+		blocks := []*node{}
+		for {
+			blocks = append(blocks, p.program())
+			if p.isnext(tkRBrace) {
+				p.next()
+				break
+			}
+		}
+
+		n.conds = append(n.conds, map[*node][]*node{cond: blocks})
+	}
+
+	// parse else
+	if p.isnext(tkElse) {
+		p.next()
+		p.must(tkLBrace)
+		blocks := []*node{}
+		for {
+			blocks = append(blocks, p.program())
+			if p.isnext(tkRBrace) {
+				p.next()
+				break
+			}
+		}
+
+		n.els = blocks
+	}
+
+	return n
 }
 
 // assign = ident "=" expr
@@ -145,6 +197,7 @@ func (p *parser) funcall() *node {
 	}
 
 	n.args = p.funargs()
+	p.must(tkRParen)
 	return n
 }
 
