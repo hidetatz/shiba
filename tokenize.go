@@ -5,76 +5,6 @@ import (
 	"strings"
 )
 
-type token struct {
-	typ tktype
-	at  int
-
-	// As of tokenize, every token is represented as literal despite of the type
-	// such as number, "string", identifier, comment, panctuator etc.
-	literal string
-}
-
-func (t *token) String() string {
-	switch t.typ {
-	case tkUnknown:
-		return "{unknown token}"
-	case tkAssign:
-		return "{=}"
-	case tkPlus:
-		return "{+}"
-	case tkHyphen:
-		return "{-}"
-	case tkStar:
-		return "{*}"
-	case tkSlash:
-		return "{/}"
-	case tkPercent:
-		return "{%}"
-	case tkHash:
-		return "{#}"
-	case tkComma:
-		return "{,}"
-	case tkLParen:
-		return "{(}"
-	case tkRParen:
-		return "{)}"
-	case tkLBrace:
-		return "{{}"
-	case tkRBrace:
-		return "{}}"
-	case tkIf:
-		return "{if}"
-	case tkElif:
-		return "{elif}"
-	case tkElse:
-		return "{else}"
-	case tkDef:
-		return "{def}"
-	case tkComment:
-		return fmt.Sprintf("{%s(comment)}", t.literal)
-	case tkIdent:
-		return fmt.Sprintf("{%s(ident)}", t.literal)
-	case tkStr:
-		return fmt.Sprintf("{\"%s\"}", t.literal)
-	case tkI64:
-		return fmt.Sprintf("{%s(i64)}", t.literal)
-	case tkF64:
-		return fmt.Sprintf("{%s(f64)}", t.literal)
-	}
-
-	return "{?}"
-}
-
-type tokenizeErr struct {
-	line   string
-	reason string
-	at     int
-}
-
-func (e *tokenizeErr) Error() string {
-	return fmt.Sprintf("error in tokenization: %s\n%s\n%s^ around here", e.reason, e.line, strings.Repeat(" ", e.at-1))
-}
-
 type tktype int
 
 const (
@@ -271,4 +201,74 @@ func isdot(r rune) bool {
 
 func isdigit(r rune) bool {
 	return '0' <= r && r <= '9'
+}
+
+type token struct {
+	typ tktype
+	at  int
+
+	// As of tokenize, every token is represented as literal despite of the type
+	// such as number, "string", identifier, comment, panctuator etc.
+	literal string
+}
+
+func (t *token) String() string {
+	switch t.typ {
+	case tkUnknown:
+		return "{unknown token}"
+	case tkAssign:
+		return "{=}"
+	case tkPlus:
+		return "{+}"
+	case tkHyphen:
+		return "{-}"
+	case tkStar:
+		return "{*}"
+	case tkSlash:
+		return "{/}"
+	case tkPercent:
+		return "{%}"
+	case tkHash:
+		return "{#}"
+	case tkComma:
+		return "{,}"
+	case tkLParen:
+		return "{(}"
+	case tkRParen:
+		return "{)}"
+	case tkLBrace:
+		return "{{}"
+	case tkRBrace:
+		return "{}}"
+	case tkIf:
+		return "{if}"
+	case tkElif:
+		return "{elif}"
+	case tkElse:
+		return "{else}"
+	case tkDef:
+		return "{def}"
+	case tkComment:
+		return fmt.Sprintf("{%s(comment)}", t.literal)
+	case tkIdent:
+		return fmt.Sprintf("{%s(ident)}", t.literal)
+	case tkStr:
+		return fmt.Sprintf("{\"%s\"}", t.literal)
+	case tkI64:
+		return fmt.Sprintf("{%s(i64)}", t.literal)
+	case tkF64:
+		return fmt.Sprintf("{%s(f64)}", t.literal)
+	}
+
+	return "{?}"
+}
+
+type tokenizeErr struct {
+	line   string
+	reason string
+	at     int
+}
+
+func (e *tokenizeErr) Error() string {
+	return fmt.Sprintf("error in tokenization: %s\n%s\n%s^ around here", e.reason, e.line, strings.Repeat(" ", e.at-1))
 }
