@@ -41,8 +41,7 @@ func runmod(mod string) int {
 			return 3
 		}
 
-		if tks[0].typ == tkIf {
-			// if token startw with "if",
+		if tks[0].typ == tkIf || tks[0].typ == tkFor{
 			for {
 				s := readstmt(m)
 				if s == "" {

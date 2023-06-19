@@ -31,6 +31,7 @@ const (
 	tkElif     // elif
 	tkElse     // else
 	tkFor      // for
+	tkIn       // in
 	tkDef      // def
 	tkComment  // comment message
 	tkStr      // "string value"
@@ -189,6 +190,8 @@ func lookupIdent(ident string) tktype {
 		return tkElse
 	case "for":
 		return tkFor
+	case "in":
+		return tkIn
 	case "def":
 		return tkDef
 	}
@@ -259,6 +262,10 @@ func (t *token) String() string {
 		return "{elif}"
 	case tkElse:
 		return "{else}"
+	case tkFor:
+		return "{for}"
+	case tkIn:
+		return "{in}"
 	case tkDef:
 		return "{def}"
 	case tkComment:

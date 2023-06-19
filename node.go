@@ -20,6 +20,7 @@ const (
 	ndFuncall
 
 	ndIf
+	ndLoop
 
 	ndList
 
@@ -50,6 +51,13 @@ type node struct {
 	// els is a else block in if statement. because else doesn't have condition,
 	// it's separated from conds.
 	els []*node
+
+	// used in for-loop. Only one of  ident and list is used.
+	// cnd is a var name for counter, elem is for element.
+	tgtIdent *node
+	tgtList *node
+	cnt *node
+	elem *node
 
 	// func call
 	fnname *node
@@ -89,8 +97,8 @@ func (n *node) String() string {
 	case ndList:
 		sb := strings.Builder{}
 		sb.WriteString("[")
-		for i, n := range n.nodes {
-			sb.WriteString(n.String())
+		for i, nn := range n.nodes {
+			sb.WriteString(nn.String())
 			if i < len(n.nodes)-1 {
 				sb.WriteString(", ")
 			}
@@ -127,6 +135,28 @@ func (n *node) String() string {
 			}
 			sb.WriteString("}")
 		}
+
+		return sb.String()
+	case ndLoop:
+		sb := strings.Builder{}
+		sb.WriteString("for ")
+		sb.WriteString(n.cnt.ident)
+		sb.WriteString(", ")
+		sb.WriteString(n.elem.ident)
+		sb.WriteString(" in ")
+		if n.tgtList != nil {
+			sb.WriteString(n.tgtList.String())
+		} else {
+			sb.WriteString(n.tgtIdent.String())
+		}
+
+		sb.WriteString(" { ")
+		for _, nd := range n.nodes {
+			sb.WriteString(nd.String())
+			sb.WriteString("; ")
+		}
+
+		sb.WriteString("}")
 
 		return sb.String()
 	case ndArgs:

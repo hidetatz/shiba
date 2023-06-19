@@ -92,6 +92,7 @@ func (p *parser) comment() *node {
 
 func (p *parser) isnextstmt() bool {
 	return p.isnext(tkIf) ||
+		p.isnext(tkFor) ||
 		(p.isnext(tkIdent) && p.isnextnext(tkAssign))
 }
 
@@ -100,6 +101,11 @@ func (p *parser) stmt() *node {
 	if p.isnext(tkIf) {
 		return p._if()
 	}
+
+	if p.isnext(tkFor) {
+		return p._for()
+	}
+
 	return p.assign()
 }
 
@@ -157,6 +163,46 @@ func (p *parser) _if() *node {
 
 		n.els = blocks
 	}
+
+	return n
+}
+
+// for = "for" ident "," ident "in" (ident | list) "{" STATEMENTS "}"
+func (p *parser) _for() *node {
+	n := newnode(ndLoop)
+	p.must(tkFor)
+	cnt := p.ident()
+	p.must(tkComma)
+	elem := p.ident()
+	p.must(tkIn)
+
+	var tgtIdent *node
+	var tgtList *node
+
+	if p.isnext(tkIdent) {
+		tgtIdent = p.ident()
+		tgtList = nil
+	} else {
+		tgtIdent = nil
+		tgtList = p.list()
+	}
+
+	p.must(tkLBrace)
+
+	blocks := []*node{}
+	for {
+		blocks = append(blocks, p.program())
+		if p.isnext(tkRBrace) {
+			p.next()
+			break
+		}
+	}
+
+	n.cnt = cnt
+	n.elem = elem
+	n.tgtIdent = tgtIdent
+	n.tgtList = tgtList
+	n.nodes = blocks
 
 	return n
 }

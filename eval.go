@@ -98,6 +98,39 @@ func eval(mod *module, n *node) (*obj, error) {
 
 		return nil, nil
 
+	case ndLoop:
+		// extract loop target, identifier or primitive list
+		var tgt *obj
+		if n.tgtIdent != nil {
+			t, err := eval(mod, n.tgtIdent)
+			if err != nil {
+				return nil, err
+			}
+			tgt = t
+		} else {
+			t, err := eval(mod, n.tgtList)
+			if err != nil {
+				return nil, err
+			}
+			tgt = t
+		}
+
+		if tgt.typ != tList {
+			return nil, fmt.Errorf("invalid loop target")
+		}
+
+		for i, o := range tgt.objs {
+			setenv(resolvevar(mod, n.cnt.ident), &obj{typ: tInt64, ival: int64(i)})
+			setenv(resolvevar(mod, n.elem.ident), o)
+
+			for _, block := range n.nodes {
+				eval(mod, block)
+			}
+		}
+
+		return nil, nil
+
+
 	case ndList:
 		o := &obj{typ: tList}
 		for _, n := range n.nodes {
