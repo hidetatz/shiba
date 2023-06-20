@@ -15,6 +15,11 @@ test: clean $(BIN)
 	go mod tidy
 	go test ./...
 
+.PHONY: testv
+testv: clean $(BIN)
+	go mod tidy
+	go test -v ./...
+
 .PHONY: clean
 clean:
 	rm -f $(BIN)

@@ -6,51 +6,85 @@ import (
 )
 
 type parser struct {
-	tokens []*token
-	cur    int
+	tokenizer *tokenizer
+	cur       *token
+	next      *token
+	nextnext  *token
 }
 
 /*
  * parser helpers
  */
 
-func (p *parser) isnext(t tktype) bool {
-	if len(p.tokens) <= p.cur {
-		return false
-	}
+// In initializing parser, it fetches 3 tokens from tokenizer then saves them.
+// In parse, sometimes it is necessary to read upcoming 2 or 3 tokens to decide how to parse,
+// so this parser always holds them.
+// When the tokenizer reaches to the bottom of the module, then just EOF token is saved.
+// I don't think this is elegant, but this is probably ok.
+func newparser(modname string) *parser {
+	p := &parser{}
 
-	return p.tokens[p.cur].typ == t
+	tokenizer, err := newtokenizer(modname)
+	if err != nil {
+		panic(err)
+	}
+	p.tokenizer = tokenizer
+
+	c, err := p.tokenizer.nexttoken()
+	if err != nil {
+		panic(err)
+	}
+	p.cur = c
+
+	c2, err := p.tokenizer.nexttoken()
+	if err != nil {
+		panic(err)
+	}
+	p.next = c2
+
+	c3, err := p.tokenizer.nexttoken()
+	if err != nil {
+		panic(err)
+	}
+	p.next = c3
+
+	return p
+}
+
+func (p *parser) iscur(t tktype) bool {
+	return p.cur.typ == t
+}
+
+func (p *parser) isnext(t tktype) bool {
+	return p.next.typ == t
 }
 
 func (p *parser) isnextnext(t tktype) bool {
-	if len(p.tokens)-1 <= p.cur {
-		return false
-	}
-
-	return p.tokens[p.cur+1].typ == t
+	return p.nextnext.typ == t
 }
 
-func (p *parser) next() string {
-	c := p.tokens[p.cur]
-	p.cur++
-	return c.literal
+func (p *parser) proceed() {
+	c, err := p.tokenizer.nexttoken()
+	if err != nil {
+		panic(err)
+	}
+	p.cur = p.next
+	p.next = p.nextnext
+	p.nextnext = c
 }
 
-func (p *parser) must(t tktype) string {
-	c := p.tokens[p.cur]
-	if c.typ != t {
-		panic(fmt.Sprintf("%v is expected but %v is found!", t, p.tokens[p.cur]))
+func (p *parser) must(t tktype) {
+	if p.cur.typ != t {
+		panic(fmt.Sprintf("%v is expected but %v is found!", t, p.cur.typ))
 	}
-
-	p.cur++
-	return c.literal
+	p.proceed()
 }
 
 /*
  * Parse implementation
  */
 
-func parse(tokens []*token) (n *node, err error) {
+func parsestmt(modname string) (n *node, err error) {
 	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
@@ -60,103 +94,78 @@ func parse(tokens []*token) (n *node, err error) {
 		}
 	}()
 
-	p := &parser{tokens: tokens, cur: 0}
-
-	return p.program(), nil
-}
-
-// program = (comment | stmt | expr)
-func (p *parser) program() *node {
-	if p.isnext(tkHash) {
-		return p.comment()
-	}
-
-	if p.isnextstmt() {
-		return p.stmt()
-	}
-
-	return p.expr()
-}
-
-// comment = "#" "arbitrary comment message until \n"
-func (p *parser) comment() *node {
-	p.must(tkHash)
-	n := newnode(ndComment)
-	n.comment = p.must(tkComment)
-	return n
+	p := newparser(modname)
+	return p.stmt(), nil
 }
 
 /*
  * statements
  */
 
-func (p *parser) isnextstmt() bool {
-	return p.isnext(tkIf) ||
-		p.isnext(tkFor) ||
-		(p.isnext(tkIdent) && p.isnextnext(tkAssign))
-}
-
-// stmt = assign
+// stmt = if | for | assign | expr
 func (p *parser) stmt() *node {
-	if p.isnext(tkIf) {
+	if p.iscur(tkIf) {
 		return p._if()
 	}
 
-	if p.isnext(tkFor) {
+	if p.iscur(tkFor) {
 		return p._for()
 	}
 
-	return p.assign()
+	if p.iscur(tkIdent) && p.isnext(tkAssign) {
+		return p.assign()
+	}
+
+	return p.expr()
 }
 
 // if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
 func (p *parser) _if() *node {
-	n := newnode(ndIf)
 	p.must(tkIf)
+	n := newnode(ndIf)
 	cond := p.expr()
 	p.must(tkLBrace)
 	blocks := []*node{}
 	for {
-		blocks = append(blocks, p.program())
-		if p.isnext(tkRBrace) {
-			p.next()
+		blocks = append(blocks, p.stmt())
+		if p.iscur(tkRBrace) {
 			break
 		}
 	}
+	p.proceed()
 
 	n.conds = append(n.conds, map[*node][]*node{cond: blocks})
 
 	// parse multiple elifs
 	for {
 		// parse single elif
-		if !p.isnext(tkElif) {
+		if !p.iscur(tkElif) {
 			break
 		}
-		p.next()
+		p.proceed()
 
 		cond := p.expr()
 		p.must(tkLBrace)
 		blocks := []*node{}
 		for {
-			blocks = append(blocks, p.program())
-			if p.isnext(tkRBrace) {
-				p.next()
+			blocks = append(blocks, p.stmt())
+			if p.iscur(tkRBrace) {
 				break
 			}
 		}
+		p.proceed()
 
 		n.conds = append(n.conds, map[*node][]*node{cond: blocks})
 	}
 
 	// parse else
-	if p.isnext(tkElse) {
-		p.next()
+	if p.iscur(tkElse) {
 		p.must(tkLBrace)
 		blocks := []*node{}
 		for {
-			blocks = append(blocks, p.program())
-			if p.isnext(tkRBrace) {
-				p.next()
+			blocks = append(blocks, p.stmt())
+			if p.iscur(tkRBrace) {
+				p.proceed()
 				break
 			}
 		}
@@ -179,7 +188,7 @@ func (p *parser) _for() *node {
 	var tgtIdent *node
 	var tgtList *node
 
-	if p.isnext(tkIdent) {
+	if p.iscur(tkIdent) {
 		tgtIdent = p.ident()
 		tgtList = nil
 	} else {
@@ -191,9 +200,9 @@ func (p *parser) _for() *node {
 
 	blocks := []*node{}
 	for {
-		blocks = append(blocks, p.program())
-		if p.isnext(tkRBrace) {
-			p.next()
+		blocks = append(blocks, p.stmt())
+		if p.iscur(tkRBrace) {
+			p.proceed()
 			break
 		}
 	}
@@ -224,11 +233,11 @@ func (p *parser) assign() *node {
 
 // expr = funcall | list | add
 func (p *parser) expr() *node {
-	if p.isnext(tkIdent) && p.isnextnext(tkLParen) {
+	if p.iscur(tkIdent) && p.isnext(tkLParen) {
 		return p.funcall()
 	}
 
-	if p.isnext(tkLBracket) {
+	if p.iscur(tkLBracket) {
 		return p.list()
 	}
 
@@ -241,8 +250,8 @@ func (p *parser) funcall() *node {
 	n.fnname = p.ident()
 	p.must(tkLParen)
 
-	if p.isnext(tkRParen) {
-		p.next()
+	if p.iscur(tkRParen) {
+		p.proceed()
 		return n
 	}
 
@@ -258,11 +267,11 @@ func (p *parser) funargs() *node {
 	a.nodes = append(a.nodes, p.expr())
 
 	for {
-		if !p.isnext(tkComma) {
+		if !p.iscur(tkComma) {
 			break
 		}
 
-		p.next()
+		p.proceed()
 		a.nodes = append(a.nodes, p.expr())
 	}
 
@@ -275,15 +284,14 @@ func (p *parser) list() *node {
 	n := newnode(ndList)
 
 	if p.isnext(tkRBracket) {
-		p.next()
+		p.proceed()
 		return n
 	}
-
 
 	for {
 		n.nodes = append(n.nodes, p.expr())
 		if p.isnext(tkComma) {
-			p.next()
+			p.proceed()
 			continue
 		}
 
@@ -301,15 +309,15 @@ func (p *parser) add() *node {
 
 	for {
 		switch {
-		case p.isnext(tkPlus):
-			p.next()
+		case p.iscur(tkPlus):
+			p.proceed()
 			n2 := newnode(ndAdd)
 			n2.lhs = m
 			n2.rhs = p.mul()
 			n = n2
 
-		case p.isnext(tkHyphen):
-			p.next()
+		case p.iscur(tkHyphen):
+			p.proceed()
 			n2 := newnode(ndSub)
 			n2.lhs = m
 			n2.rhs = p.mul()
@@ -333,22 +341,22 @@ func (p *parser) mul() *node {
 
 	for {
 		switch {
-		case p.isnext(tkStar):
-			p.next()
+		case p.iscur(tkStar):
+			p.proceed()
 			n2 := newnode(ndMul)
 			n2.lhs = m
 			n2.rhs = p.unary()
 			n = n2
 
-		case p.isnext(tkSlash):
-			p.next()
+		case p.iscur(tkSlash):
+			p.proceed()
 			n2 := newnode(ndDiv)
 			n2.lhs = m
 			n2.rhs = p.unary()
 			n = n2
 
-		case p.isnext(tkPercent):
-			p.next()
+		case p.iscur(tkPercent):
+			p.proceed()
 			n2 := newnode(ndMod)
 			n2.lhs = m
 			n2.rhs = p.unary()
@@ -367,14 +375,14 @@ done:
 
 // unary   = ("+" | "-")? primary
 func (p *parser) unary() *node {
-	if p.isnext(tkPlus) {
-		p.next()
+	if p.iscur(tkPlus) {
+		p.proceed()
 		return p.primary()
 	}
 
-	if p.isnext(tkHyphen) {
+	if p.iscur(tkHyphen) {
 		// -primary is replaced with 0 - primary sub
-		p.next()
+		p.proceed()
 		nn := newnode(ndSub)
 		nn.lhs = newnode(ndI64)
 		nn.lhs.ival = 0
@@ -389,41 +397,39 @@ func (p *parser) unary() *node {
 func (p *parser) primary() *node {
 	var n *node
 	switch {
-	case p.isnext(tkLParen):
-		p.next()
+	case p.iscur(tkLParen):
+		p.proceed()
 		n := p.expr()
 		p.must(tkRParen)
 		return n
 
-	case p.isnext(tkIdent):
+	case p.iscur(tkIdent):
 		return p.ident()
 
-	case p.isnext(tkStr):
+	case p.iscur(tkStr):
 		n = newnode(ndStr)
-		n.sval = p.must(tkStr)
+		n.sval = p.cur.lit
 
-	case p.isnext(tkI64):
-		n = newnode(ndI64)
-		s := p.must(tkI64)
+	case p.iscur(tkNum):
+		s := p.cur.lit
 		i, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			panic(fmt.Sprintf("parse %s as int64", s))
+		if err == nil {
+			n = newnode(ndI64)
+			n.ival = i
+			return n
 		}
 
-		n.ival = i
-
-	case p.isnext(tkF64):
-		n = newnode(ndF64)
-		s := p.must(tkF64)
 		f, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			panic(fmt.Sprintf("parse %s as float64", s))
+		if err == nil {
+			n = newnode(ndF64)
+			n.fval = f
+			return n
 		}
 
-		n.fval = f
+		panic(fmt.Sprintf("parse %s as number", s))
 
 	default:
-		panic(fmt.Sprintf("invalid token: %s", p.tokens[p.cur]))
+		panic(fmt.Sprintf("invalid token: %s", p.cur))
 	}
 
 	return n
@@ -432,6 +438,7 @@ func (p *parser) primary() *node {
 // ident = IDENT
 func (p *parser) ident() *node {
 	n := newnode(ndIdent)
-	n.ident = p.must(tkIdent)
+	n.ident = p.cur.lit
+	p.must(tkIdent)
 	return n
 }

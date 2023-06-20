@@ -21,73 +21,20 @@ func (e *environment) String() string {
 }
 
 func runmod(mod string) int {
-	m, err := loadmod(mod)
-	if err != nil {
-		werr("load the module: %v", err)
-		return 1
-	}
-
-	for m.remains() {
-		// read statement from module
-		str := readstmt(m)
-		if str == "" {
-			return 0
-		}
-
-		// try tokenization
-		tks, err := tokenize(str)
+	m := &module{mod}
+	for {
+		stmt, err := parsestmt(mod)
 		if err != nil {
-			werr("%s:%d %s", m.name, m.line, err)
+			werr("%s", err)
 			return 3
-		}
-
-		if tks[0].typ == tkIf || tks[0].typ == tkFor{
-			for {
-				s := readstmt(m)
-				if s == "" {
-					werr("%s:%d %s", m.name, m.line, "if statement does not finish properly")
-					return 0
-				}
-
-				ts, err := tokenize(s)
-				if err != nil {
-					werr("%s:%d %s", m.name, m.line, err)
-					return 3
-				}
-
-				tks = append(tks, ts...)
-				if tks[len(tks)-1].typ == tkRBrace {
-					break
-				}
-			}
-		}
-
-		stmt, err := parse(tks)
-		if err != nil {
-			werr("%s:%d %s", m.name, m.line, err)
-			return 4
 		}
 
 		_, err = eval(m, stmt)
 		if err != nil {
-			werr("%s:%d %s", m.name, m.line, err)
+			werr("%s:%d %s", m.name, 1, err)
 			return 5
 		}
 	}
 
 	return 0
-}
-
-func readstmt(m *module) string {
-	str := ""
-	for m.remains() {
-		r := m.next()
-		if r == '\n' || r == ';' {
-			break
-		}
-
-		str += string(r)
-	}
-
-	return str
 }

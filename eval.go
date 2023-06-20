@@ -130,7 +130,6 @@ func eval(mod *module, n *node) (*obj, error) {
 
 		return nil, nil
 
-
 	case ndList:
 		o := &obj{typ: tList}
 		for _, n := range n.nodes {

@@ -2,17 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
 type tktype int
 
 const (
-	tkUnknown = iota
-	tkEmpty   // \n
+	tkInvalid tktype = iota
 
-	tkIdent // identifier
-
+	// punctuators
 	tkAssign   // =
 	tkPlus     // +
 	tkHyphen   // -
@@ -27,176 +26,248 @@ const (
 	tkRBracket // ]
 	tkLBrace   // {
 	tkRBrace   // }
-	tkIf       // if
-	tkElif     // elif
-	tkElse     // else
-	tkFor      // for
-	tkIn       // in
-	tkDef      // def
-	tkComment  // comment message
-	tkStr      // "string value"
-	tkI64      // int64
-	tkF64      // float64
+
+	// keywords
+	tkIf   // if
+	tkElif // elif
+	tkElse // else
+	tkFor  // for
+	tkIn   // in
+	tkDef  // def
+
+	tkIdent
+	tkStr
+	tkNum
+	tkEof
 )
 
-func tokenize(line string) ([]*token, error) {
-	tokens := []*token{}
-
-	if line == "" {
-		return nil, nil
-	}
-
-	rs := []rune(line)
-	i := 0
-
-	newtoken := func(t tktype) *token {
-		return &token{typ: t, at: i}
-	}
-
-	appendtoken := func(tk *token) {
-		tokens = append(tokens, tk)
-	}
-
-	newtokenizeErr := func(reason string) *tokenizeErr {
-		return &tokenizeErr{line, reason, i}
-	}
-
-	for i < len(rs) {
-		switch {
-		case isspace(rs[i]):
-			// fallthrough. skip space
-
-		case rs[i] == '#':
-			// comment
-			appendtoken(newtoken(tkHash))
-			t := newtoken(tkComment)
-			t.literal = line[i:]
-			appendtoken(t)
-			break
-
-		case rs[i] == '=':
-			appendtoken(newtoken(tkAssign))
-
-		case rs[i] == '+':
-			appendtoken(newtoken(tkPlus))
-
-		case rs[i] == '-':
-			appendtoken(newtoken(tkHyphen))
-
-		case rs[i] == '*':
-			appendtoken(newtoken(tkStar))
-
-		case rs[i] == '/':
-			appendtoken(newtoken(tkSlash))
-
-		case rs[i] == '%':
-			appendtoken(newtoken(tkPercent))
-
-		case rs[i] == ',':
-			appendtoken(newtoken(tkComma))
-
-		case rs[i] == '(':
-			appendtoken(newtoken(tkLParen))
-
-		case rs[i] == ')':
-			appendtoken(newtoken(tkRParen))
-
-		case rs[i] == '[':
-			appendtoken(newtoken(tkLBracket))
-
-		case rs[i] == ']':
-			appendtoken(newtoken(tkRBracket))
-
-		case rs[i] == '{':
-			appendtoken(newtoken(tkLBrace))
-
-		case rs[i] == '}':
-			appendtoken(newtoken(tkRBrace))
-
-		case rs[i] == '"':
-			i++ // skip left quote
-			str := ""
-			// read until terminating " is found
-			// todo: handle intermediate quote
-			for rs[i] != '"' {
-				str += string(rs[i])
-				i++
-			}
-			// right quote is skipped at the bottom
-			t := newtoken(tkStr)
-			t.literal = str
-			appendtoken(t)
-
-		case isdigit(rs[i]):
-			// i64 or f64
-			s := ""
-			for i <= len(rs)-1 && (isdigit(rs[i]) || isdot(rs[i])) {
-				if len(rs) <= i {
-					break
-				}
-
-				s += string(rs[i])
-				i++
-			}
-
-			var t *token
-			switch strings.Count(s, ".") {
-			case 0:
-				t = newtoken(tkI64)
-			case 1:
-				t = newtoken(tkF64)
-			default:
-				return nil, newtokenizeErr("invalid decimal expression")
-			}
-
-			t.literal = s
-			appendtoken(t)
-
-			continue // needed not to increment i again
-
-		default:
-			// identifier or keyword
-			ident := ""
-			for i <= len(rs)-1 && isidentletter(rs[i]) {
-				ident += string(rs[i])
-				i++
-			}
-			typ := lookupIdent(ident)
-			if typ == tkIdent {
-				t := newtoken(tkIdent)
-				t.literal = ident
-				appendtoken(t)
-			} else {
-				// keywords
-				appendtoken(newtoken(typ))
-			}
-
-			continue // needed not to increment i again
-		}
-
-		i++
-	}
-
-	return tokens, nil
+type token struct {
+	typ  tktype
+	at   int
+	line int
+	lit  string
 }
 
-func lookupIdent(ident string) tktype {
-	switch ident {
-	case "if":
-		return tkIf
-	case "elif":
-		return tkElif
-	case "else":
-		return tkElse
-	case "for":
-		return tkFor
-	case "in":
-		return tkIn
-	case "def":
-		return tkDef
+func (t *token) String() string {
+	switch t.typ {
+	case tkInvalid:
+		return "{invalid}"
+	case tkIdent:
+		return fmt.Sprintf("%s(ident)", t.lit)
+	case tkStr:
+		return fmt.Sprintf(`"%s"`, t.lit)
+	case tkNum:
+		return fmt.Sprintf("%s", t.lit)
+	case tkEof:
+		return "{eof}"
+	default: // punct/keywords
+		return t.lit
+	}
+	return "{?}"
+}
+
+type tokenizer struct {
+	modname string
+	pos     int // starts from 0
+	line    int // starts from 1
+	chars   []rune
+}
+
+func newtokenizer(filename string) (*tokenizer, error) {
+	bs, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
 	}
 
-	return tkIdent
+	s := string(bs)
+
+	return &tokenizer{
+		modname: filename,
+		pos:     0,
+		line:    1,
+		chars:   []rune(s),
+	}, nil
+}
+
+func (t *tokenizer) newtoken(tt tktype, lit string) *token {
+	return &token{typ: tt, line: t.line, at: t.pos, lit: lit}
+}
+
+func (t *tokenizer) readstring() (*token, error) {
+	t.next() // skip left '"'
+	str := ""
+	// read until terminating " is found
+	// todo: handle intermediate quote
+	for {
+		if !t.hasnext() {
+			return nil, fmt.Errorf("unterminated string is invalid")
+		}
+
+		c := t.cur()
+		if c == '"' {
+			break
+		}
+		str += string(c)
+	}
+
+	return t.newtoken(tkStr, str), nil
+}
+
+func (t *tokenizer) readnum() (*token, error) {
+	s := string(t.cur())
+	for {
+		if !t.hasnext() {
+			break
+		}
+
+		t.next()
+		c := t.cur()
+
+		if !isdigit(c) && !isdot(c) {
+			break
+		}
+
+		s += string(c)
+	}
+
+	dots := strings.Count(s, ".")
+	if dots >= 2 {
+		return nil, &tokenizeErr{"invalid decimal expression", t.pos}
+	}
+
+	return t.newtoken(tkNum, s), nil
+}
+
+func (t *tokenizer) readident() (*token, bool) {
+	ident := ""
+	for {
+		if !t.hasnext() {
+			break
+		}
+
+		c := t.cur()
+		if !isidentletter(c) {
+			break
+		}
+
+		ident += string(c)
+		t.next()
+	}
+
+	if ident == "" {
+		return nil, false
+	}
+
+	kws := map[string]tktype{
+		"if":   tkIf,
+		"elif": tkElif,
+		"else": tkElse,
+		"for":  tkFor,
+		"in":   tkIn,
+		"def":  tkDef,
+	}
+
+	if tk, ok := kws[ident]; ok {
+		return t.newtoken(tk, ident), true
+	}
+
+
+	return t.newtoken(tkIdent, ident), true
+
+}
+
+func (t *tokenizer) readpunct() (*token, bool) {
+	puncts := map[string]tktype{
+		"=": tkAssign,
+		"+": tkPlus,
+		"-": tkHyphen,
+		"*": tkStar,
+		"/": tkSlash,
+		"%": tkPercent,
+		"#": tkHash,
+		",": tkComma,
+		"(": tkLParen,
+		")": tkRParen,
+		"[": tkLBracket,
+		"]": tkRBracket,
+		"{": tkLBrace,
+		"}": tkRBrace,
+	}
+
+	c := t.cur()
+	if tk, ok := puncts[string(c)]; ok {
+		return t.newtoken(tk, string(c)), true
+	}
+
+	return nil, false
+}
+
+func (t *tokenizer) hasnext() bool {
+	return t.pos < len(t.chars)
+}
+
+func (t *tokenizer) cur() rune {
+	return t.chars[t.pos]
+}
+
+func (t *tokenizer) startswith(s string) bool {
+	for i, r := range []rune(s) {
+		if r != t.chars[t.pos+i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (t *tokenizer) next() {
+	t.pos++
+	if t.cur() == '\n' {
+		t.line++
+	}
+}
+
+func (t *tokenizer) nexttoken() (*token, error) {
+	if !t.hasnext() {
+		return t.newtoken(tkEof, ""), nil
+	}
+
+	t.next()
+
+	for isspace(t.cur()) {
+		t.next()
+	}
+
+	if t.cur() == '"' {
+		return t.readstring()
+	}
+
+	if isdigit(t.cur()) {
+		return t.readnum()
+	}
+
+	if tk, ok := t.readpunct(); ok {
+		return tk, nil
+	}
+
+	if tk, ok := t.readident(); ok {
+		return tk, nil
+	}
+
+	return nil, &tokenizeErr{"invalid token", t.pos}
+}
+
+type tokenizeErr struct {
+	reason string
+	at     int
+}
+
+func (e *tokenizeErr) Error() string {
+	return fmt.Sprintf("error in tokenization: %s\n\n%s^ around here", e.reason, strings.Repeat(" ", e.at-1))
+}
+
+func isdigit(r rune) bool {
+	return '0' <= r && r <= '9'
 }
 
 func isidentletter(r rune) bool {
@@ -209,86 +280,4 @@ func isspace(r rune) bool {
 
 func isdot(r rune) bool {
 	return r == '.'
-}
-
-func isdigit(r rune) bool {
-	return '0' <= r && r <= '9'
-}
-
-type token struct {
-	typ tktype
-	at  int
-
-	// As of tokenize, every token is represented as literal despite of the type
-	// such as number, "string", identifier, comment, panctuator etc.
-	literal string
-}
-
-func (t *token) String() string {
-	switch t.typ {
-	case tkUnknown:
-		return "{unknown token}"
-	case tkAssign:
-		return "{=}"
-	case tkPlus:
-		return "{+}"
-	case tkHyphen:
-		return "{-}"
-	case tkStar:
-		return "{*}"
-	case tkSlash:
-		return "{/}"
-	case tkPercent:
-		return "{%}"
-	case tkHash:
-		return "{#}"
-	case tkComma:
-		return "{,}"
-	case tkLParen:
-		return "{(}"
-	case tkRParen:
-		return "{)}"
-	case tkLBracket:
-		return "{[}"
-	case tkRBracket:
-		return "{]}"
-	case tkLBrace:
-		return "{{}"
-	case tkRBrace:
-		return "{}}"
-	case tkIf:
-		return "{if}"
-	case tkElif:
-		return "{elif}"
-	case tkElse:
-		return "{else}"
-	case tkFor:
-		return "{for}"
-	case tkIn:
-		return "{in}"
-	case tkDef:
-		return "{def}"
-	case tkComment:
-		return fmt.Sprintf("{%s(comment)}", t.literal)
-	case tkIdent:
-		return fmt.Sprintf("{%s(ident)}", t.literal)
-	case tkStr:
-		return fmt.Sprintf("{\"%s\"}", t.literal)
-	case tkI64:
-		return fmt.Sprintf("{%s(i64)}", t.literal)
-	case tkF64:
-		return fmt.Sprintf("{%s(f64)}", t.literal)
-	}
-
-	return "{?}"
-}
-
-type tokenizeErr struct {
-	line   string
-	reason string
-	at     int
-}
-
-func (e *tokenizeErr) Error() string {
-	return fmt.Sprintf("error in tokenization: %s\n%s\n%s^ around here", e.reason, e.line, strings.Repeat(" ", e.at-1))
 }

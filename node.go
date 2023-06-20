@@ -55,9 +55,9 @@ type node struct {
 	// used in for-loop. Only one of  ident and list is used.
 	// cnd is a var name for counter, elem is for element.
 	tgtIdent *node
-	tgtList *node
-	cnt *node
-	elem *node
+	tgtList  *node
+	cnt      *node
+	elem     *node
 
 	// func call
 	fnname *node
