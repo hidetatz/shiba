@@ -67,6 +67,34 @@ var punctuators = map[string]tktype{
 	"}": tkRBrace,
 }
 
+func (t tktype) String() string {
+	switch t {
+	case tkInvalid:
+		return "invalid"
+	case tkIdent:
+		return "ident"
+	case tkStr:
+		return "str"
+	case tkNum:
+		return "num"
+	case tkEof:
+		return "eof"
+	default:
+		for s, tk := range keywords {
+			if t == tk {
+				return s
+			}
+		}
+
+		for s, tk := range punctuators {
+			if t == tk {
+				return s
+			}
+		}
+	}
+	return "?"
+}
+
 type token struct {
 	typ  tktype
 	at   int
@@ -76,30 +104,11 @@ type token struct {
 
 func (t *token) String() string {
 	switch t.typ {
-	case tkInvalid:
-		return "{invalid}"
-	case tkIdent:
-		return fmt.Sprintf("%s(ident)", t.lit)
-	case tkStr:
-		return fmt.Sprintf(`"%s"`, t.lit)
-	case tkNum:
-		return fmt.Sprintf("%s", t.lit)
-	case tkEof:
-		return "{eof}"
+	case tkIdent, tkStr, tkNum:
+		return fmt.Sprintf("{%s (%s %d:%d)}", t.lit, t.String(), t.line, t.at)
 	default:
-		for s, tk := range keywords {
-			if t.typ == tk {
-				return s
-			}
-		}
-
-		for s, tk := range punctuators {
-			if t.typ == tk {
-				return s
-			}
-		}
+		return fmt.Sprintf("{%s (%d:%d)}", t.String(), t.line, t.at)
 	}
-	return "{?}"
 }
 
 type tokenizer struct {
