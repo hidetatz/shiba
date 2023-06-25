@@ -241,6 +241,38 @@ func TestE2E(t *testing.T) {
 				3
 			`),
 		},
+		"scope1": {
+			content: d(`
+				if 1 {
+					a = 1
+					print(a)
+				}
+				print(a)
+			`),
+			out: d(`
+				1
+				$$filename:1 unknown var or func name: a
+			`),
+		},
+		"scope2": {
+			content: d(`
+				for i, e in [1, 2, 3] {
+					print(i)
+					print(e)
+				}
+				print(i)
+				print(e)
+			`),
+			out: d(`
+				0
+				1
+				1
+				2
+				2
+				3
+				$$filename:1 unknown var or func name: i
+			`),
+		},
 	}
 
 	td := t.TempDir()
@@ -259,10 +291,12 @@ func TestE2E(t *testing.T) {
 				t.Fatalf("write test sb file: %s", fname)
 			}
 
-			result, err := exec.Command("./shiba", dfname).CombinedOutput()
-			if err != nil {
-				t.Fatalf("run test sb file (%s): %s\n[%s]", fname, result, err)
-			}
+			result, _ := exec.Command("./shiba", dfname).CombinedOutput()
+			// if err != nil {
+			// 	t.Fatalf("run test sb file (%s): %s\n[%s]", fname, result, err)
+			// }
+
+			tc.out = strings.Replace(tc.out, "$$filename", dfname, -1)
 
 			if diff := cmp.Diff(tc.out, string(result)); diff != "" {
 				t.Fatalf("(-want +got):\n%s", diff)

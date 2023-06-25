@@ -5,11 +5,7 @@ import (
 	"strings"
 )
 
-func resolvevar(mod *module, varname string) string {
-	return fmt.Sprintf("%s/%s", mod.name, varname)
-}
-
-func eval(mod *module, n *node) (*obj, error) {
+func eval(mod string, n *node) (*obj, error) {
 	switch n.typ {
 	case ndComment, ndEof:
 		return nil, nil
@@ -22,7 +18,7 @@ func eval(mod *module, n *node) (*obj, error) {
 			return nil, err
 		}
 
-		setenv(resolvevar(mod, l), r)
+		env.setvar(mod, l, r)
 		return nil, nil
 
 	case ndFuncall:
@@ -52,6 +48,8 @@ func eval(mod *module, n *node) (*obj, error) {
 		return nil, fmt.Errorf("function %s is undefined", fname)
 
 	case ndIf:
+		env.createscope(mod)
+
 		evaluated := false
 		for _, opt := range n.conds {
 			var cond *node
@@ -64,6 +62,7 @@ func eval(mod *module, n *node) (*obj, error) {
 
 			r, err := eval(mod, cond)
 			if err != nil {
+				env.delscope(mod)
 				return nil, fmt.Errorf("cannot evaluate if condition: %s", cond)
 			}
 
@@ -74,6 +73,7 @@ func eval(mod *module, n *node) (*obj, error) {
 			for _, block := range blocks {
 				_, err := eval(mod, block)
 				if err != nil {
+					env.delscope(mod)
 					return nil, err
 				}
 			}
@@ -82,6 +82,7 @@ func eval(mod *module, n *node) (*obj, error) {
 		}
 
 		if evaluated {
+			env.delscope(mod)
 			return nil, nil
 		}
 
@@ -91,43 +92,50 @@ func eval(mod *module, n *node) (*obj, error) {
 			for _, block := range n.els {
 				_, err := eval(mod, block)
 				if err != nil {
+					env.delscope(mod)
 					return nil, err
 				}
 			}
 		}
 
+		env.delscope(mod)
 		return nil, nil
 
 	case ndLoop:
+		env.createscope(mod)
 		// extract loop target, identifier or primitive list
 		var tgt *obj
 		if n.tgtIdent != nil {
 			t, err := eval(mod, n.tgtIdent)
 			if err != nil {
+				env.delscope(mod)
 				return nil, err
 			}
 			tgt = t
 		} else {
 			t, err := eval(mod, n.tgtList)
 			if err != nil {
+				env.delscope(mod)
 				return nil, err
 			}
 			tgt = t
 		}
 
 		if tgt.typ != tList {
+			env.delscope(mod)
 			return nil, fmt.Errorf("invalid loop target")
 		}
 
 		for i, o := range tgt.objs {
-			setenv(resolvevar(mod, n.cnt.ident), &obj{typ: tInt64, ival: int64(i)})
-			setenv(resolvevar(mod, n.elem.ident), o)
+			env.setvar(mod, n.cnt.ident, &obj{typ: tInt64, ival: int64(i)})
+			env.setvar(mod, n.elem.ident, o)
 
 			for _, block := range n.nodes {
 				eval(mod, block)
 			}
 		}
 
+		env.delscope(mod)
 		return nil, nil
 
 	case ndList:
@@ -143,7 +151,7 @@ func eval(mod *module, n *node) (*obj, error) {
 		return o, nil
 
 	case ndIdent:
-		o, ok := getenv(resolvevar(mod, n.ident))
+		o, ok := env.getvar(mod, n.ident)
 		if !ok {
 			return nil, fmt.Errorf("unknown var or func name: %s", n.ident)
 		}
@@ -321,18 +329,6 @@ func eval(mod *module, n *node) (*obj, error) {
 	}
 }
 
-// todo: check if the var is writable from caller
-func setenv(ident string, o *obj) {
-	env.v[ident] = o
-}
-
-// todo: check if the var is writable from caller
-func getenv(ident string) (*obj, bool) {
-	o, ok := env.v[ident]
-	return o, ok
-}
-
-// todo: check if the func is callable from caller
 func lookupFn(fnname string) (*obj, bool) {
 	return nil, false
 }

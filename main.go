@@ -13,7 +13,7 @@ func init() {
 
 func wdbg(f string, a ...any) {
 	if debug {
-		fmt.Fprintf(os.Stdout, "[debug] " +f+"\n", a...)
+		fmt.Fprintf(os.Stdout, "[debug] "+f+"\n", a...)
 	}
 }
 
@@ -38,9 +38,8 @@ func run(args []string) int {
 		return 1
 	}
 
-	env = &environment{
-		v: map[string]*obj{},
-	}
+	env = &environment{ modules: map[string]*module{}, }
+
 
 	mod := args[1]
 	return runmod(mod)

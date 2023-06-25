@@ -14,8 +14,8 @@ func TestParsestmt(t *testing.T) {
 	d := heredoc.Doc
 
 	tests := map[string]struct {
-		content    string
-		expected   []*node
+		content  string
+		expected []*node
 	}{
 		"simple stmt": {
 			content: d(`
@@ -44,14 +44,14 @@ func TestParsestmt(t *testing.T) {
 				{
 					typ: ndFuncall,
 					fnname: &node{
-						typ: ndIdent,
+						typ:   ndIdent,
 						ident: "print",
 					},
 					args: &node{
 						typ: ndArgs,
 						nodes: []*node{
 							{
-								typ: ndIdent,
+								typ:   ndIdent,
 								ident: "a",
 							},
 						},
