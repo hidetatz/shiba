@@ -38,8 +38,7 @@ func run(args []string) int {
 		return 1
 	}
 
-	env = &environment{ modules: map[string]*module{}, }
-
+	env = &environment{modules: map[string]*module{}}
 
 	mod := args[1]
 	return runmod(mod)

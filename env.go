@@ -10,7 +10,7 @@ type environment struct {
 	modules map[string]*module
 }
 
-func (e *environment) createscope(mod string) error{
+func (e *environment) createscope(mod string) error {
 	m, ok := e.modules[mod]
 	if !ok {
 		return fmt.Errorf("unknown module: %s", mod)
@@ -20,7 +20,7 @@ func (e *environment) createscope(mod string) error{
 	return nil
 }
 
-func (e *environment) delscope(mod string) error{
+func (e *environment) delscope(mod string) error {
 	m, ok := e.modules[mod]
 	if !ok {
 		return fmt.Errorf("unknown module: %s", mod)
@@ -48,4 +48,3 @@ func (e *environment) getvar(mod, name string) (*obj, bool) {
 
 	return m.getvar(name)
 }
-

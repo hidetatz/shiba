@@ -1,11 +1,10 @@
 package main
 
 type module struct {
-	name string
-	root *scope
+	name   string
+	root   *scope
 	bottom *scope
 }
-
 
 func newmodule(mod string) *module {
 	m := &module{
@@ -49,7 +48,6 @@ func (m *module) setvar(name string, o *obj) {
 			break
 		}
 
-
 		_, ok := s.vars[name]
 		if ok {
 			s.vars[name] = o
@@ -69,7 +67,6 @@ func (m *module) getvar(name string) (*obj, bool) {
 			break
 		}
 
-
 		o, ok := s.vars[name]
 		if ok {
 			return o, true
@@ -81,7 +78,7 @@ func (m *module) getvar(name string) (*obj, bool) {
 
 type scope struct {
 	parent *scope
-	child *scope
+	child  *scope
 	vars   map[string]*obj
 	fns    map[string]*obj
 }
