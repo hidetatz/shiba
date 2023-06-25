@@ -9,6 +9,7 @@ type ndType int
 
 const (
 	ndComment ndType = iota
+	ndEof
 
 	ndAdd
 	ndSub
@@ -80,6 +81,8 @@ func (n *node) String() string {
 	switch n.typ {
 	case ndComment:
 		return "# " + n.comment
+	case ndEof:
+		return "eof"
 	case ndAdd:
 		return "(" + n.lhs.String() + " + " + n.rhs.String() + ")"
 	case ndSub:

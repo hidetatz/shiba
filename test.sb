@@ -1,5 +1,5 @@
 for i, e in [1, 2, 0, "a"] {
-	if e {
-		print(e)
-	}
+    if e {
+        print(e)
+    }
 }

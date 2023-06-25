@@ -11,7 +11,7 @@ func resolvevar(mod *module, varname string) string {
 
 func eval(mod *module, n *node) (*obj, error) {
 	switch n.typ {
-	case ndComment:
+	case ndComment, ndEof:
 		return nil, nil
 
 	case ndAssign:

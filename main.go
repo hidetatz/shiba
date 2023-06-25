@@ -5,6 +5,18 @@ import (
 	"os"
 )
 
+var debug bool
+
+func init() {
+	debug = os.Getenv("SHIBA_DBG") != ""
+}
+
+func wdbg(f string, a ...any) {
+	if debug {
+		fmt.Fprintf(os.Stdout, "[debug] " +f+"\n", a...)
+	}
+}
+
 func wout(f string, a ...any) {
 	fmt.Fprintf(os.Stdout, f+"\n", a...)
 }

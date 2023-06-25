@@ -46,7 +46,7 @@ func newparser(modname string) *parser {
 	if err != nil {
 		panic(err)
 	}
-	p.next = c3
+	p.nextnext = c3
 
 	return p
 }
@@ -84,7 +84,7 @@ func (p *parser) must(t tktype) {
  * Parse implementation
  */
 
-func parsestmt(modname string) (n *node, err error) {
+func (p *parser) parsestmt() (n *node, err error) {
 	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
@@ -94,7 +94,6 @@ func parsestmt(modname string) (n *node, err error) {
 		}
 	}()
 
-	p := newparser(modname)
 	return p.stmt(), nil
 }
 
@@ -129,10 +128,10 @@ func (p *parser) _if() *node {
 	for {
 		blocks = append(blocks, p.stmt())
 		if p.iscur(tkRBrace) {
+			p.proceed()
 			break
 		}
 	}
-	p.proceed()
 
 	n.conds = append(n.conds, map[*node][]*node{cond: blocks})
 
@@ -160,6 +159,7 @@ func (p *parser) _if() *node {
 
 	// parse else
 	if p.iscur(tkElse) {
+		p.proceed()
 		p.must(tkLBrace)
 		blocks := []*node{}
 		for {
@@ -290,7 +290,7 @@ func (p *parser) list() *node {
 
 	for {
 		n.nodes = append(n.nodes, p.expr())
-		if p.isnext(tkComma) {
+		if p.iscur(tkComma) {
 			p.proceed()
 			continue
 		}
@@ -409,13 +409,16 @@ func (p *parser) primary() *node {
 	case p.iscur(tkStr):
 		n = newnode(ndStr)
 		n.sval = p.cur.lit
+		p.proceed()
 
 	case p.iscur(tkNum):
 		s := p.cur.lit
+
 		i, err := strconv.ParseInt(s, 10, 64)
 		if err == nil {
 			n = newnode(ndI64)
 			n.ival = i
+			p.proceed()
 			return n
 		}
 
@@ -423,10 +426,14 @@ func (p *parser) primary() *node {
 		if err == nil {
 			n = newnode(ndF64)
 			n.fval = f
+			p.proceed()
 			return n
 		}
 
 		panic(fmt.Sprintf("parse %s as number", s))
+
+	case p.iscur(tkEof):
+		return newnode(ndEof)
 
 	default:
 		panic(fmt.Sprintf("invalid token: %s", p.cur))

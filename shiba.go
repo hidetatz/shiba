@@ -22,11 +22,16 @@ func (e *environment) String() string {
 
 func runmod(mod string) int {
 	m := &module{mod}
+	p := newparser(mod)
 	for {
-		stmt, err := parsestmt(mod)
+		stmt, err := p.parsestmt()
 		if err != nil {
 			werr("%s", err)
 			return 3
+		}
+
+		if stmt.typ == ndEof {
+			break
 		}
 
 		_, err = eval(m, stmt)
