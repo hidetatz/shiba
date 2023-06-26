@@ -26,7 +26,8 @@ const (
 	tkRBracket  // ]
 	tkLBrace    // {
 	tkRBrace    // }
-	tkEquality  // ==
+	tkEqual     // ==
+	tkNotEqual  // !=
 	tkGreater   // >
 	tkLess      // <
 	tkGreaterEq // >=
@@ -76,7 +77,8 @@ var punctuators = map[string]tktype{
 	"]":  tkRBracket,
 	"{":  tkLBrace,
 	"}":  tkRBrace,
-	"==": tkEquality,
+	"==": tkEqual,
+	"!=": tkNotEqual,
 	">":  tkGreater,
 	"<":  tkLess,
 	">=": tkGreaterEq,
