@@ -12,12 +12,7 @@ const (
 	tkInvalid tktype = iota
 
 	// punctuators
-	tkAssign    // =
-	tkPlus      // +
-	tkHyphen    // -
-	tkStar      // *
-	tkSlash     // /
-	tkPercent   // %
+	tkEq     // =
 	tkHash      // #
 	tkComma     // ,
 	tkLParen    // (
@@ -26,14 +21,25 @@ const (
 	tkRBracket  // ]
 	tkLBrace    // {
 	tkRBrace    // }
-	tkEqual     // ==
-	tkNotEqual  // !=
-	tkGreater   // >
+	tk2VBar       // ||
+	tk2Amp      // &&
+	tk2Eq       // ==
+	tkBangEq     // !=
 	tkLess      // <
-	tkGreaterEq // >=
 	tkLessEq    // <=
-	tkLAnd      // && Logical And
-	tkLOr       // || Logical Or
+	tkGreater   // >
+	tkGreaterEq // >=
+	tkPlus      // +
+	tkHyphen    // -
+	tkVBar       // |
+	tkCaret      // ^
+	tkStar      // *
+	tkSlash     // /
+	tkPercent   // %
+	tk2Less    // <<
+	tk2Greater    // >>
+	tkAmp      // &
+	tkBang      // !
 
 	// keywords
 	tkTrue  // true
@@ -63,7 +69,7 @@ var keywords = map[string]tktype{
 }
 
 var punctuators = map[string]tktype{
-	"=":  tkAssign,
+	"=":  tkEq,
 	"+":  tkPlus,
 	"-":  tkHyphen,
 	"*":  tkStar,
@@ -77,14 +83,18 @@ var punctuators = map[string]tktype{
 	"]":  tkRBracket,
 	"{":  tkLBrace,
 	"}":  tkRBrace,
-	"==": tkEqual,
-	"!=": tkNotEqual,
-	">":  tkGreater,
+	"&&": tk2Amp,
+	"||": tk2VBar,
+	"==": tk2Eq,
+	"!=": tkBangEq,
 	"<":  tkLess,
-	">=": tkGreaterEq,
 	"<=": tkLessEq,
-	"&&": tkLAnd,
-	"||": tkLOr,
+	">":  tkGreater,
+	">=": tkGreaterEq,
+	"&":  tkAmp,
+	"|":  tkVBar,
+	"^":  tkCaret,
+	"!":  tkBang,
 }
 
 func (t tktype) String() string {
@@ -237,14 +247,30 @@ func (t *tokenizer) readident() (*token, bool) {
 	}
 
 	return t.newtoken(tkIdent, line, col, ident), true
-
 }
 
 func (t *tokenizer) readpunct() (*token, bool) {
 	line, col := t.line, t.col
-	c := t.cur()
-	if tk, ok := punctuators[string(c)]; ok {
+	p := ""
+	for {
+		if !t.hasnext() {
+			break
+		}
+
+		c := t.cur()
+		if !ispunctletter(c) {
+			break
+		}
+
+		p += string(c)
 		t.next()
+	}
+
+	if p == "" {
+		return nil, false
+	}
+
+	if tk, ok := punctuators[p]; ok {
 		return t.newtoken(tk, line, col, ""), true
 	}
 
@@ -338,6 +364,10 @@ func isdigit(r rune) bool {
 
 func isidentletter(r rune) bool {
 	return ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9') || r == '_'
+}
+
+func ispunctletter(r rune) bool {
+	return strings.Contains("=+-*/%#,()[]{}&|!<>^", string(r))
 }
 
 func isspace(r rune) bool {

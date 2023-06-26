@@ -111,7 +111,7 @@ func (p *parser) stmt() *node {
 		return p._for()
 	}
 
-	if p.iscur(tkIdent) && p.isnext(tkAssign) {
+	if p.iscur(tkIdent) && p.isnext(tkEq) {
 		return p.assign()
 	}
 
@@ -221,7 +221,7 @@ func (p *parser) assign() *node {
 	n := newnode(ndAssign)
 
 	n.lhs = p.ident()
-	p.must(tkAssign)
+	p.must(tkEq)
 	n.rhs = p.expr()
 
 	return n
@@ -231,17 +231,99 @@ func (p *parser) assign() *node {
  * expression
  */
 
-// expr = funcall | list | add
+// expr = unaryexpr (binaryop expr)*
 func (p *parser) expr() *node {
-	if p.iscur(tkIdent) && p.isnext(tkLParen) {
-		return p.funcall()
+	ue := p.unaryexpr()
+	if !p.isbinaryop(p.cur) {
+		return ue
 	}
 
-	if p.iscur(tkLBracket) {
-		return p.list()
+	n := ue
+
+	for {
+		if !p.isbinaryop(p.cur) {
+			break
+		}
+		bo := p.binaryop()
+		bo.lhs = n
+		bo.rhs = p.expr()
 	}
 
-	return p.add()
+	return n
+
+	// if p.iscur(tkIdent) && p.isnext(tkLParen) {
+	// 	return p.funcall()
+	// }
+
+	// if p.iscur(tkLBracket) {
+	// 	return p.list()
+	// }
+
+	// return p.add()
+}
+
+// unaryexpr  = (unaryop unaryexpr) | primaryexpr
+// unary_op   = "+" | "-" | "!" | "^"
+func (p *parser) unaryexpr() *node {
+	if p.isunaryop(p.cur) {
+		uo := p.unaryop()
+		uo.unaryoptarget = p.unaryexpr()
+		return uo
+	}
+
+	return p.primaryexpr()
+}
+
+var binaryops = map[tktype]ndType{
+	tk2VBar:       ndLOr,
+	tk2Amp:      ndLAnd,
+	tk2Eq:        ndEq,
+	tkBangEq:     ndNotEq,
+	tkLess:      ndLess,
+	tkLessEq:    ndLessEq,
+	tkGreater:   ndGreater,
+	tkGreaterEq: ndGreaterEq,
+	tkPlus:      ndPlus,
+	tkHyphen:    ndHyphen,
+	tkVBar:       ndBOr,
+	tkCaret:      ndBNot,
+	tkStar:      ndStar,
+	tkSlash:     ndSlash,
+	tkPercent:   ndPercent,
+	tk2Less:    ndLShift,
+	tk2Greater:    ndRShift,
+	tkAmp:      ndBAnd,
+}
+
+func (p *parser) isbinaryop(t *token) bool {
+	_, ok := binaryops[t.typ]
+	return ok
+}
+
+// binaryop = "||" | "&&" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "|" | "^" | "*" | "/" | "%" | "<<" | ">>" | "&"
+func (p *parser) binaryop() *node {
+	bo := binaryops[p.cur.typ]
+	p.proceed()
+	return newnode(bo)
+}
+
+// unary_op   = "+" | "-" | "!" | "^"
+var unaryops = map[tktype]ndType{
+	tkPlus:   ndUnaryPlus,
+	tkHyphen: ndUnaryMinus,
+	tkBang:   ndUnaryNot,
+	tkCaret:   ndUnaryLogicalNot,
+}
+
+func (p *parser) isunaryop(t *token) bool {
+	_, ok := unaryops[t.typ]
+	return ok
+}
+
+func (p *parser) unaryop() *node {
+	uo := unaryops[p.cur.typ]
+	p.proceed()
+	return newnode(uo)
 }
 
 // funcall = ident "(" funargs? ")"
@@ -394,6 +476,7 @@ func (p *parser) unary() *node {
 }
 
 // primary = ident | NUMBER_INT | NUMBER_FLOAT | STRING
+// primary = operand | funcall | list | add
 func (p *parser) primary() *node {
 	var n *node
 	switch {

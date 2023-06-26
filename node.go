@@ -17,6 +17,30 @@ const (
 	ndDiv
 	ndMod
 
+	ndLOr
+	ndLAnd
+	ndEq
+	ndNotEq
+	ndLess
+	ndLessEq
+	ndGreater
+	ndGreaterEq
+	ndPlus
+	ndHyphen
+	ndBOr
+	ndBNot
+	ndStar
+	ndSlash
+	ndPercent
+	ndLShift
+	ndRShift
+	ndBAnd
+
+	ndUnaryPlus
+	ndUnaryMinus
+	ndUnaryNot
+	ndUnaryLogicalNot
+
 	ndAssign
 	ndFuncall
 
@@ -36,6 +60,8 @@ const (
 
 type node struct {
 	typ ndType
+
+	unaryoptarget *node
 
 	comment string
 
