@@ -432,6 +432,16 @@ func (p *parser) primary() *node {
 
 		panic(fmt.Sprintf("parse %s as number", s))
 
+	case p.iscur(tkTrue):
+		n = newnode(ndBool)
+		n.bval = true
+		p.proceed()
+
+	case p.iscur(tkFalse):
+		n = newnode(ndBool)
+		n.bval = false
+		p.proceed()
+
 	case p.iscur(tkEof):
 		return newnode(ndEof)
 

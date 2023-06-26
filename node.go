@@ -31,6 +31,7 @@ const (
 	ndStr
 	ndI64
 	ndF64
+	ndBool
 )
 
 type node struct {
@@ -69,6 +70,7 @@ type node struct {
 	sval  string
 	ival  int64
 	fval  float64
+	bval  bool
 }
 
 func newnode(typ ndType) *node {
@@ -180,6 +182,8 @@ func (n *node) String() string {
 		return fmt.Sprintf("%d", n.ival)
 	case ndF64:
 		return fmt.Sprintf("%f", n.fval)
+	case ndBool:
+		return fmt.Sprintf("%t", n.bval)
 	}
 
 	return "<invalid node>"

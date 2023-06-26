@@ -324,6 +324,11 @@ func eval(mod string, n *node) (*obj, error) {
 	case ndF64:
 		o := &obj{typ: tFloat64, fval: n.fval}
 		return o, nil
+
+	case ndBool:
+		o := &obj{typ: tBool, bval: n.bval}
+		return o, nil
+
 	default:
 		return nil, fmt.Errorf("unknown node: %v", n)
 	}

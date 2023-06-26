@@ -28,12 +28,14 @@ const (
 	tkRBrace   // }
 
 	// keywords
-	tkIf   // if
-	tkElif // elif
-	tkElse // else
-	tkFor  // for
-	tkIn   // in
-	tkDef  // def
+	tkTrue  // true
+	tkFalse // false
+	tkIf    // if
+	tkElif  // elif
+	tkElse  // else
+	tkFor   // for
+	tkIn    // in
+	tkDef   // def
 
 	tkIdent
 	tkStr

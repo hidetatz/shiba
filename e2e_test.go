@@ -273,6 +273,25 @@ func TestE2E(t *testing.T) {
 				$$filename:1 unknown var or func name: i
 			`),
 		},
+		"bool1": {
+			content: d(`
+				if false {
+					print("false")
+				}
+				if true {
+					print("true")
+				}
+				a = true
+				b = 99
+				if a {
+					print(b)
+				}
+			`),
+			out: d(`
+				true
+				99
+			`),
+		},
 	}
 
 	td := t.TempDir()

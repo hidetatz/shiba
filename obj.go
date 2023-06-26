@@ -15,6 +15,7 @@ const (
 	tString
 	tInt64
 	tFloat64
+	tBool
 	tBfn
 	tList
 )
@@ -26,6 +27,7 @@ type obj struct {
 	sval string
 	ival int64
 	fval float64
+	bval bool
 
 	objs []*obj
 
@@ -44,6 +46,8 @@ func (o *obj) isTruethy() bool {
 		return o.ival != 0
 	case tFloat64:
 		return o.fval != 0
+	case tBool:
+		return o.bval
 	case tList:
 		return len(o.objs) > 0
 	}
@@ -61,6 +65,8 @@ func (o *obj) String() string {
 		return fmt.Sprintf("%d", o.ival)
 	case tFloat64:
 		return fmt.Sprintf("%f", o.fval)
+	case tBool:
+		return fmt.Sprintf("%t", o.bval)
 	case tBfn:
 		return fmt.Sprintf("builtin.%s()", o.bfnname)
 	case tList:
