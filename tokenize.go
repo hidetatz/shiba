@@ -12,20 +12,27 @@ const (
 	tkInvalid tktype = iota
 
 	// punctuators
-	tkAssign   // =
-	tkPlus     // +
-	tkHyphen   // -
-	tkStar     // *
-	tkSlash    // /
-	tkPercent  // %
-	tkHash     // #
-	tkComma    // ,
-	tkLParen   // (
-	tkRParen   // )
-	tkLBracket // [
-	tkRBracket // ]
-	tkLBrace   // {
-	tkRBrace   // }
+	tkAssign    // =
+	tkPlus      // +
+	tkHyphen    // -
+	tkStar      // *
+	tkSlash     // /
+	tkPercent   // %
+	tkHash      // #
+	tkComma     // ,
+	tkLParen    // (
+	tkRParen    // )
+	tkLBracket  // [
+	tkRBracket  // ]
+	tkLBrace    // {
+	tkRBrace    // }
+	tkEquality  // ==
+	tkGreater   // >
+	tkLess      // <
+	tkGreaterEq // >=
+	tkLessEq    // <=
+	tkLAnd      // && Logical And
+	tkLOr       // || Logical Or
 
 	// keywords
 	tkTrue  // true
@@ -44,29 +51,38 @@ const (
 )
 
 var keywords = map[string]tktype{
-	"if":   tkIf,
-	"elif": tkElif,
-	"else": tkElse,
-	"for":  tkFor,
-	"in":   tkIn,
-	"def":  tkDef,
+	"true":  tkTrue,
+	"false": tkFalse,
+	"if":    tkIf,
+	"elif":  tkElif,
+	"else":  tkElse,
+	"for":   tkFor,
+	"in":    tkIn,
+	"def":   tkDef,
 }
 
 var punctuators = map[string]tktype{
-	"=": tkAssign,
-	"+": tkPlus,
-	"-": tkHyphen,
-	"*": tkStar,
-	"/": tkSlash,
-	"%": tkPercent,
-	"#": tkHash,
-	",": tkComma,
-	"(": tkLParen,
-	")": tkRParen,
-	"[": tkLBracket,
-	"]": tkRBracket,
-	"{": tkLBrace,
-	"}": tkRBrace,
+	"=":  tkAssign,
+	"+":  tkPlus,
+	"-":  tkHyphen,
+	"*":  tkStar,
+	"/":  tkSlash,
+	"%":  tkPercent,
+	"#":  tkHash,
+	",":  tkComma,
+	"(":  tkLParen,
+	")":  tkRParen,
+	"[":  tkLBracket,
+	"]":  tkRBracket,
+	"{":  tkLBrace,
+	"}":  tkRBrace,
+	"==": tkEquality,
+	">":  tkGreater,
+	"<":  tkLess,
+	">=": tkGreaterEq,
+	"<=": tkLessEq,
+	"&&": tkLAnd,
+	"||": tkLOr,
 }
 
 func (t tktype) String() string {
