@@ -6,40 +6,12 @@ import (
 )
 
 type ndType int
-
 const (
 	ndComment ndType = iota
 	ndEof
 
-	ndAdd
-	ndSub
-	ndMul
-	ndDiv
-	ndMod
-
-	ndLOr
-	ndLAnd
-	ndEq
-	ndNotEq
-	ndLess
-	ndLessEq
-	ndGreater
-	ndGreaterEq
-	ndPlus
-	ndHyphen
-	ndBOr
-	ndBNot
-	ndStar
-	ndSlash
-	ndPercent
-	ndLShift
-	ndRShift
-	ndBAnd
-
-	ndUnaryPlus
-	ndUnaryMinus
-	ndUnaryNot
-	ndUnaryLogicalNot
+	ndUnaryOp
+	ndBinaryOp
 
 	ndAssign
 	ndFuncall
@@ -58,20 +30,59 @@ const (
 	ndBool
 )
 
+type binaryOpTyp int
+type unaryOpTyp int
+
+const (
+	boAdd binaryOpTyp = iota
+	boSub
+	boMul
+	boDiv
+	boMod
+
+	boEq
+	boNotEq
+	boLess
+	boLessEq
+	boGreater
+	boGreaterEq
+
+	boLogicalOr
+	boLogicalAnd
+
+	boBitwiseOr
+	boBitwiseNot
+	boBitwiseAnd
+
+	boLeftShift
+	boRightShift
+
+	uoPlus unaryOpTyp = iota
+	uoMinus
+	uoNot
+	uoLogicalNot
+)
+
 type node struct {
 	typ ndType
 
-	unaryoptarget *node
-
-	comment string
-
-	ident string
-
-	// infix operation
+	// used when typ is ndbinaryOp
+	bo binaryOpTyp
 	lhs *node
 	rhs *node
 
-	// elifs is a slice of a map to specify the condition and blocks to be run in if statement.
+	// used when typ is ndUnaryOp
+	uo unaryOpTyp
+	n *node
+
+	// comment message
+	comment string
+
+	// identifier
+	ident string
+
+	// if-elif-else statement
+	// conds is a slice of a map to specify the condition and blocks to be run in if statement.
 	// The map key is condition, the value is the statements.
 	// The slice represents the if ... elif ... else chain. The order must be the same as the if-elif order.
 	// if the map key is nil, then it represents "else".
@@ -80,7 +91,8 @@ type node struct {
 	// it's separated from conds.
 	els []*node
 
-	// used in for-loop. Only one of  ident and list is used.
+	// for-loop
+	// Only one of ident and list is used.
 	// cnd is a var name for counter, elem is for element.
 	tgtIdent *node
 	tgtList  *node
