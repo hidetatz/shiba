@@ -13,21 +13,21 @@ const (
 	ndUnaryOp
 	ndBinaryOp
 
+	ndIdent
+
 	ndAssign
 	ndFuncall
 
 	ndIf
 	ndLoop
 
-	ndList
-
 	ndArgs
-	ndIdent
 
 	ndStr
 	ndI64
 	ndF64
 	ndBool
+	ndList
 )
 
 type binaryOpTyp int
@@ -123,16 +123,19 @@ func (n *node) String() string {
 		return "# " + n.comment
 	case ndEof:
 		return "eof"
-	case ndAdd:
-		return "(" + n.lhs.String() + " + " + n.rhs.String() + ")"
-	case ndSub:
-		return "(" + n.lhs.String() + " - " + n.rhs.String() + ")"
-	case ndMul:
-		return "(" + n.lhs.String() + " * " + n.rhs.String() + ")"
-	case ndDiv:
-		return "(" + n.lhs.String() + " / " + n.rhs.String() + ")"
-	case ndMod:
-		return "(" + n.lhs.String() + " % " + n.rhs.String() + ")"
+	case ndBinaryOp:
+		switch n.bo {
+		case boAdd:
+		      return "(" + n.lhs.String() + " + " + n.rhs.String() + ")"
+		case boSub:
+		      return "(" + n.lhs.String() + " - " + n.rhs.String() + ")"
+		case boMul:
+		      return "(" + n.lhs.String() + " * " + n.rhs.String() + ")"
+		case boDiv:
+		      return "(" + n.lhs.String() + " / " + n.rhs.String() + ")"
+		case boMod:
+			return "(" + n.lhs.String() + " % " + n.rhs.String() + ")"
+		}
 	case ndAssign:
 		return n.lhs.String() + " = " + n.rhs.String()
 	case ndFuncall:

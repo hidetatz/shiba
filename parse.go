@@ -266,33 +266,33 @@ func (p *parser) expr() *node {
 // unary_op   = "+" | "-" | "!" | "^"
 func (p *parser) unaryexpr() *node {
 	if p.isunaryop(p.cur) {
-		uo := p.unaryop()
-		uo.unaryoptarget = p.unaryexpr()
-		return uo
+		n := p.unaryop()
+		n.n = p.unaryexpr()
+		return n
 	}
 
 	return p.primaryexpr()
 }
 
-var binaryops = map[tktype]ndType{
-	tk2VBar:       ndLOr,
-	tk2Amp:      ndLAnd,
-	tk2Eq:        ndEq,
-	tkBangEq:     ndNotEq,
-	tkLess:      ndLess,
-	tkLessEq:    ndLessEq,
-	tkGreater:   ndGreater,
-	tkGreaterEq: ndGreaterEq,
-	tkPlus:      ndPlus,
-	tkHyphen:    ndHyphen,
-	tkVBar:       ndBOr,
-	tkCaret:      ndBNot,
-	tkStar:      ndStar,
-	tkSlash:     ndSlash,
-	tkPercent:   ndPercent,
-	tk2Less:    ndLShift,
-	tk2Greater:    ndRShift,
-	tkAmp:      ndBAnd,
+var binaryops = map[tktype]binaryOpTyp{
+	tk2VBar:     boLogicalOr,
+	tk2Amp:      boLogicalAnd,
+	tk2Eq:       boEq,
+	tkBangEq:    boNotEq,
+	tkLess:      boLess,
+	tkLessEq:    boLessEq,
+	tkGreater:   boGreater,
+	tkGreaterEq: boGreaterEq,
+	tkPlus:      boAdd,
+	tkHyphen:    boSub,
+	tkVBar:      boBitwiseOr,
+	tkCaret:     boBitwiseNot,
+	tkAmp:       boBitwiseAnd,
+	tkStar:      boMul,
+	tkSlash:     boDiv,
+	tkPercent:   boMod,
+	tk2Less:     boLeftShift,
+	tk2Greater:  boRightShift,
 }
 
 func (p *parser) isbinaryop(t *token) bool {
@@ -304,15 +304,17 @@ func (p *parser) isbinaryop(t *token) bool {
 func (p *parser) binaryop() *node {
 	bo := binaryops[p.cur.typ]
 	p.proceed()
-	return newnode(bo)
+	n := newnode(ndBinaryOp)
+	n.bo = bo
+	return n
 }
 
 // unary_op   = "+" | "-" | "!" | "^"
-var unaryops = map[tktype]ndType{
-	tkPlus:   ndUnaryPlus,
-	tkHyphen: ndUnaryMinus,
-	tkBang:   ndUnaryNot,
-	tkCaret:   ndUnaryLogicalNot,
+var unaryops = map[tktype]unaryOpTyp{
+	tkPlus:   uoPlus,
+	tkHyphen: uoMinus,
+	tkBang:   uoNot,
+	tkCaret:  uoLogicalNot,
 }
 
 func (p *parser) isunaryop(t *token) bool {
@@ -323,7 +325,9 @@ func (p *parser) isunaryop(t *token) bool {
 func (p *parser) unaryop() *node {
 	uo := unaryops[p.cur.typ]
 	p.proceed()
-	return newnode(uo)
+	n := newnode(ndUnaryOp)
+	n.uo = uo
+	return n
 }
 
 // funcall = ident "(" funargs? ")"
