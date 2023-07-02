@@ -9,8 +9,6 @@ import (
 type tktype int
 
 const (
-	tkInvalid tktype = iota
-
 	// punctuators
 	tkDot       // .
 	tkColon     // :
@@ -108,8 +106,6 @@ var punctuators = []*strToTktype{
 
 func (t tktype) String() string {
 	switch t {
-	case tkInvalid:
-		return "invalid"
 	case tkIdent:
 		return "ident"
 	case tkStr:
@@ -375,10 +371,6 @@ func isdigit(r rune) bool {
 
 func isidentletter(r rune) bool {
 	return ('a' <= r && r <= 'z') || ('A' <= r && r <= 'Z') || ('0' <= r && r <= '9') || r == '_'
-}
-
-func ispunctletter(r rune) bool {
-	return strings.Contains(".:=+-*/%#,()[]{}&|!<>^", string(r))
 }
 
 func isspace(r rune) bool {
