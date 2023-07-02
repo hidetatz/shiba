@@ -13,8 +13,7 @@ import (
 
 var d = heredoc.Doc
 
-func TestE2E(t *testing.T) {
-	t.Setenv("SHIBA_DBG", "1")
+func TestArithmetic(t *testing.T) {
 	tests := map[string]struct {
 		content string
 		out     string
