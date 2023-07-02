@@ -20,7 +20,7 @@ func TestTokenizer_nexttoken(t *testing.T) {
 	}{
 		"simple stmt": {
 			content: d(`
-				a = 1 + 2
+				a = ((1 + 2))
 				print(a)
 				if a {
 				    print("1")
@@ -33,10 +33,14 @@ func TestTokenizer_nexttoken(t *testing.T) {
 			expected: []*token{
 				// assign
 				{typ: tkIdent, at: 0, line: 1, lit: "a"},
-				{typ: tkAssign, at: 2, line: 1},
-				{typ: tkNum, at: 4, line: 1, lit: "1"},
-				{typ: tkPlus, at: 6, line: 1},
-				{typ: tkNum, at: 8, line: 1, lit: "2"},
+				{typ: tkEq, at: 2, line: 1},
+				{typ: tkLParen, at: 4, line: 1},
+				{typ: tkLParen, at: 5, line: 1},
+				{typ: tkNum, at: 6, line: 1, lit: "1"},
+				{typ: tkPlus, at: 8, line: 1},
+				{typ: tkNum, at: 10, line: 1, lit: "2"},
+				{typ: tkRParen, at: 11, line: 1},
+				{typ: tkRParen, at: 12, line: 1},
 				// print
 				{typ: tkIdent, at: 0, line: 2, lit: "print"},
 				{typ: tkLParen, at: 5, line: 2},

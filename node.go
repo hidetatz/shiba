@@ -5,36 +5,52 @@ import (
 	"strings"
 )
 
-type ndType int
+type binaryOp int
+
+func (bo binaryOp) String() string {
+	switch bo {
+	case boAdd:
+		return "+"
+	case boSub:
+		return "-"
+	case boMul:
+		return "*"
+	case boDiv:
+		return "/"
+	case boMod:
+		return "%"
+	case boEq:
+		return "=="
+	case boNotEq:
+		return "!="
+	case boLess:
+		return "<"
+	case boLessEq:
+		return "<="
+	case boGreater:
+		return ">"
+	case boGreaterEq:
+		return ">="
+	case boLogicalOr:
+		return "||"
+	case boLogicalAnd:
+		return "&&"
+	case boBitwiseOr:
+		return "|"
+	case boBitwiseXor:
+		return "^"
+	case boBitwiseAnd:
+		return "&"
+	case boLeftShift:
+		return "<<"
+	case boRightShift:
+		return ">>"
+	}
+	return "?"
+}
+
 const (
-	ndComment ndType = iota
-	ndEof
-
-	ndUnaryOp
-	ndBinaryOp
-
-	ndIdent
-
-	ndAssign
-	ndFuncall
-
-	ndIf
-	ndLoop
-
-	ndArgs
-
-	ndStr
-	ndI64
-	ndF64
-	ndBool
-	ndList
-)
-
-type binaryOpTyp int
-type unaryOpTyp int
-
-const (
-	boAdd binaryOpTyp = iota
+	boAdd binaryOp = iota
 	boSub
 	boMul
 	boDiv
@@ -51,181 +67,297 @@ const (
 	boLogicalAnd
 
 	boBitwiseOr
-	boBitwiseNot
+	boBitwiseXor
 	boBitwiseAnd
 
 	boLeftShift
 	boRightShift
-
-	uoPlus unaryOpTyp = iota
-	uoMinus
-	uoNot
-	uoLogicalNot
 )
 
-type node struct {
-	typ ndType
-
-	// used when typ is ndbinaryOp
-	bo binaryOpTyp
-	lhs *node
-	rhs *node
-
-	// used when typ is ndUnaryOp
-	uo unaryOpTyp
-	n *node
-
-	// comment message
-	comment string
-
-	// identifier
-	ident string
-
-	// if-elif-else statement
-	// conds is a slice of a map to specify the condition and blocks to be run in if statement.
-	// The map key is condition, the value is the statements.
-	// The slice represents the if ... elif ... else chain. The order must be the same as the if-elif order.
-	// if the map key is nil, then it represents "else".
-	conds []map[*node][]*node
-	// els is a else block in if statement. because else doesn't have condition,
-	// it's separated from conds.
-	els []*node
-
-	// for-loop
-	// Only one of ident and list is used.
-	// cnd is a var name for counter, elem is for element.
-	tgtIdent *node
-	tgtList  *node
-	cnt      *node
-	elem     *node
-
-	// func call
-	fnname *node
-	args   *node
-
-	// primitive values
-	nodes []*node
-	sval  string
-	ival  int64
-	fval  float64
-	bval  bool
+type node interface {
+	fmt.Stringer
+	isnode()
 }
 
-func newnode(typ ndType) *node {
-	return &node{
-		typ: typ,
-	}
+/*
+ * misc
+ */
+
+type ndEof struct {
+	node
 }
 
-func (n *node) String() string {
-	switch n.typ {
-	case ndComment:
-		return "# " + n.comment
-	case ndEof:
-		return "eof"
-	case ndBinaryOp:
-		switch n.bo {
-		case boAdd:
-		      return "(" + n.lhs.String() + " + " + n.rhs.String() + ")"
-		case boSub:
-		      return "(" + n.lhs.String() + " - " + n.rhs.String() + ")"
-		case boMul:
-		      return "(" + n.lhs.String() + " * " + n.rhs.String() + ")"
-		case boDiv:
-		      return "(" + n.lhs.String() + " / " + n.rhs.String() + ")"
-		case boMod:
-			return "(" + n.lhs.String() + " % " + n.rhs.String() + ")"
-		}
-	case ndAssign:
-		return n.lhs.String() + " = " + n.rhs.String()
-	case ndFuncall:
-		return n.fnname.String() + "(" + n.args.String() + ")"
-	case ndList:
-		sb := strings.Builder{}
-		sb.WriteString("[")
-		for i, nn := range n.nodes {
-			sb.WriteString(nn.String())
-			if i < len(n.nodes)-1 {
-				sb.WriteString(", ")
-			}
-		}
-		sb.WriteString("]")
+func (n *ndEof) String() string {
+	return "<eof>"
+}
 
-		return sb.String()
-	case ndIf:
-		sb := strings.Builder{}
-		sb.WriteString("if ")
-		for i, o := range n.conds {
-			for cond, blocks := range o {
-				if cond != nil {
-					sb.WriteString(cond.String() + " ")
-				}
-				sb.WriteString("{ ")
-				for _, block := range blocks {
-					sb.WriteString(block.String())
-					sb.WriteString("; ")
-				}
-				sb.WriteString("} ")
-			}
+type ndComment struct {
+	node
+	message string
+}
 
-			if i < len(n.conds)-1 {
-				sb.WriteString("elif ")
-			}
-		}
+func (n *ndComment) String() string {
+	return "# " + n.message
+}
 
-		if n.els != nil {
-			sb.WriteString("else ")
-			for _, block := range n.els {
+/*
+ * Statements
+ */
+
+type ndAssign struct {
+	node
+	left  node
+	right node
+}
+
+func (n *ndAssign) String() string {
+	return n.left.String() + " = " + n.right.String()
+}
+
+type ndIf struct {
+	node
+
+	// key: condition, value: block statements
+	// when condition is true, the statements should be evaluated.
+	conds []map[node][]node
+
+	// if none of conds is evaluated, els should be evaluated.
+	els []node
+}
+
+func (n *ndIf) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("if ")
+	for i, o := range n.conds {
+		for cond, blocks := range o {
+			if cond != nil {
+				sb.WriteString(cond.String() + " ")
+			}
+			sb.WriteString("{ ")
+			for _, block := range blocks {
 				sb.WriteString(block.String())
 				sb.WriteString("; ")
 			}
-			sb.WriteString("}")
+			sb.WriteString("} ")
 		}
 
-		return sb.String()
-	case ndLoop:
-		sb := strings.Builder{}
-		sb.WriteString("for ")
-		sb.WriteString(n.cnt.ident)
-		sb.WriteString(", ")
-		sb.WriteString(n.elem.ident)
-		sb.WriteString(" in ")
-		if n.tgtList != nil {
-			sb.WriteString(n.tgtList.String())
-		} else {
-			sb.WriteString(n.tgtIdent.String())
+		if i < len(n.conds)-1 {
+			sb.WriteString("elif ")
 		}
-
-		sb.WriteString(" { ")
-		for _, nd := range n.nodes {
-			sb.WriteString(nd.String())
-			sb.WriteString("; ")
-		}
-
-		sb.WriteString("}")
-
-		return sb.String()
-	case ndArgs:
-		sb := strings.Builder{}
-		for i, n := range n.nodes {
-			sb.WriteString(n.String())
-			if i < len(n.nodes)-1 {
-				sb.WriteString(", ")
-			}
-		}
-
-		return sb.String()
-	case ndIdent:
-		return n.ident
-	case ndStr:
-		return "\"" + n.sval + "\""
-	case ndI64:
-		return fmt.Sprintf("%d", n.ival)
-	case ndF64:
-		return fmt.Sprintf("%f", n.fval)
-	case ndBool:
-		return fmt.Sprintf("%t", n.bval)
 	}
 
-	return "<invalid node>"
+	if n.els != nil {
+		sb.WriteString("else ")
+		for _, block := range n.els {
+			sb.WriteString(block.String())
+			sb.WriteString("; ")
+		}
+		sb.WriteString("}")
+	}
+
+	return sb.String()
+}
+
+type ndLoop struct {
+	node
+
+	// loop target, something iterable
+	target node
+	// counter, element var name
+	cnt    node
+	elem   node
+	blocks []node
+}
+
+func (n *ndLoop) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("for ")
+	sb.WriteString(n.cnt.String())
+	sb.WriteString(", ")
+	sb.WriteString(n.elem.String())
+	sb.WriteString(" in ")
+	sb.WriteString(n.target.String())
+	sb.WriteString(" { ")
+	for _, nd := range n.blocks {
+		sb.WriteString(nd.String())
+		sb.WriteString("; ")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
+/*
+ * expressions
+ */
+
+type ndBinaryOp struct {
+	node
+	op    binaryOp
+	left  node
+	right node
+}
+
+func (n *ndBinaryOp) String() string {
+	return fmt.Sprintf("(%s %s %s)", n.left.String(), n.op.String(), n.right.String())
+}
+
+/*
+ * prefix operations
+ */
+
+type ndPlus struct {
+	node
+	target node
+}
+
+func (n *ndPlus) String() string {
+	return fmt.Sprintf("+%s", n.target)
+}
+
+type ndMinus struct {
+	node
+	target node
+}
+
+func (n *ndMinus) String() string {
+	return fmt.Sprintf("-%s", n.target)
+}
+
+type ndLogicalNot struct {
+	node
+	target node
+}
+
+func (n *ndLogicalNot) String() string {
+	return fmt.Sprintf("!%s", n.target)
+}
+
+type ndBitwiseNot struct {
+	node
+	target node
+}
+
+func (n *ndBitwiseNot) String() string {
+	return fmt.Sprintf("^%s", n.target)
+}
+
+/*
+ * postfix operation
+ */
+
+type ndSelector struct {
+	node
+	selector node
+	target   node
+}
+
+func (n *ndSelector) String() string {
+	return fmt.Sprintf("%s.%s", n.selector, n.target)
+}
+
+type ndIndex struct {
+	node
+	idx    node
+	target node
+}
+
+func (n *ndIndex) String() string {
+	return fmt.Sprintf("%s[%s]", n.target, n.idx)
+}
+
+type ndSlice struct {
+	node
+	start  node
+	end    node
+	target node
+}
+
+func (n *ndSlice) String() string {
+	return fmt.Sprintf("%s[%s:%s]", n.target, n.start, n.end)
+}
+
+type ndFuncall struct {
+	node
+	fn   node
+	args []node
+}
+
+func (n *ndFuncall) String() string {
+	sb := strings.Builder{}
+	sb.WriteString(n.fn.String())
+	sb.WriteString("(")
+	for i, a := range n.args {
+		sb.WriteString(a.String())
+		if i < len(n.args)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteString(")")
+
+	return sb.String()
+}
+
+type ndIdent struct {
+	node
+	ident string
+}
+
+func (n *ndIdent) String() string {
+	return n.ident + "(ident)"
+}
+
+type ndStr struct {
+	node
+	v string
+}
+
+func (n *ndStr) String() string {
+	return "\"" + n.v + "(string)\""
+}
+
+type ndI64 struct {
+	node
+	v int64
+}
+
+func (n *ndI64) String() string {
+	return fmt.Sprintf("%d(i64)", n.v)
+}
+
+type ndF64 struct {
+	node
+	v float64
+}
+
+func (n *ndF64) String() string {
+	return fmt.Sprintf("%f(f64)", n.v)
+}
+
+type ndBool struct {
+	node
+	v bool
+}
+
+func (n *ndBool) String() string {
+	return fmt.Sprintf("%t(bool)", n.v)
+}
+
+type ndList struct {
+	node
+	v []node
+}
+
+func (n *ndList) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("[")
+	for i, nn := range n.v {
+		sb.WriteString(nn.String())
+		if i < len(n.v)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteString("]")
+
+	return sb.String()
 }

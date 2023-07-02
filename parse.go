@@ -84,7 +84,7 @@ func (p *parser) must(t tktype) {
  * Parse implementation
  */
 
-func (p *parser) parsestmt() (n *node, err error) {
+func (p *parser) parsestmt() (n node, err error) {
 	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
@@ -102,7 +102,7 @@ func (p *parser) parsestmt() (n *node, err error) {
  */
 
 // stmt = if | for | assign | expr
-func (p *parser) stmt() *node {
+func (p *parser) stmt() node {
 	if p.iscur(tkIf) {
 		return p._if()
 	}
@@ -119,12 +119,12 @@ func (p *parser) stmt() *node {
 }
 
 // if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
-func (p *parser) _if() *node {
+func (p *parser) _if() node {
 	p.must(tkIf)
-	n := newnode(ndIf)
+	n := &ndIf{}
 	cond := p.expr()
 	p.must(tkLBrace)
-	blocks := []*node{}
+	blocks := []node{}
 	for {
 		blocks = append(blocks, p.stmt())
 		if p.iscur(tkRBrace) {
@@ -133,7 +133,7 @@ func (p *parser) _if() *node {
 		}
 	}
 
-	n.conds = append(n.conds, map[*node][]*node{cond: blocks})
+	n.conds = append(n.conds, map[node][]node{cond: blocks})
 
 	// parse multiple elifs
 	for {
@@ -145,7 +145,7 @@ func (p *parser) _if() *node {
 
 		cond := p.expr()
 		p.must(tkLBrace)
-		blocks := []*node{}
+		blocks := []node{}
 		for {
 			blocks = append(blocks, p.stmt())
 			if p.iscur(tkRBrace) {
@@ -154,14 +154,14 @@ func (p *parser) _if() *node {
 		}
 		p.proceed()
 
-		n.conds = append(n.conds, map[*node][]*node{cond: blocks})
+		n.conds = append(n.conds, map[node][]node{cond: blocks})
 	}
 
 	// parse else
 	if p.iscur(tkElse) {
 		p.proceed()
 		p.must(tkLBrace)
-		blocks := []*node{}
+		blocks := []node{}
 		for {
 			blocks = append(blocks, p.stmt())
 			if p.iscur(tkRBrace) {
@@ -176,29 +176,25 @@ func (p *parser) _if() *node {
 	return n
 }
 
-// for = "for" ident "," ident "in" (ident | list) "{" STATEMENTS "}"
-func (p *parser) _for() *node {
-	n := newnode(ndLoop)
+// for = "for" ident "," ident "in" expr "{" STATEMENTS "}"
+func (p *parser) _for() node {
+	n := &ndLoop{}
+
 	p.must(tkFor)
-	cnt := p.ident()
+
+	n.cnt = p.ident()
+
 	p.must(tkComma)
-	elem := p.ident()
+
+	n.elem = p.ident()
+
 	p.must(tkIn)
 
-	var tgtIdent *node
-	var tgtList *node
-
-	if p.iscur(tkIdent) {
-		tgtIdent = p.ident()
-		tgtList = nil
-	} else {
-		tgtIdent = nil
-		tgtList = p.list()
-	}
+	n.target = p.expr()
 
 	p.must(tkLBrace)
 
-	blocks := []*node{}
+	blocks := []node{}
 	for {
 		blocks = append(blocks, p.stmt())
 		if p.iscur(tkRBrace) {
@@ -207,22 +203,18 @@ func (p *parser) _for() *node {
 		}
 	}
 
-	n.cnt = cnt
-	n.elem = elem
-	n.tgtIdent = tgtIdent
-	n.tgtList = tgtList
-	n.nodes = blocks
+	n.blocks = blocks
 
 	return n
 }
 
 // assign = ident "=" expr
-func (p *parser) assign() *node {
-	n := newnode(ndAssign)
+func (p *parser) assign() node {
+	n := &ndAssign{}
 
-	n.lhs = p.ident()
+	n.left = p.ident()
 	p.must(tkEq)
-	n.rhs = p.expr()
+	n.right = p.expr()
 
 	return n
 }
@@ -231,318 +223,406 @@ func (p *parser) assign() *node {
  * expression
  */
 
-// expr = unaryexpr (binaryop expr)*
-func (p *parser) expr() *node {
-	ue := p.unaryexpr()
-	if !p.isbinaryop(p.cur) {
-		return ue
-	}
+// expr = logor
+func (p *parser) expr() node {
+	return p.logor()
+}
 
-	n := ue
-
+// logor = logand ("||" logand)*
+func (p *parser) logor() node {
+	n := p.logand()
 	for {
-		if !p.isbinaryop(p.cur) {
-			break
-		}
-		bo := p.binaryop()
-		bo.lhs = n
-		bo.rhs = p.expr()
-	}
-
-	return n
-
-	// if p.iscur(tkIdent) && p.isnext(tkLParen) {
-	// 	return p.funcall()
-	// }
-
-	// if p.iscur(tkLBracket) {
-	// 	return p.list()
-	// }
-
-	// return p.add()
-}
-
-// unaryexpr  = (unaryop unaryexpr) | primaryexpr
-// unary_op   = "+" | "-" | "!" | "^"
-func (p *parser) unaryexpr() *node {
-	if p.isunaryop(p.cur) {
-		n := p.unaryop()
-		n.n = p.unaryexpr()
-		return n
-	}
-
-	return p.primaryexpr()
-}
-
-var binaryops = map[tktype]binaryOpTyp{
-	tk2VBar:     boLogicalOr,
-	tk2Amp:      boLogicalAnd,
-	tk2Eq:       boEq,
-	tkBangEq:    boNotEq,
-	tkLess:      boLess,
-	tkLessEq:    boLessEq,
-	tkGreater:   boGreater,
-	tkGreaterEq: boGreaterEq,
-	tkPlus:      boAdd,
-	tkHyphen:    boSub,
-	tkVBar:      boBitwiseOr,
-	tkCaret:     boBitwiseNot,
-	tkAmp:       boBitwiseAnd,
-	tkStar:      boMul,
-	tkSlash:     boDiv,
-	tkPercent:   boMod,
-	tk2Less:     boLeftShift,
-	tk2Greater:  boRightShift,
-}
-
-func (p *parser) isbinaryop(t *token) bool {
-	_, ok := binaryops[t.typ]
-	return ok
-}
-
-// binaryop = "||" | "&&" | "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "|" | "^" | "*" | "/" | "%" | "<<" | ">>" | "&"
-func (p *parser) binaryop() *node {
-	bo := binaryops[p.cur.typ]
-	p.proceed()
-	n := newnode(ndBinaryOp)
-	n.bo = bo
-	return n
-}
-
-// unary_op   = "+" | "-" | "!" | "^"
-var unaryops = map[tktype]unaryOpTyp{
-	tkPlus:   uoPlus,
-	tkHyphen: uoMinus,
-	tkBang:   uoNot,
-	tkCaret:  uoLogicalNot,
-}
-
-func (p *parser) isunaryop(t *token) bool {
-	_, ok := unaryops[t.typ]
-	return ok
-}
-
-func (p *parser) unaryop() *node {
-	uo := unaryops[p.cur.typ]
-	p.proceed()
-	n := newnode(ndUnaryOp)
-	n.uo = uo
-	return n
-}
-
-// funcall = ident "(" funargs? ")"
-func (p *parser) funcall() *node {
-	n := newnode(ndFuncall)
-	n.fnname = p.ident()
-	p.must(tkLParen)
-
-	if p.iscur(tkRParen) {
-		p.proceed()
-		return n
-	}
-
-	n.args = p.funargs()
-	p.must(tkRParen)
-	return n
-}
-
-// funargs = expr ("," expr)*
-func (p *parser) funargs() *node {
-	a := newnode(ndArgs)
-	a.nodes = []*node{}
-	a.nodes = append(a.nodes, p.expr())
-
-	for {
-		if !p.iscur(tkComma) {
-			break
-		}
-
-		p.proceed()
-		a.nodes = append(a.nodes, p.expr())
-	}
-
-	return a
-}
-
-// list = "[" (expr ("," expr)*)? "]"
-func (p *parser) list() *node {
-	p.must(tkLBracket)
-	n := newnode(ndList)
-
-	if p.isnext(tkRBracket) {
-		p.proceed()
-		return n
-	}
-
-	for {
-		n.nodes = append(n.nodes, p.expr())
-		if p.iscur(tkComma) {
+		if p.iscur(tk2VBar) {
 			p.proceed()
+			n = &ndBinaryOp{op: boLogicalOr, left: n, right: p.logand()}
 			continue
 		}
 
 		break
 	}
 
-	p.must(tkRBracket)
+	return n
+}
+
+// logand = bitor ("&&" bitor)*
+func (p *parser) logand() node {
+	n := p.bitor()
+	for {
+		if p.iscur(tk2Amp) {
+			p.proceed()
+			n = &ndBinaryOp{op: boLogicalAnd, left: n, right: p.bitor()}
+			continue
+		}
+
+		break
+	}
+
+	return n
+}
+
+// bitor = bitxor ("|" bitxor)*
+func (p *parser) bitor() node {
+	n := p.bitxor()
+	for {
+		if p.iscur(tkVBar) {
+			p.proceed()
+			n = &ndBinaryOp{op: boBitwiseOr, left: n, right: p.bitxor()}
+			continue
+		}
+
+		break
+
+	}
+
+	return n
+}
+
+// bitxor = bitand ("^" bitand)*
+func (p *parser) bitxor() node {
+	n := p.bitand()
+	for {
+		if p.iscur(tkCaret) {
+			p.proceed()
+			n = &ndBinaryOp{op: boBitwiseXor, left: n, right: p.bitand()}
+			continue
+		}
+
+		break
+
+	}
+
+	return n
+}
+
+// bitand = equality ("&" equality)*
+func (p *parser) bitand() node {
+	n := p.equality()
+	for {
+		if p.iscur(tkAmp) {
+			p.proceed()
+			n = &ndBinaryOp{op: boBitwiseAnd, left: n, right: p.equality()}
+			continue
+		}
+
+		break
+	}
+
+	return n
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+func (p *parser) equality() node {
+	n := p.relational()
+	for {
+		if p.iscur(tk2Eq) {
+			p.proceed()
+			n = &ndBinaryOp{op: boEq, left: n, right: p.relational()}
+			continue
+		}
+
+		if p.iscur(tkBangEq) {
+			p.proceed()
+			n = &ndBinaryOp{op: boNotEq, left: n, right: p.relational()}
+			continue
+		}
+
+		break
+	}
+
+	return n
+}
+
+// relational = shift ("<" shift | "<=" shift | ">" shift | ">=" shift)*
+func (p *parser) relational() node {
+	n := p.shift()
+	for {
+		if p.iscur(tkLess) {
+			p.proceed()
+			n = &ndBinaryOp{op: boLess, left: n, right: p.shift()}
+			continue
+		}
+
+		if p.iscur(tkLessEq) {
+			p.proceed()
+			n = &ndBinaryOp{op: boLessEq, left: n, right: p.shift()}
+			continue
+		}
+
+		if p.iscur(tkGreater) {
+			p.proceed()
+			n = &ndBinaryOp{op: boGreater, left: n, right: p.shift()}
+			continue
+		}
+
+		if p.iscur(tkGreaterEq) {
+			p.proceed()
+			n = &ndBinaryOp{op: boGreaterEq, left: n, right: p.shift()}
+			continue
+		}
+
+		break
+	}
+
+	return n
+}
+
+// shift = add ("<<" add | ">>" add)*
+func (p *parser) shift() node {
+	n := p.add()
+	for {
+		if p.iscur(tk2Less) {
+			p.proceed()
+			n = &ndBinaryOp{op: boLeftShift, left: n, right: p.add()}
+			continue
+		}
+
+		if p.iscur(tk2Greater) {
+			p.proceed()
+			n = &ndBinaryOp{op: boRightShift, left: n, right: p.add()}
+			continue
+		}
+
+		break
+	}
+
 	return n
 }
 
 // add = mul ("+" mul | "-" mul)*
-func (p *parser) add() *node {
-	var n *node
-	m := p.mul()
-
+func (p *parser) add() node {
+	n := p.mul()
 	for {
-		switch {
-		case p.iscur(tkPlus):
+		if p.iscur(tkPlus) {
 			p.proceed()
-			n2 := newnode(ndAdd)
-			n2.lhs = m
-			n2.rhs = p.mul()
-			n = n2
-
-		case p.iscur(tkHyphen):
-			p.proceed()
-			n2 := newnode(ndSub)
-			n2.lhs = m
-			n2.rhs = p.mul()
-			n = n2
-
-		default:
-			goto done
+			n = &ndBinaryOp{op: boAdd, left: n, right: p.mul()}
+			continue
 		}
 
-		m = n
-	}
-done:
-
-	return m
-}
-
-// mul = unary ("(" add ")" | "*" unary | "/" unary | "%" unary)*
-func (p *parser) mul() *node {
-	var n *node
-	m := p.unary()
-
-	for {
-		switch {
-		case p.iscur(tkStar):
+		if p.iscur(tkHyphen) {
 			p.proceed()
-			n2 := newnode(ndMul)
-			n2.lhs = m
-			n2.rhs = p.unary()
-			n = n2
-
-		case p.iscur(tkSlash):
-			p.proceed()
-			n2 := newnode(ndDiv)
-			n2.lhs = m
-			n2.rhs = p.unary()
-			n = n2
-
-		case p.iscur(tkPercent):
-			p.proceed()
-			n2 := newnode(ndMod)
-			n2.lhs = m
-			n2.rhs = p.unary()
-			n = n2
-
-		default:
-			goto done
+			n = &ndBinaryOp{op: boSub, left: n, right: p.mul()}
+			continue
 		}
 
-		m = n
+		break
 	}
-done:
 
-	return m
+	return n
 }
 
-// unary   = ("+" | "-")? primary
-func (p *parser) unary() *node {
+// mul = unary ("*" unary | "/" unary | "%" unary)*
+func (p *parser) mul() node {
+	n := p.unary()
+	for {
+		if p.iscur(tkStar) {
+			p.proceed()
+			n = &ndBinaryOp{op: boMul, left: n, right: p.unary()}
+			continue
+		}
+
+		if p.iscur(tkSlash) {
+			p.proceed()
+			n = &ndBinaryOp{op: boDiv, left: n, right: p.unary()}
+			continue
+		}
+
+		if p.iscur(tkPercent) {
+			p.proceed()
+			n = &ndBinaryOp{op: boMod, left: n, right: p.unary()}
+			continue
+		}
+
+		break
+	}
+
+	return n
+}
+
+// unary = ("+" unary | "-" unary | "!" unary | "^" unary | postfix)
+func (p *parser) unary() node {
 	if p.iscur(tkPlus) {
 		p.proceed()
-		return p.primary()
+		return &ndPlus{target: p.unary()}
 	}
 
 	if p.iscur(tkHyphen) {
-		// -primary is replaced with 0 - primary sub
 		p.proceed()
-		nn := newnode(ndSub)
-		nn.lhs = newnode(ndI64)
-		nn.lhs.ival = 0
-		nn.rhs = p.primary()
-		return nn
+		return &ndMinus{target: p.unary()}
 	}
 
-	return p.primary()
+	if p.iscur(tkBang) {
+		p.proceed()
+		return &ndLogicalNot{target: p.unary()}
+	}
+
+	if p.iscur(tkCaret) {
+		p.proceed()
+		return &ndBitwiseNot{target: p.unary()}
+	}
+
+	return p.postfix()
 }
 
-// primary = ident | NUMBER_INT | NUMBER_FLOAT | STRING
-// primary = operand | funcall | list | add
-func (p *parser) primary() *node {
-	var n *node
-	switch {
-	case p.iscur(tkLParen):
+// postfix = primary postfix-tail*
+//
+// postfix-tail = "." ident
+//
+//	| "[" expr "]"
+//	| "[" expr ":" expr "]"
+//	| "(" (expr ",")* ")" <- the last comma is optional
+func (p *parser) postfix() node {
+	n := p.primary()
+
+	for {
+		if p.iscur(tkDot) {
+			p.proceed()
+			n = &ndSelector{selector: n, target: p.ident()}
+			continue
+		}
+
+		if p.iscur(tkLBracket) {
+			p.proceed()
+			e := p.expr()
+
+			// index
+			if p.iscur(tkRBracket) {
+				p.proceed()
+				n = &ndIndex{idx: e, target: n}
+				continue
+			}
+
+			// slice
+			p.must(tkColon)
+			e2 := p.expr()
+			p.must(tkRBracket)
+			n = &ndSlice{start: e, end: e2, target: n}
+			continue
+		}
+
+		if p.iscur(tkLParen) {
+			p.proceed()
+			args := []node{}
+			for {
+				if p.iscur(tkRParen) {
+					p.proceed()
+					break
+				}
+
+				args = append(args, p.expr())
+
+				if p.iscur(tkComma) {
+					p.proceed()
+					continue
+				}
+
+				// argument list can finish with ",",
+				// but if comma is missing after expr it means
+				// the argument list terminated.
+				p.must(tkRParen)
+				break
+			}
+
+			n = &ndFuncall{fn: n, args: args}
+			continue
+		}
+
+		break
+
+	}
+
+	return n
+}
+
+// primary = list | "(" expr ")" | str | num | "true" | "false" | eof | ident
+func (p *parser) primary() node {
+	if p.iscur(tkLBracket) {
+		return p.list()
+	}
+
+	if p.iscur(tkLParen) {
 		p.proceed()
 		n := p.expr()
 		p.must(tkRParen)
 		return n
+	}
 
-	case p.iscur(tkIdent):
-		return p.ident()
-
-	case p.iscur(tkStr):
-		n = newnode(ndStr)
-		n.sval = p.cur.lit
+	if p.iscur(tkStr) {
+		n := &ndStr{v: p.cur.lit}
 		p.proceed()
+		return n
+	}
 
-	case p.iscur(tkNum):
+	if p.iscur(tkNum) {
 		s := p.cur.lit
 
 		i, err := strconv.ParseInt(s, 10, 64)
 		if err == nil {
-			n = newnode(ndI64)
-			n.ival = i
+			n := &ndI64{v: i}
 			p.proceed()
 			return n
 		}
 
 		f, err := strconv.ParseFloat(s, 64)
 		if err == nil {
-			n = newnode(ndF64)
-			n.fval = f
+			n := &ndF64{v: f}
 			p.proceed()
 			return n
 		}
 
 		panic(fmt.Sprintf("parse %s as number", s))
+	}
 
-	case p.iscur(tkTrue):
-		n = newnode(ndBool)
-		n.bval = true
+	if p.iscur(tkTrue) {
+		n := &ndBool{v: true}
 		p.proceed()
+		return n
+	}
 
-	case p.iscur(tkFalse):
-		n = newnode(ndBool)
-		n.bval = false
+	if p.iscur(tkFalse) {
+		n := &ndBool{v: false}
 		p.proceed()
+		return n
+	}
 
-	case p.iscur(tkEof):
-		return newnode(ndEof)
+	if p.iscur(tkEof) {
+		return &ndEof{}
+	}
 
-	default:
-		panic(fmt.Sprintf("invalid token: %s", p.cur))
+	return p.ident()
+}
+
+// list = "[" (expr ",")* "]"
+// the comma after last element is optional.
+func (p *parser) list() node {
+	p.must(tkLBracket)
+	n := &ndList{}
+
+	for {
+		if p.iscur(tkRBracket) {
+			p.proceed()
+			break
+		}
+
+		n.v = append(n.v, p.expr())
+		if p.iscur(tkComma) {
+			p.proceed()
+			continue
+		}
+
+		p.must(tkRBracket)
+		break
 	}
 
 	return n
 }
 
 // ident = IDENT
-func (p *parser) ident() *node {
-	n := newnode(ndIdent)
-	n.ident = p.cur.lit
-	p.must(tkIdent)
+func (p *parser) ident() node {
+	if !p.iscur(tkIdent) {
+		panic("identifier is expected")
+	}
+
+	n := &ndIdent{ident: p.cur.lit}
+	p.proceed()
 	return n
 }

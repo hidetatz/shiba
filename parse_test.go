@@ -15,45 +15,35 @@ func TestParsestmt(t *testing.T) {
 
 	tests := map[string]struct {
 		content  string
-		expected []*node
+		expected []node
 	}{
 		"simple stmt": {
 			content: d(`
 				a = 1 + 2
 				print(a)
 			`),
-			expected: []*node{
-				{
-					typ: ndAssign,
-					lhs: &node{
-						typ:   ndIdent,
+			expected: []node{
+				&ndAssign{
+					left: &ndIdent{
 						ident: "a",
 					},
-					rhs: &node{
-						typ: ndAdd,
-						lhs: &node{
-							typ:  ndI64,
-							ival: 1,
+					right: &ndBinaryOp{
+						op: boAdd,
+						left: &ndI64{
+							v: 1,
 						},
-						rhs: &node{
-							typ:  ndI64,
-							ival: 2,
+						right: &ndI64{
+							v: 2,
 						},
 					},
 				},
-				{
-					typ: ndFuncall,
-					fnname: &node{
-						typ:   ndIdent,
+				&ndFuncall{
+					fn: &ndIdent{
 						ident: "print",
 					},
-					args: &node{
-						typ: ndArgs,
-						nodes: []*node{
-							{
-								typ:   ndIdent,
-								ident: "a",
-							},
+					args: []node{
+						&ndIdent{
+							ident: "a",
 						},
 					},
 				},
@@ -85,7 +75,30 @@ func TestParsestmt(t *testing.T) {
 					t.Fatalf("run parsestmt (%s): [%s]", fname, err)
 				}
 
-				if diff := cmp.Diff(en, got, cmp.AllowUnexported(node{})); diff != "" {
+				allowUnexported := cmp.AllowUnexported(
+
+					ndEof{},
+					ndComment{},
+					ndAssign{},
+					ndIf{},
+					ndLoop{},
+					ndBinaryOp{},
+					ndPlus{},
+					ndMinus{},
+					ndLogicalNot{},
+					ndBitwiseNot{},
+					ndSelector{},
+					ndIndex{},
+					ndSlice{},
+					ndFuncall{},
+					ndIdent{},
+					ndStr{},
+					ndI64{},
+					ndF64{},
+					ndBool{},
+					ndList{},
+				)
+				if diff := cmp.Diff(en, got, allowUnexported); diff != "" {
 					t.Fatalf("%d (-want +got):\n%s", i, diff)
 				}
 			}

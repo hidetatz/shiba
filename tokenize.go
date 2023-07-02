@@ -12,7 +12,9 @@ const (
 	tkInvalid tktype = iota
 
 	// punctuators
-	tkEq     // =
+	tkDot       // .
+	tkColon     // :
+	tkEq        // =
 	tkHash      // #
 	tkComma     // ,
 	tkLParen    // (
@@ -21,24 +23,24 @@ const (
 	tkRBracket  // ]
 	tkLBrace    // {
 	tkRBrace    // }
-	tk2VBar       // ||
+	tk2VBar     // ||
 	tk2Amp      // &&
 	tk2Eq       // ==
-	tkBangEq     // !=
+	tkBangEq    // !=
 	tkLess      // <
 	tkLessEq    // <=
 	tkGreater   // >
 	tkGreaterEq // >=
 	tkPlus      // +
 	tkHyphen    // -
-	tkVBar       // |
-	tkCaret      // ^
+	tkVBar      // |
+	tkCaret     // ^
 	tkStar      // *
 	tkSlash     // /
 	tkPercent   // %
-	tk2Less    // <<
-	tk2Greater    // >>
-	tkAmp      // &
+	tk2Less     // <<
+	tk2Greater  // >>
+	tkAmp       // &
 	tkBang      // !
 
 	// keywords
@@ -57,44 +59,51 @@ const (
 	tkEof
 )
 
-var keywords = map[string]tktype{
-	"true":  tkTrue,
-	"false": tkFalse,
-	"if":    tkIf,
-	"elif":  tkElif,
-	"else":  tkElse,
-	"for":   tkFor,
-	"in":    tkIn,
-	"def":   tkDef,
+type strToTktype struct {
+	s string
+	t tktype
 }
 
-var punctuators = map[string]tktype{
-	"=":  tkEq,
-	"+":  tkPlus,
-	"-":  tkHyphen,
-	"*":  tkStar,
-	"/":  tkSlash,
-	"%":  tkPercent,
-	"#":  tkHash,
-	",":  tkComma,
-	"(":  tkLParen,
-	")":  tkRParen,
-	"[":  tkLBracket,
-	"]":  tkRBracket,
-	"{":  tkLBrace,
-	"}":  tkRBrace,
-	"&&": tk2Amp,
-	"||": tk2VBar,
-	"==": tk2Eq,
-	"!=": tkBangEq,
-	"<":  tkLess,
-	"<=": tkLessEq,
-	">":  tkGreater,
-	">=": tkGreaterEq,
-	"&":  tkAmp,
-	"|":  tkVBar,
-	"^":  tkCaret,
-	"!":  tkBang,
+var keywords = []*strToTktype{
+	{"true",  tkTrue},
+	{"false", tkFalse},
+	{"if",    tkIf},
+	{"elif",  tkElif},
+	{"else",  tkElse},
+	{"for",   tkFor},
+	{"in",    tkIn},
+	{"def",   tkDef},
+}
+
+var punctuators = []*strToTktype{
+	{"&&", tk2Amp},
+	{"||", tk2VBar},
+	{"==", tk2Eq},
+	{"!=", tkBangEq},
+	{"<=", tkLessEq},
+	{">=", tkGreaterEq},
+	{"<",  tkLess},
+	{">",  tkGreater},
+	{".",  tkDot},
+	{":",  tkColon},
+	{"=",  tkEq},
+	{"+",  tkPlus},
+	{"-",  tkHyphen},
+	{"*",  tkStar},
+	{"/",  tkSlash},
+	{"%",  tkPercent},
+	{"#",  tkHash},
+	{",",  tkComma},
+	{"(",  tkLParen},
+	{")",  tkRParen},
+	{"[",  tkLBracket},
+	{"]",  tkRBracket},
+	{"{",  tkLBrace},
+	{"}",  tkRBrace},
+	{"&",  tkAmp},
+	{"|",  tkVBar},
+	{"^",  tkCaret},
+	{"!",  tkBang},
 }
 
 func (t tktype) String() string {
@@ -110,15 +119,15 @@ func (t tktype) String() string {
 	case tkEof:
 		return "eof"
 	default:
-		for s, tk := range keywords {
-			if t == tk {
-				return s
+		for _, kw := range keywords {
+			if kw.t == t {
+				return kw.s
 			}
 		}
 
-		for s, tk := range punctuators {
-			if t == tk {
-				return s
+		for _, punct := range punctuators {
+			if punct.t == t {
+				return punct.s
 			}
 		}
 	}
@@ -135,9 +144,9 @@ type token struct {
 func (t *token) String() string {
 	switch t.typ {
 	case tkIdent, tkStr, tkNum:
-		return fmt.Sprintf("{%s (%s %d:%d)}", t.lit, t.String(), t.line, t.at)
+		return fmt.Sprintf("{%s (%s %d:%d)}", t.lit, t.typ.String(), t.line, t.at)
 	default:
-		return fmt.Sprintf("{%s (%d:%d)}", t.String(), t.line, t.at)
+		return fmt.Sprintf("{%s (%d:%d)}", t.typ.String(), t.line, t.at)
 	}
 }
 
@@ -242,8 +251,10 @@ func (t *tokenizer) readident() (*token, bool) {
 		return nil, false
 	}
 
-	if tk, ok := keywords[ident]; ok {
-		return t.newtoken(tk, line, col, ""), true
+	for _, kw := range keywords {
+		if kw.s == ident {
+			return t.newtoken(kw.t, line, col, ""), true
+		}
 	}
 
 	return t.newtoken(tkIdent, line, col, ident), true
@@ -251,27 +262,25 @@ func (t *tokenizer) readident() (*token, bool) {
 
 func (t *tokenizer) readpunct() (*token, bool) {
 	line, col := t.line, t.col
-	p := ""
-	for {
-		if !t.hasnext() {
-			break
+	for _, punct := range punctuators {
+		found := true
+		// check every rune in punctuator
+		for i, r := range punct.s {
+			if t.peek(i) != r {
+				found = false
+				break
+			}
 		}
 
-		c := t.cur()
-		if !ispunctletter(c) {
-			break
+		if !found {
+			continue
 		}
 
-		p += string(c)
-		t.next()
-	}
+		for i := 0; i < len(punct.s); i++ {
+			t.next()
+		}
 
-	if p == "" {
-		return nil, false
-	}
-
-	if tk, ok := punctuators[p]; ok {
-		return t.newtoken(tk, line, col, ""), true
+		return t.newtoken(punct.t, line, col, ""), true
 	}
 
 	return nil, false
@@ -309,10 +318,13 @@ func (t *tokenizer) next() {
 	}
 }
 
+func (t *tokenizer) peek(n int) rune {
+	return t.chars[t.pos+n]
+}
+
 func (t *tokenizer) nexttoken() (*token, error) {
 	for {
 		if !t.hasnext() {
-			wdbg("hasnext is false. returning eof at %d:%d", t.line, t.col)
 			return t.newtoken(tkEof, t.line, t.col, ""), nil
 		}
 
@@ -325,23 +337,22 @@ func (t *tokenizer) nexttoken() (*token, error) {
 
 	if t.cur() == '"' {
 		tk, err := t.readstring()
-		wdbg("readstring (%d:%d): %s", t.line, t.col, tk)
 		return tk, err
 	}
 
 	if isdigit(t.cur()) {
 		tk, err := t.readnum()
-		wdbg("readnum (%d:%d): %s", t.line, t.col, tk)
 		return tk, err
 	}
 
 	if tk, ok := t.readpunct(); ok {
-		wdbg("readpunct (%d:%d): %s", t.line, t.col, tk)
+		if tk.typ == tkHash {
+			// read until "\n" as comment
+		}
 		return tk, nil
 	}
 
 	if tk, ok := t.readident(); ok {
-		wdbg("readident (%d:%d): %s", t.line, t.col, tk)
 		return tk, nil
 	}
 
@@ -367,7 +378,7 @@ func isidentletter(r rune) bool {
 }
 
 func ispunctletter(r rune) bool {
-	return strings.Contains("=+-*/%#,()[]{}&|!<>^", string(r))
+	return strings.Contains(".:=+-*/%#,()[]{}&|!<>^", string(r))
 }
 
 func isspace(r rune) bool {

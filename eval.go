@@ -5,26 +5,36 @@ import (
 	"strings"
 )
 
-func eval(mod string, n *node) (*obj, error) {
-	switch n.typ {
-	case ndComment, ndEof:
+func eval(mod string, nd node) (*obj, error) {
+	switch n := nd.(type) {
+	case *ndComment:
 		return nil, nil
 
-	case ndAssign:
-		l := n.lhs.ident
+	case *ndEof:
+		return nil, nil
 
-		r, err := eval(mod, n.rhs)
+	case *ndAssign:
+		rhs, err := eval(mod, n.right)
 		if err != nil {
 			return nil, err
 		}
 
-		env.setvar(mod, l, r)
+		switch nl := n.left.(type) {
+		case *ndIdent:
+			env.setvar(mod, nl.ident, rhs)
+		case *ndSelector:
+			panic("assigning to selector is unsupported")
+		case *ndIndex:
+			panic("assigning to index is unsupported")
+		default:
+			return nil, fmt.Errorf("cannot assign value to %s", n.left)
+		}
+
 		return nil, nil
 
-	case ndFuncall:
-		fname := n.fnname.ident
+	case *ndFuncall:
 		args := []*obj{}
-		for _, a := range n.args.nodes {
+		for _, a := range n.args {
 			o, err := eval(mod, a)
 			if err != nil {
 				return nil, err
@@ -33,27 +43,36 @@ func eval(mod string, n *node) (*obj, error) {
 			args = append(args, o)
 		}
 
-		_, ok := lookupFn(fname)
-		if ok {
-			// user-defined function. todo: impl
-			return nil, nil
+		switch nfn := n.fn.(type) {
+		case *ndIdent:
+			_, ok := lookupFn(nfn.ident)
+			if ok {
+				// user-defined function. todo: impl
+				return nil, nil
+			}
+
+			bf, ok := lookupBuiltinFn(nfn.ident)
+			if ok {
+				o := bf(args...)
+				return o, nil
+			}
+
+			return nil, fmt.Errorf("function %s is undefined", nfn.ident)
+		case *ndSelector:
+			panic("caling by selector is unsupported")
+		case *ndIndex:
+			panic("calling by index is unsupported")
+		default:
+			return nil, fmt.Errorf("cannot call %s", n.fn)
 		}
 
-		bf, ok := lookupBuiltinFn(fname)
-		if ok {
-			o := bf(args...)
-			return o, nil
-		}
-
-		return nil, fmt.Errorf("function %s is undefined", fname)
-
-	case ndIf:
+	case *ndIf:
 		env.createscope(mod)
 
 		evaluated := false
 		for _, opt := range n.conds {
-			var cond *node
-			var blocks []*node
+			var cond node
+			var blocks []node
 			// extract key and value
 			for c, b := range opt {
 				cond = c
@@ -101,36 +120,25 @@ func eval(mod string, n *node) (*obj, error) {
 		env.delscope(mod)
 		return nil, nil
 
-	case ndLoop:
+	case *ndLoop:
 		env.createscope(mod)
-		// extract loop target, identifier or primitive list
-		var tgt *obj
-		if n.tgtIdent != nil {
-			t, err := eval(mod, n.tgtIdent)
-			if err != nil {
-				env.delscope(mod)
-				return nil, err
-			}
-			tgt = t
-		} else {
-			t, err := eval(mod, n.tgtList)
-			if err != nil {
-				env.delscope(mod)
-				return nil, err
-			}
-			tgt = t
+		tgt, err := eval(mod, n.target)
+		if err != nil {
+			env.delscope(mod)
+			return nil, err
 		}
 
+		// todo: support string
 		if tgt.typ != tList {
 			env.delscope(mod)
-			return nil, fmt.Errorf("invalid loop target")
+			return nil, fmt.Errorf("invalid loop target %s", n.target)
 		}
 
 		for i, o := range tgt.objs {
-			env.setvar(mod, n.cnt.ident, &obj{typ: tInt64, ival: int64(i)})
-			env.setvar(mod, n.elem.ident, o)
+			env.setvar(mod, n.cnt.(*ndIdent).ident, &obj{typ: tInt64, ival: int64(i)})
+			env.setvar(mod, n.elem.(*ndIdent).ident, o)
 
-			for _, block := range n.nodes {
+			for _, block := range n.blocks {
 				eval(mod, block)
 			}
 		}
@@ -138,9 +146,9 @@ func eval(mod string, n *node) (*obj, error) {
 		env.delscope(mod)
 		return nil, nil
 
-	case ndList:
+	case *ndList:
 		o := &obj{typ: tList}
-		for _, n := range n.nodes {
+		for _, n := range n.v {
 			r, err := eval(mod, n)
 			if err != nil {
 				return nil, err
@@ -150,7 +158,7 @@ func eval(mod string, n *node) (*obj, error) {
 
 		return o, nil
 
-	case ndIdent:
+	case *ndIdent:
 		o, ok := env.getvar(mod, n.ident)
 		if !ok {
 			return nil, fmt.Errorf("unknown var or func name: %s", n.ident)
@@ -158,179 +166,221 @@ func eval(mod string, n *node) (*obj, error) {
 
 		return o, nil
 
-	case ndBinaryOp:
-
-		switch n.bo {
+	case *ndBinaryOp:
+		switch n.op {
 		case boAdd:
-			l, err := eval(mod, n.lhs)
+			l, err := eval(mod, n.left)
 			if err != nil {
 				return nil, err
 			}
-	
-			r, err := eval(mod, n.rhs)
+
+			r, err := eval(mod, n.right)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			var o *obj
-	
+
 			switch {
 			case l.typ == tString && r.typ == tString:
 				o = &obj{typ: tString, sval: l.sval + r.sval}
-	
+
 			case l.typ == tInt64 && r.typ == tInt64:
 				o = &obj{typ: tInt64, ival: l.ival + r.ival}
-	
+
 			case l.typ == tFloat64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: l.fval + r.fval}
-	
+
 			case l.typ == tInt64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}
-	
+
 			case l.typ == tFloat64 && r.typ == tInt64:
 				o = &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}
-	
+
 			default:
 				return nil, fmt.Errorf("unsupported add operation")
 			}
-	
+
 			return o, nil
-	
+
 		case boSub:
-			l, err := eval(mod, n.lhs)
+			l, err := eval(mod, n.left)
 			if err != nil {
 				return nil, err
 			}
-	
-			r, err := eval(mod, n.rhs)
+
+			r, err := eval(mod, n.right)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			var o *obj
-	
+
 			switch {
 			case l.typ == tInt64 && r.typ == tInt64:
 				o = &obj{typ: tInt64, ival: l.ival - r.ival}
-	
+
 			case l.typ == tFloat64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: l.fval - r.fval}
-	
+
 			case l.typ == tInt64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}
-	
+
 			case l.typ == tFloat64 && r.typ == tInt64:
 				o = &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}
-	
+
 			default:
 				return nil, fmt.Errorf("unsupported sub operation")
 			}
-	
+
 			return o, nil
-	
+
 		case boMul:
-			l, err := eval(mod, n.lhs)
+			l, err := eval(mod, n.left)
 			if err != nil {
 				return nil, err
 			}
-	
-			r, err := eval(mod, n.rhs)
+
+			r, err := eval(mod, n.right)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			var o *obj
-	
+
 			switch {
 			case l.typ == tString && r.typ == tInt64:
 				o = &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}
-	
+
 			case l.typ == tInt64 && r.typ == tString:
 				o = &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}
-	
+
 			case l.typ == tInt64 && r.typ == tInt64:
 				o = &obj{typ: tInt64, ival: l.ival * r.ival}
-	
+
 			case l.typ == tFloat64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: l.fval * r.fval}
-	
+
 			case l.typ == tInt64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}
-	
+
 			case l.typ == tFloat64 && r.typ == tInt64:
 				o = &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}
-	
+
 			default:
 				return nil, fmt.Errorf("unsupported multiply operation")
 			}
-	
+
 			return o, nil
-	
+
 		case boDiv:
-			l, err := eval(mod, n.lhs)
+			l, err := eval(mod, n.left)
 			if err != nil {
 				return nil, err
 			}
-	
-			r, err := eval(mod, n.rhs)
+
+			r, err := eval(mod, n.right)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			var o *obj
-	
+
 			switch {
 			case l.typ == tInt64 && r.typ == tInt64:
 				o = &obj{typ: tInt64, ival: l.ival / r.ival}
-	
+
 			case l.typ == tFloat64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: l.fval / r.fval}
-	
+
 			case l.typ == tInt64 && r.typ == tFloat64:
 				o = &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}
-	
+
 			case l.typ == tFloat64 && r.typ == tInt64:
 				o = &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}
-	
+
 			default:
 				return nil, fmt.Errorf("unsupported divide operation")
 			}
-	
+
 			return o, nil
-	
+
 		case boMod:
-			l, err := eval(mod, n.lhs)
+			l, err := eval(mod, n.left)
 			if err != nil {
 				return nil, err
 			}
-	
-			r, err := eval(mod, n.rhs)
+
+			r, err := eval(mod, n.right)
 			if err != nil {
 				return nil, err
 			}
-	
+
 			if l.typ != tInt64 || r.typ != tInt64 {
 				return nil, fmt.Errorf("unsupported divide operation")
 			}
-	
+
 			o := &obj{typ: tInt64, ival: l.ival % r.ival}
-	
+
 			return o, nil
 		default:
 			return nil, fmt.Errorf("unsupported")
 		}
 
-	case ndStr:
-		return &obj{typ: tString, sval: n.sval}, nil
+	case *ndPlus:
+		return eval(mod, n.target)
 
-	case ndI64:
-		return &obj{typ: tInt64, ival: n.ival}, nil
+	case *ndMinus:
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return o, err
+		}
+		if o.typ == tInt64 {
+			o.ival = -o.ival
+		} else if o.typ == tFloat64 {
+			o.fval = -o.fval
+		} else {
+			return o, fmt.Errorf("- must not lead %s", n)
+		}
+		return o, nil
 
-	case ndF64:
-		return &obj{typ: tFloat64, fval: n.fval}, nil
+	case *ndLogicalNot:
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return o, err
+		}
 
-	case ndBool:
-		return &obj{typ: tBool, bval: n.bval}, nil
+		if o.typ == tBool {
+			o.bval = !o.bval
+			return o, nil
+		}
+
+		return o, fmt.Errorf("! must not lead %s", n)
+
+	case *ndBitwiseNot:
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return o, err
+		}
+
+		if o.typ == tInt64 {
+			o.ival = ^o.ival
+			return o, nil
+		}
+
+		return o, fmt.Errorf("^ must not lead %s", n)
+
+	case *ndStr:
+		return &obj{typ: tString, sval: n.v}, nil
+
+	case *ndI64:
+		return &obj{typ: tInt64, ival: n.v}, nil
+
+	case *ndF64:
+		return &obj{typ: tFloat64, fval: n.v}, nil
+
+	case *ndBool:
+		return &obj{typ: tBool, bval: n.v}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown node: %v", n)
