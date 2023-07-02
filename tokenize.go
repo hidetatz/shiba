@@ -10,36 +10,36 @@ type tktype int
 
 const (
 	// punctuators
-	tkDot       // .
-	tkColon     // :
-	tkEq        // =
-	tkHash      // #
-	tkComma     // ,
-	tkLParen    // (
-	tkRParen    // )
-	tkLBracket  // [
-	tkRBracket  // ]
-	tkLBrace    // {
-	tkRBrace    // }
-	tk2VBar     // ||
-	tk2Amp      // &&
-	tk2Eq       // ==
-	tkBangEq    // !=
-	tkLess      // <
-	tkLessEq    // <=
-	tkGreater   // >
-	tkGreaterEq // >=
-	tkPlus      // +
-	tkHyphen    // -
-	tkVBar      // |
-	tkCaret     // ^
-	tkStar      // *
-	tkSlash     // /
-	tkPercent   // %
-	tk2Less     // <<
-	tk2Greater  // >>
-	tkAmp       // &
-	tkBang      // !
+	tkDot       = iota // .
+	tkColon            // :
+	tkEq               // =
+	tkHash             // #
+	tkComma            // ,
+	tkLParen           // (
+	tkRParen           // )
+	tkLBracket         // [
+	tkRBracket         // ]
+	tkLBrace           // {
+	tkRBrace           // }
+	tk2VBar            // ||
+	tk2Amp             // &&
+	tk2Eq              // ==
+	tkBangEq           // !=
+	tkLess             // <
+	tkLessEq           // <=
+	tkGreater          // >
+	tkGreaterEq        // >=
+	tkPlus             // +
+	tkHyphen           // -
+	tkVBar             // |
+	tkCaret            // ^
+	tkStar             // *
+	tkSlash            // /
+	tkPercent          // %
+	tk2Less            // <<
+	tk2Greater         // >>
+	tkAmp              // &
+	tkBang             // !
 
 	// keywords
 	tkTrue  // true
@@ -344,6 +344,16 @@ func (t *tokenizer) nexttoken() (*token, error) {
 	if tk, ok := t.readpunct(); ok {
 		if tk.typ == tkHash {
 			// read until "\n" as comment
+			msg := ""
+			for {
+				if t.cur() == '\n' {
+					break
+				}
+
+				msg += string(t.cur())
+				t.next()
+			}
+			tk.lit = msg
 		}
 		return tk, nil
 	}

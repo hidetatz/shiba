@@ -103,6 +103,13 @@ func (p *parser) parsestmt() (n node, err error) {
 
 // stmt = if | for | assign | expr
 func (p *parser) stmt() node {
+	if p.iscur(tkHash) {
+		// when the token is hash, lit is the comment message.
+		n := &ndComment{message: p.cur.lit}
+		p.proceed()
+		return n
+	}
+
 	if p.iscur(tkIf) {
 		return p._if()
 	}
