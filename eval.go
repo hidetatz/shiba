@@ -5,27 +5,19 @@ import (
 	"strings"
 )
 
-func evaluate(mod string, nd node) (o *obj, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-
-	o = eval(mod, nd)
-	return o, nil
-}
-
-func eval(mod string, nd node) *obj {
+func eval(mod string, nd node) (*obj, error) {
 	switch n := nd.(type) {
 	case *ndComment:
-		return nil
+		return nil, nil
 
 	case *ndEof:
-		return nil
+		return nil, nil
 
 	case *ndAssign:
-		rhs := eval(mod, n.right)
+		rhs, err := eval(mod, n.right)
+		if err != nil {
+			return nil, err
+		}
 
 		switch nl := n.left.(type) {
 		case *ndIdent:
@@ -34,14 +26,21 @@ func eval(mod string, nd node) *obj {
 			panic("assigning to selector is unsupported")
 		case *ndIndex:
 			panic("assigning to index is unsupported")
+		default:
+			return nil, fmt.Errorf("cannot assign value to %s", n.left)
 		}
 
-		panic(fmt.Sprintf("cannot assign value to %s", n.left))
+		return nil, nil
 
 	case *ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
-			args = append(args, eval(mod, a))
+			o, err := eval(mod, a)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, o)
 		}
 
 		switch nfn := n.fn.(type) {
@@ -63,9 +62,9 @@ func eval(mod string, nd node) *obj {
 			panic("caling by selector is unsupported")
 		case *ndIndex:
 			panic("calling by index is unsupported")
+		default:
+			return nil, fmt.Errorf("cannot call %s", n.fn)
 		}
-
-		panic(fmt.Sprintf("cannot call %s", n.fn))
 
 	case *ndIf:
 		env.createscope(mod)
