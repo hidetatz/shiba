@@ -167,18 +167,18 @@ func eval(mod string, nd node) (*obj, error) {
 		return o, nil
 
 	case *ndBinaryOp:
+		l, err := eval(mod, n.left)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := eval(mod, n.right)
+		if err != nil {
+			return nil, err
+		}
+
 		switch n.op {
 		case boAdd:
-			l, err := eval(mod, n.left)
-			if err != nil {
-				return nil, err
-			}
-
-			r, err := eval(mod, n.right)
-			if err != nil {
-				return nil, err
-			}
-
 			var o *obj
 
 			switch {
@@ -204,16 +204,6 @@ func eval(mod string, nd node) (*obj, error) {
 			return o, nil
 
 		case boSub:
-			l, err := eval(mod, n.left)
-			if err != nil {
-				return nil, err
-			}
-
-			r, err := eval(mod, n.right)
-			if err != nil {
-				return nil, err
-			}
-
 			var o *obj
 
 			switch {
@@ -236,16 +226,6 @@ func eval(mod string, nd node) (*obj, error) {
 			return o, nil
 
 		case boMul:
-			l, err := eval(mod, n.left)
-			if err != nil {
-				return nil, err
-			}
-
-			r, err := eval(mod, n.right)
-			if err != nil {
-				return nil, err
-			}
-
 			var o *obj
 
 			switch {
@@ -274,16 +254,6 @@ func eval(mod string, nd node) (*obj, error) {
 			return o, nil
 
 		case boDiv:
-			l, err := eval(mod, n.left)
-			if err != nil {
-				return nil, err
-			}
-
-			r, err := eval(mod, n.right)
-			if err != nil {
-				return nil, err
-			}
-
 			var o *obj
 
 			switch {
@@ -306,16 +276,6 @@ func eval(mod string, nd node) (*obj, error) {
 			return o, nil
 
 		case boMod:
-			l, err := eval(mod, n.left)
-			if err != nil {
-				return nil, err
-			}
-
-			r, err := eval(mod, n.right)
-			if err != nil {
-				return nil, err
-			}
-
 			if l.typ != tInt64 || r.typ != tInt64 {
 				return nil, fmt.Errorf("unsupported divide operation")
 			}
@@ -323,6 +283,19 @@ func eval(mod string, nd node) (*obj, error) {
 			o := &obj{typ: tInt64, ival: l.ival % r.ival}
 
 			return o, nil
+		case boEq:
+		case boNotEq:
+		case boLess:
+		case boLessEq:
+		case boGreater:
+		case boGreaterEq:
+		case boLogicalOr:
+		case boLogicalAnd:
+		case boBitwiseOr:
+		case boBitwiseXor:
+		case boBitwiseAnd:
+		case boLeftShift:
+		case boRightShift:
 		default:
 			return nil, fmt.Errorf("unsupported")
 		}
