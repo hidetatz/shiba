@@ -2,69 +2,62 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
-func eval(mod string, nd node) (*obj, error) {
+func evaluate(mod string, nd node) (o *obj, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
+
+	return eval(mod, nd), nil
+}
+
+func eval(mod string, nd node) *obj {
 	switch n := nd.(type) {
 	case *ndComment:
-		return nil, nil
+		return nil
 
 	case *ndEof:
-		return nil, nil
+		return nil
 
 	case *ndAssign:
-		rhs, err := eval(mod, n.right)
-		if err != nil {
-			return nil, err
-		}
+		r := eval(mod, n.right)
 
 		switch nl := n.left.(type) {
 		case *ndIdent:
-			env.setvar(mod, nl.ident, rhs)
+			env.setvar(mod, nl.ident, r)
+			return nil
 		case *ndSelector:
 			panic("assigning to selector is unsupported")
 		case *ndIndex:
 			panic("assigning to index is unsupported")
-		default:
-			return nil, fmt.Errorf("cannot assign value to %s", n.left)
 		}
 
-		return nil, nil
+		panic(fmt.Sprintf("cannot assign value to %s", n.left))
 
 	case *ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
-			o, err := eval(mod, a)
-			if err != nil {
-				return nil, err
-			}
-
-			args = append(args, o)
+			args = append(args, eval(mod, a))
 		}
 
 		switch nfn := n.fn.(type) {
 		case *ndIdent:
-			_, ok := lookupFn(nfn.ident)
-			if ok {
-				// user-defined function. todo: impl
-				return nil, nil
-			}
-
 			bf, ok := lookupBuiltinFn(nfn.ident)
-			if ok {
-				o := bf(args...)
-				return o, nil
+			if !ok {
+				panic(fmt.Sprintf("function %s is undefined", nfn.ident))
 			}
 
-			return nil, fmt.Errorf("function %s is undefined", nfn.ident)
+			return bf(args...)
+
 		case *ndSelector:
 			panic("caling by selector is unsupported")
 		case *ndIndex:
 			panic("calling by index is unsupported")
-		default:
-			return nil, fmt.Errorf("cannot call %s", n.fn)
 		}
+		panic(fmt.Sprintf("cannot call %s", n.fn))
 
 	case *ndIf:
 		env.createscope(mod)
@@ -79,63 +72,45 @@ func eval(mod string, nd node) (*obj, error) {
 				blocks = b
 			}
 
-			r, err := eval(mod, cond)
-			if err != nil {
-				env.delscope(mod)
-				return nil, fmt.Errorf("cannot evaluate if condition: %s", cond)
-			}
-
+			r := eval(mod, cond)
 			if !r.isTruethy() {
 				continue
 			}
 
 			for _, block := range blocks {
-				_, err := eval(mod, block)
-				if err != nil {
-					env.delscope(mod)
-					return nil, err
-				}
+				eval(mod, block)
 			}
+
 			evaluated = true
 			break
 		}
 
 		if evaluated {
 			env.delscope(mod)
-			return nil, nil
+			return nil
 		}
 
 		// when coming here, every if/elif block is not evaluated true.
 		// Evaluate else condition if exists.
 		if n.els != nil {
 			for _, block := range n.els {
-				_, err := eval(mod, block)
-				if err != nil {
-					env.delscope(mod)
-					return nil, err
-				}
+				eval(mod, block)
 			}
 		}
 
 		env.delscope(mod)
-		return nil, nil
+		return nil
 
 	case *ndLoop:
 		env.createscope(mod)
-		tgt, err := eval(mod, n.target)
-		if err != nil {
-			env.delscope(mod)
-			return nil, err
-		}
-
+		target := eval(mod, n.target)
 		// todo: support string
-		if tgt.typ != tList {
-			env.delscope(mod)
-			return nil, fmt.Errorf("invalid loop target %s", n.target)
+		if target.typ != tList {
+			panic(fmt.Sprintf("invalid loop target %s", n.target))
 		}
 
-		for i, o := range tgt.objs {
-			env.setvar(mod, n.cnt.(*ndIdent).ident, &obj{typ: tInt64, ival: int64(i)})
+		for i, o := range target.objs {
+			env.setvar(mod, n.cnt.(*ndIdent).ident, &obj{typ: tI64, ival: int64(i)})
 			env.setvar(mod, n.elem.(*ndIdent).ident, o)
 
 			for _, block := range n.blocks {
@@ -144,148 +119,49 @@ func eval(mod string, nd node) (*obj, error) {
 		}
 
 		env.delscope(mod)
-		return nil, nil
+		return nil
 
 	case *ndList:
 		o := &obj{typ: tList}
 		for _, n := range n.v {
-			r, err := eval(mod, n)
-			if err != nil {
-				return nil, err
-			}
-			o.objs = append(o.objs, r)
+			o.objs = append(o.objs, eval(mod, n))
 		}
 
-		return o, nil
+		return o
 
 	case *ndIdent:
 		o, ok := env.getvar(mod, n.ident)
 		if !ok {
-			return nil, fmt.Errorf("unknown var or func name: %s", n.ident)
+			panic(fmt.Sprintf("unknown var or func name: %s", n.ident))
 		}
 
-		return o, nil
+		return o
 
 	case *ndBinaryOp:
-		l, err := eval(mod, n.left)
-		if err != nil {
-			return nil, err
-		}
-
-		r, err := eval(mod, n.right)
-		if err != nil {
-			return nil, err
-		}
-
+		l := eval(mod, n.left)
+		r := eval(mod, n.right)
+		var (
+			o *obj
+			err error
+		)
 		switch n.op {
 		case boAdd:
-			var o *obj
-
-			switch {
-			case l.typ == tString && r.typ == tString:
-				o = &obj{typ: tString, sval: l.sval + r.sval}
-
-			case l.typ == tInt64 && r.typ == tInt64:
-				o = &obj{typ: tInt64, ival: l.ival + r.ival}
-
-			case l.typ == tFloat64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: l.fval + r.fval}
-
-			case l.typ == tInt64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: float64(l.ival) + r.fval}
-
-			case l.typ == tFloat64 && r.typ == tInt64:
-				o = &obj{typ: tFloat64, fval: l.fval + float64(r.ival)}
-
-			default:
-				return nil, fmt.Errorf("unsupported add operation")
-			}
-
-			return o, nil
-
+			o, err = l.add(r)
 		case boSub:
-			var o *obj
-
-			switch {
-			case l.typ == tInt64 && r.typ == tInt64:
-				o = &obj{typ: tInt64, ival: l.ival - r.ival}
-
-			case l.typ == tFloat64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: l.fval - r.fval}
-
-			case l.typ == tInt64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: float64(l.ival) - r.fval}
-
-			case l.typ == tFloat64 && r.typ == tInt64:
-				o = &obj{typ: tFloat64, fval: l.fval - float64(r.ival)}
-
-			default:
-				return nil, fmt.Errorf("unsupported sub operation")
-			}
-
-			return o, nil
-
+			o, err = l.sub(r)
 		case boMul:
-			var o *obj
-
-			switch {
-			case l.typ == tString && r.typ == tInt64:
-				o = &obj{typ: tString, sval: strings.Repeat(l.sval, int(r.ival))}
-
-			case l.typ == tInt64 && r.typ == tString:
-				o = &obj{typ: tString, sval: strings.Repeat(r.sval, int(l.ival))}
-
-			case l.typ == tInt64 && r.typ == tInt64:
-				o = &obj{typ: tInt64, ival: l.ival * r.ival}
-
-			case l.typ == tFloat64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: l.fval * r.fval}
-
-			case l.typ == tInt64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: float64(l.ival) * r.fval}
-
-			case l.typ == tFloat64 && r.typ == tInt64:
-				o = &obj{typ: tFloat64, fval: l.fval * float64(r.ival)}
-
-			default:
-				return nil, fmt.Errorf("unsupported multiply operation")
-			}
-
-			return o, nil
-
+			o, err = l.mul(r)
 		case boDiv:
-			var o *obj
-
-			switch {
-			case l.typ == tInt64 && r.typ == tInt64:
-				o = &obj{typ: tInt64, ival: l.ival / r.ival}
-
-			case l.typ == tFloat64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: l.fval / r.fval}
-
-			case l.typ == tInt64 && r.typ == tFloat64:
-				o = &obj{typ: tFloat64, fval: float64(l.ival) / r.fval}
-
-			case l.typ == tFloat64 && r.typ == tInt64:
-				o = &obj{typ: tFloat64, fval: l.fval / float64(r.ival)}
-
-			default:
-				return nil, fmt.Errorf("unsupported divide operation")
-			}
-
-			return o, nil
-
+			o, err = l.div(r)
 		case boMod:
-			if l.typ != tInt64 || r.typ != tInt64 {
-				return nil, fmt.Errorf("unsupported divide operation")
-			}
-
-			o := &obj{typ: tInt64, ival: l.ival % r.ival}
-
-			return o, nil
+			o, err = l.mod(r)
 		case boEq:
+			o, err = l.equals(r)
 		case boNotEq:
+			o, err = l.equals(r)
+			o.bval = !o.bval
 		case boLess:
+			o, err = l.less(r)
 		case boLessEq:
 		case boGreater:
 		case boGreaterEq:
@@ -297,66 +173,63 @@ func eval(mod string, nd node) (*obj, error) {
 		case boLeftShift:
 		case boRightShift:
 		default:
-			return nil, fmt.Errorf("unsupported")
+			panic(fmt.Errorf("unknown binaryoperation in switch"))
 		}
+		if err != nil {
+			panic(err)
+		}
+
+		return o
 
 	case *ndPlus:
 		return eval(mod, n.target)
 
 	case *ndMinus:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return o, err
-		}
-		if o.typ == tInt64 {
+		o := eval(mod, n.target)
+
+		if o.typ == tI64 {
 			o.ival = -o.ival
-		} else if o.typ == tFloat64 {
+		} else if o.typ == tF64 {
 			o.fval = -o.fval
 		} else {
-			return o, fmt.Errorf("- must not lead %s", n)
+			panic(fmt.Errorf("- must not lead %s", n))
 		}
-		return o, nil
+		return o
 
 	case *ndLogicalNot:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return o, err
-		}
+		o := eval(mod, n.target)
 
 		if o.typ == tBool {
 			o.bval = !o.bval
-			return o, nil
+			return o
 		}
 
-		return o, fmt.Errorf("! must not lead %s", n)
+		panic(fmt.Errorf("! must not lead %s", n))
 
 	case *ndBitwiseNot:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return o, err
-		}
+		o := eval(mod, n.target)
 
-		if o.typ == tInt64 {
+		if o.typ == tI64 {
 			o.ival = ^o.ival
-			return o, nil
+			return o
 		}
 
-		return o, fmt.Errorf("^ must not lead %s", n)
+		panic(fmt.Errorf("^ must not lead %s", n))
 
 	case *ndStr:
-		return &obj{typ: tString, sval: n.v}, nil
+		return &obj{typ: tString, sval: n.v}
 
 	case *ndI64:
-		return &obj{typ: tInt64, ival: n.v}, nil
+		return &obj{typ: tI64, ival: n.v}
 
 	case *ndF64:
-		return &obj{typ: tFloat64, fval: n.v}, nil
+		return &obj{typ: tF64, fval: n.v}
 
 	case *ndBool:
-		return &obj{typ: tBool, bval: n.v}, nil
+		return &obj{typ: tBool, bval: n.v}
 
 	default:
-		return nil, fmt.Errorf("unknown node: %v", n)
+		panic(fmt.Errorf("unknown node: %v", n))
 	}
 }
 

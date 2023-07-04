@@ -15,7 +15,7 @@ func runmod(mod string) int {
 			break
 		}
 
-		_, err = eval(mod, stmt)
+		_, err = evaluate(mod, stmt)
 		if err != nil {
 			werr("%s:%d %s", mod, 1, err)
 			return 5

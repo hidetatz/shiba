@@ -11,14 +11,34 @@ import (
 type objtype int
 
 const (
-	tNil = iota
+	tNil objtype = iota
 	tString
-	tInt64
-	tFloat64
+	tI64
+	tF64
 	tBool
 	tBfn
 	tList
 )
+
+func (ot objtype) String() string {
+	switch ot {
+	case tNil:
+		return "<nil>"
+	case tString:
+		return "<string>"
+	case tI64:
+		return "<i64>"
+	case tF64:
+		return "<f64>"
+	case tBool:
+		return "<bool>"
+	case tBfn:
+		return "<builtin func>"
+	case tList:
+		return "<list>"
+	}
+	return "<unknown object>"
+}
 
 type obj struct {
 	typ objtype
@@ -42,9 +62,9 @@ func (o *obj) isTruethy() bool {
 		return false
 	case tString:
 		return o.sval != ""
-	case tInt64:
+	case tI64:
 		return o.ival != 0
-	case tFloat64:
+	case tF64:
 		return o.fval != 0
 	case tBool:
 		return o.bval
@@ -55,15 +75,158 @@ func (o *obj) isTruethy() bool {
 	return false
 }
 
+func (o *obj) add(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tString && x.typ == tString:
+		return &obj{typ: tString, sval: o.sval + x.sval}, nil
+
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tI64, ival: o.ival + x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: o.fval + x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: float64(o.ival) + x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tF64, fval: o.fval + float64(x.ival)}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s + %s (type mismatch %s and %s)", x, o, x.typ, o.typ)
+}
+
+func (o *obj) sub(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tI64, ival: o.ival - x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: o.fval - x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: float64(o.ival) - x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tF64, fval: o.fval - float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s - %s (type mismatch %s and %s)", x, o, x.typ, o.typ)
+}
+
+func (o *obj) mul(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tString && x.typ == tI64:
+		return &obj{typ: tString, sval: strings.Repeat(o.sval, int(x.ival))}, nil
+
+	case o.typ == tI64&& x.typ == tString:
+		return &obj{typ: tString, sval: strings.Repeat(x.sval, int(o.ival))}, nil
+
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tI64, ival: o.ival * x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: o.fval * x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: float64(o.ival) * x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tF64, fval: o.fval * float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s * %s (type mismatch %s and %s)", x, o, x.typ, o.typ)
+}
+
+func (o *obj) div(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tI64, ival: o.ival / x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return  &obj{typ: tF64, fval: o.fval / x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tF64, fval: float64(o.ival) / x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tF64, fval: o.fval / float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s / %s (type mismatch %s and %s)", x, o, x.typ, o.typ)
+}
+
+func (o *obj) mod(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tI64, ival: o.ival & x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s %% %s (type mismatch %s and %s)", x, o, x.typ, o.typ)
+}
+
+func (o *obj) equals(x *obj) (*obj, error) {
+	bs := map[bool]*obj{
+		false: &obj{typ: tBool, bval: false},
+		true: &obj{typ: tBool, bval:true},
+	}
+
+	if x.typ != o.typ {
+		return bs[false], nil
+	}
+
+	switch x.typ {
+	case tNil:
+		return bs[o.typ == tNil], nil
+	case tString:
+		return bs[x.sval == o.sval], nil
+	case tI64:
+		return bs[x.ival == o.ival], nil
+	case tF64:
+		return bs[x.fval == o.fval], nil
+	case tBool:
+		return bs[x.bval == o.bval], nil
+	case tBfn:
+		return bs[x.bfnname == o.bfnname], nil
+	case tList:
+		if len(x.objs) != len(o.objs) {
+			return bs[false], nil
+		}
+	}
+	return nil, fmt.Errorf("internal error: unknown typ in switch")
+}
+
+func (o *obj) less(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.ival < x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return  &obj{typ: tBool, bval: o.fval < x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tBool, bval: float64(o.ival) < x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.fval < float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s < %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
 func (o *obj) String() string {
 	switch o.typ {
 	case tNil:
 		return "<nil>"
 	case tString:
 		return o.sval
-	case tInt64:
+	case tI64:
 		return fmt.Sprintf("%d", o.ival)
-	case tFloat64:
+	case tF64:
 		return fmt.Sprintf("%f", o.fval)
 	case tBool:
 		return fmt.Sprintf("%t", o.bval)
