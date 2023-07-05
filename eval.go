@@ -163,15 +163,25 @@ func eval(mod string, nd node) *obj {
 		case boLess:
 			o, err = l.less(r)
 		case boLessEq:
+			o, err = l.lessEq(r)
 		case boGreater:
+			o, err = l.greater(r)
 		case boGreaterEq:
+			o, err = l.greaterEq(r)
 		case boLogicalOr:
+			o, err = l.logicalOr(r)
 		case boLogicalAnd:
+			o, err = l.logicalAnd(r)
 		case boBitwiseOr:
+			o, err = l.bitwiseOr(r)
 		case boBitwiseXor:
+			o, err = l.bitwiseXor(r)
 		case boBitwiseAnd:
+			o, err = l.bitwiseAnd(r)
 		case boLeftShift:
+			o, err = l.leftshift(r)
 		case boRightShift:
+			o, err = l.rightshift(r)
 		default:
 			panic(fmt.Errorf("unknown binaryoperation in switch"))
 		}

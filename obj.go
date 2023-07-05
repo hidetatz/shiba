@@ -215,7 +215,127 @@ func (o *obj) less(x *obj) (*obj, error) {
 
 	}
 
-	return nil, fmt.Errorf("invalid operation %s < %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+	return nil, fmt.Errorf("invalid operation %s <= %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) lessEq(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.ival <= x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return  &obj{typ: tBool, bval: o.fval <= x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tBool, bval: float64(o.ival) <= x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.fval <= float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s <= %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) greater(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.ival > x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return  &obj{typ: tBool, bval: o.fval > x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tBool, bval: float64(o.ival) > x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.fval > float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s > %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) greaterEq(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.ival >= x.ival}, nil
+
+	case o.typ == tF64 && x.typ == tF64:
+		return  &obj{typ: tBool, bval: o.fval >= x.fval}, nil
+
+	case o.typ == tI64 && x.typ == tF64:
+		return &obj{typ: tBool, bval: float64(o.ival) >= x.fval}, nil
+
+	case o.typ == tF64 && x.typ == tI64:
+		return &obj{typ: tBool, bval: o.fval >= float64(x.ival)}, nil
+
+	}
+
+	return nil, fmt.Errorf("invalid operation %s >= %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) logicalOr(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tBool && x.typ == tBool:
+		return &obj{typ: tBool, bval: o.bval || x.bval}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s || %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) logicalAnd(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tBool && x.typ == tBool:
+		return &obj{typ: tBool, bval: o.bval && x.bval}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s && %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) bitwiseOr(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, ival: o.ival | x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s | %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) bitwiseXor(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, ival: o.ival ^ x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s ^ %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) bitwiseAnd(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, ival: o.ival & x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s & %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) leftshift(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, ival: o.ival << x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s << %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
+}
+
+func (o *obj) rightshift(x *obj) (*obj, error) {
+	switch {
+	case o.typ == tI64 && x.typ == tI64:
+		return &obj{typ: tBool, ival: o.ival >> x.ival}, nil
+	}
+
+	return nil, fmt.Errorf("invalid operation %s >> %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
 }
 
 func (o *obj) String() string {
