@@ -120,7 +120,7 @@ func (o *obj) mul(x *obj) (*obj, error) {
 	case o.typ == tString && x.typ == tI64:
 		return &obj{typ: tString, sval: strings.Repeat(o.sval, int(x.ival))}, nil
 
-	case o.typ == tI64&& x.typ == tString:
+	case o.typ == tI64 && x.typ == tString:
 		return &obj{typ: tString, sval: strings.Repeat(x.sval, int(o.ival))}, nil
 
 	case o.typ == tI64 && x.typ == tI64:
@@ -146,7 +146,7 @@ func (o *obj) div(x *obj) (*obj, error) {
 		return &obj{typ: tI64, ival: o.ival / x.ival}, nil
 
 	case o.typ == tF64 && x.typ == tF64:
-		return  &obj{typ: tF64, fval: o.fval / x.fval}, nil
+		return &obj{typ: tF64, fval: o.fval / x.fval}, nil
 
 	case o.typ == tI64 && x.typ == tF64:
 		return &obj{typ: tF64, fval: float64(o.ival) / x.fval}, nil
@@ -171,7 +171,7 @@ func (o *obj) mod(x *obj) (*obj, error) {
 func (o *obj) equals(x *obj) (*obj, error) {
 	bs := map[bool]*obj{
 		false: &obj{typ: tBool, bval: false},
-		true: &obj{typ: tBool, bval:true},
+		true:  &obj{typ: tBool, bval: true},
 	}
 
 	if x.typ != o.typ {
@@ -205,7 +205,7 @@ func (o *obj) less(x *obj) (*obj, error) {
 		return &obj{typ: tBool, bval: o.ival < x.ival}, nil
 
 	case o.typ == tF64 && x.typ == tF64:
-		return  &obj{typ: tBool, bval: o.fval < x.fval}, nil
+		return &obj{typ: tBool, bval: o.fval < x.fval}, nil
 
 	case o.typ == tI64 && x.typ == tF64:
 		return &obj{typ: tBool, bval: float64(o.ival) < x.fval}, nil
@@ -224,7 +224,7 @@ func (o *obj) lessEq(x *obj) (*obj, error) {
 		return &obj{typ: tBool, bval: o.ival <= x.ival}, nil
 
 	case o.typ == tF64 && x.typ == tF64:
-		return  &obj{typ: tBool, bval: o.fval <= x.fval}, nil
+		return &obj{typ: tBool, bval: o.fval <= x.fval}, nil
 
 	case o.typ == tI64 && x.typ == tF64:
 		return &obj{typ: tBool, bval: float64(o.ival) <= x.fval}, nil
@@ -243,7 +243,7 @@ func (o *obj) greater(x *obj) (*obj, error) {
 		return &obj{typ: tBool, bval: o.ival > x.ival}, nil
 
 	case o.typ == tF64 && x.typ == tF64:
-		return  &obj{typ: tBool, bval: o.fval > x.fval}, nil
+		return &obj{typ: tBool, bval: o.fval > x.fval}, nil
 
 	case o.typ == tI64 && x.typ == tF64:
 		return &obj{typ: tBool, bval: float64(o.ival) > x.fval}, nil
@@ -262,7 +262,7 @@ func (o *obj) greaterEq(x *obj) (*obj, error) {
 		return &obj{typ: tBool, bval: o.ival >= x.ival}, nil
 
 	case o.typ == tF64 && x.typ == tF64:
-		return  &obj{typ: tBool, bval: o.fval >= x.fval}, nil
+		return &obj{typ: tBool, bval: o.fval >= x.fval}, nil
 
 	case o.typ == tI64 && x.typ == tF64:
 		return &obj{typ: tBool, bval: float64(o.ival) >= x.fval}, nil

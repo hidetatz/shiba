@@ -141,7 +141,7 @@ func eval(mod string, nd node) *obj {
 		l := eval(mod, n.left)
 		r := eval(mod, n.right)
 		var (
-			o *obj
+			o   *obj
 			err error
 		)
 		switch n.op {

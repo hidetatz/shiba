@@ -10,36 +10,46 @@ type tktype int
 
 const (
 	// punctuators
-	tkDot       = iota // .
-	tkColon            // :
-	tkEq               // =
-	tkHash             // #
-	tkComma            // ,
-	tkLParen           // (
-	tkRParen           // )
-	tkLBracket         // [
-	tkRBracket         // ]
-	tkLBrace           // {
-	tkRBrace           // }
-	tk2VBar            // ||
-	tk2Amp             // &&
-	tk2Eq              // ==
-	tkBangEq           // !=
-	tkLess             // <
-	tkLessEq           // <=
-	tkGreater          // >
-	tkGreaterEq        // >=
-	tkPlus             // +
-	tkHyphen           // -
-	tkVBar             // |
-	tkCaret            // ^
-	tkStar             // *
-	tkSlash            // /
-	tkPercent          // %
-	tk2Less            // <<
-	tk2Greater         // >>
-	tkAmp              // &
-	tkBang             // !
+	tkDot        = iota // .
+	tkColon             // :
+	tkEq                // =
+	tkHash              // #
+	tkComma             // ,
+	tkLParen            // (
+	tkRParen            // )
+	tkLBracket          // [
+	tkRBracket          // ]
+	tkLBrace            // {
+	tkRBrace            // }
+	tk2VBar             // ||
+	tk2Amp              // &&
+	tk2Eq               // ==
+	tkBangEq            // !=
+	tkLess              // <
+	tkLessEq            // <=
+	tkGreater           // >
+	tkGreaterEq         // >=
+	tkAmpCaret          // &^
+	tkPlus              // +
+	tkHyphen            // -
+	tkVBar              // |
+	tkCaret             // ^
+	tkStar              // *
+	tkSlash             // /
+	tkPercent           // %
+	tk2Less             // <<
+	tk2Greater          // >>
+	tkAmp               // &
+	tkBang              // !
+	tkPlusEq            // +=
+	tkHyphenEq          // -=
+	tkStarEq            // *=
+	tkSlashEq           // /=
+	tkPercentEq         // %=
+	tkAmpEq             // &=
+	tkVBarEq            // |=
+	tkCaretEq           // ^=
+	tkAmpCaretEq        // &^=
 
 	// keywords
 	tkTrue  // true
@@ -74,12 +84,22 @@ var keywords = []*strToTktype{
 }
 
 var punctuators = []*strToTktype{
+	{"&^=", tkAmpCaretEq},
 	{"&&", tk2Amp},
 	{"||", tk2VBar},
 	{"==", tk2Eq},
 	{"!=", tkBangEq},
 	{"<=", tkLessEq},
 	{">=", tkGreaterEq},
+	{"&^", tkAmpCaret},
+	{"+=", tkPlusEq},
+	{"-=", tkHyphenEq},
+	{"*=", tkStarEq},
+	{"/=", tkSlashEq},
+	{"%=", tkPercentEq},
+	{"&=", tkAmpEq},
+	{"|=", tkVBarEq},
+	{"^=", tkCaretEq},
 	{"<", tkLess},
 	{">", tkGreater},
 	{".", tkDot},
