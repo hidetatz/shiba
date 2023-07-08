@@ -172,7 +172,7 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, fmt.Errorf("cannot call %s", n.fn)
 		}
 
-		return fn.bfnbody(args...), nil
+		return fn.bfnbody(args...)
 
 	case *ndIf:
 		env.createscope(mod)

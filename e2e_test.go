@@ -344,6 +344,16 @@ func TestArithmetic(t *testing.T) {
 				b
 			`),
 		},
+		"builtin func1": {
+			content: d(`
+				print(len("abcde"))
+				print(len([1, 2, 3]))
+			`),
+			out: d(`
+				5
+				3
+			`),
+		},
 	}
 
 	td := t.TempDir()
