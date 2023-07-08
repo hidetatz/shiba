@@ -5,6 +5,44 @@ import (
 	"strings"
 )
 
+type assignOp int
+
+func (ao assignOp) String() string {
+	switch ao {
+	case aoEq:
+		return "="
+	case aoAddEq:
+		return "+="
+	case aoSubEq:
+		return "-="
+	case aoMulEq:
+		return "*="
+	case aoDivEq:
+		return "/="
+	case aoModEq:
+		return "%="
+	case aoAndEq:
+		return "&="
+	case aoOrEq:
+		return "|="
+	case aoXorEq:
+		return "^="
+	}
+	return "?"
+}
+
+const (
+	aoEq assignOp = iota
+	aoAddEq
+	aoSubEq
+	aoMulEq
+	aoDivEq
+	aoModEq
+	aoAndEq
+	aoOrEq
+	aoXorEq
+)
+
 type binaryOp int
 
 func (bo binaryOp) String() string {
@@ -108,10 +146,11 @@ type ndAssign struct {
 	node
 	left  node
 	right node
+	op    assignOp
 }
 
 func (n *ndAssign) String() string {
-	return n.left.String() + " = " + n.right.String()
+	return fmt.Sprintf("%s %s %s", n.left, n.op, n.right)
 }
 
 type ndIf struct {

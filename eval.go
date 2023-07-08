@@ -25,9 +25,45 @@ func eval(mod string, nd node) *obj {
 	case *ndAssign:
 		r := eval(mod, n.right)
 
+		// "=" is special as it allows the left to be undefined
+		// while all other eq operators do not.
+		if n.op == aoEq {
+			env.setvar(mod, n.left.(*ndIdent).ident, r)
+			return nil
+		}
+
+
 		switch nl := n.left.(type) {
 		case *ndIdent:
-			env.setvar(mod, nl.ident, r)
+			l := eval(mod, nl)
+
+			var result *obj
+			var err error
+
+			switch n.op {
+			case aoAddEq:
+				result, err = l.add(r)
+			case aoSubEq:
+				result, err = l.sub(r)
+			case aoMulEq:
+				result, err = l.mul(r)
+			case aoDivEq:
+				result, err = l.div(r)
+			case aoModEq:
+				result, err = l.mod(r)
+			case aoAndEq:
+				result, err = l.bitwiseAnd(r)
+			case aoOrEq:
+				result, err = l.bitwiseOr(r)
+			case aoXorEq:
+				result, err = l.bitwiseXor(r)
+			}
+
+			if err != nil {
+				panic(err)
+			}
+
+			l.update(result)
 			return nil
 		case *ndSelector:
 			panic("assigning to selector is unsupported")
@@ -132,7 +168,7 @@ func eval(mod string, nd node) *obj {
 	case *ndIdent:
 		o, ok := env.getvar(mod, n.ident)
 		if !ok {
-			panic(fmt.Sprintf("unknown var or func name: %s", n.ident))
+			panic(fmt.Sprintf("undefined identifier: %s", n.ident))
 		}
 
 		return o

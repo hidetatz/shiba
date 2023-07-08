@@ -56,6 +56,17 @@ type obj struct {
 	bfnbody func(objs ...obj) obj
 }
 
+func (o *obj) update(x *obj) {
+	o.typ = x.typ
+	o.sval = x.sval
+	o.ival = x.ival
+	o.fval = x.fval
+	o.bval = x.bval
+	o.objs = x.objs
+	o.bfnname = x.bfnname
+	o.bfnbody = x.bfnbody
+}
+
 func (o *obj) isTruethy() bool {
 	switch o.typ {
 	case tNil:
@@ -296,7 +307,7 @@ func (o *obj) logicalAnd(x *obj) (*obj, error) {
 func (o *obj) bitwiseOr(x *obj) (*obj, error) {
 	switch {
 	case o.typ == tI64 && x.typ == tI64:
-		return &obj{typ: tBool, ival: o.ival | x.ival}, nil
+		return &obj{typ: tI64, ival: o.ival | x.ival}, nil
 	}
 
 	return nil, fmt.Errorf("invalid operation %s | %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
@@ -305,7 +316,7 @@ func (o *obj) bitwiseOr(x *obj) (*obj, error) {
 func (o *obj) bitwiseXor(x *obj) (*obj, error) {
 	switch {
 	case o.typ == tI64 && x.typ == tI64:
-		return &obj{typ: tBool, ival: o.ival ^ x.ival}, nil
+		return &obj{typ: tI64, ival: o.ival ^ x.ival}, nil
 	}
 
 	return nil, fmt.Errorf("invalid operation %s ^ %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
@@ -314,7 +325,7 @@ func (o *obj) bitwiseXor(x *obj) (*obj, error) {
 func (o *obj) bitwiseAnd(x *obj) (*obj, error) {
 	switch {
 	case o.typ == tI64 && x.typ == tI64:
-		return &obj{typ: tBool, ival: o.ival & x.ival}, nil
+		return &obj{typ: tI64, ival: o.ival & x.ival}, nil
 	}
 
 	return nil, fmt.Errorf("invalid operation %s & %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
@@ -323,7 +334,7 @@ func (o *obj) bitwiseAnd(x *obj) (*obj, error) {
 func (o *obj) leftshift(x *obj) (*obj, error) {
 	switch {
 	case o.typ == tI64 && x.typ == tI64:
-		return &obj{typ: tBool, ival: o.ival << x.ival}, nil
+		return &obj{typ: tI64, ival: o.ival << x.ival}, nil
 	}
 
 	return nil, fmt.Errorf("invalid operation %s << %s (type mismatch %s and %s)", o, x, o.typ, x.typ)
@@ -332,7 +343,7 @@ func (o *obj) leftshift(x *obj) (*obj, error) {
 func (o *obj) rightshift(x *obj) (*obj, error) {
 	switch {
 	case o.typ == tI64 && x.typ == tI64:
-		return &obj{typ: tBool, ival: o.ival >> x.ival}, nil
+		return &obj{typ: tI64, ival: o.ival >> x.ival}, nil
 	}
 
 	return nil, fmt.Errorf("invalid operation %s >> %s (type mismatch %s and %s)", o, x, o.typ, x.typ)

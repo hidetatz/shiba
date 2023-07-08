@@ -251,7 +251,7 @@ func TestArithmetic(t *testing.T) {
 			`),
 			out: d(`
 				1
-				$$filename:1 unknown var or func name: a
+				$$filename:1 undefined identifier: a
 			`),
 		},
 		"scope2": {
@@ -270,7 +270,7 @@ func TestArithmetic(t *testing.T) {
 				2
 				2
 				3
-				$$filename:1 unknown var or func name: i
+				$$filename:1 undefined identifier: i
 			`),
 		},
 		"bool1": {
@@ -292,6 +292,40 @@ func TestArithmetic(t *testing.T) {
 				99
 			`),
 		},
+		"assign1": {
+			content: d(`
+				a = 2
+				b = 3
+				print(a, b)
+				a += b
+				print(a)
+				a -= b
+				print(a)
+				a *= b
+				print(a)
+				a /= b
+				print(a)
+				a %= b
+				print(a)
+				a &= b
+				print(a)
+				a |= b
+				print(a)
+				a ^= b
+				print(a)
+			`),
+			out: d(`
+				2 3
+				5
+				2
+				6
+				2
+				2
+				2
+				3
+				0
+			`),
+		},
 	}
 
 	td := t.TempDir()
@@ -310,11 +344,8 @@ func TestArithmetic(t *testing.T) {
 				t.Fatalf("write test sb file: %s", fname)
 			}
 
+			// err is fine as some tests make sure error case
 			result, _ := exec.Command("./shiba", dfname).CombinedOutput()
-			// if err != nil {
-			// 	t.Fatalf("run test sb file (%s): %s\n[%s]", fname, result, err)
-			// }
-
 			tc.out = strings.Replace(tc.out, "$$filename", dfname, -1)
 
 			if diff := cmp.Diff(tc.out, string(result)); diff != "" {

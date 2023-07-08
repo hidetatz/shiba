@@ -55,6 +55,16 @@ func (p *parser) iscur(t tktype) bool {
 	return p.cur.typ == t
 }
 
+func (p *parser) iscurin(ts []tktype) (bool, tktype) {
+	for _, t := range ts {
+		if p.cur.typ == t {
+			return true, t
+		}
+	}
+
+	return false, 0
+}
+
 func (p *parser) isnext(t tktype) bool {
 	return p.next.typ == t
 }
@@ -118,11 +128,36 @@ func (p *parser) stmt() node {
 		return p._for()
 	}
 
-	if p.iscur(tkIdent) && p.isnext(tkEq) {
-		return p.assign()
+	e := p.expr()
+
+	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}
+	if ok, t := p.iscurin(assignops); ok {
+		p.proceed()
+		n := &ndAssign{left: e, right: p.expr()}
+		switch t {
+		case tkEq:
+			n.op = aoEq
+		case tkPlusEq:
+			n.op = aoAddEq
+		case tkHyphenEq:
+			n.op = aoSubEq
+		case tkStarEq:
+			n.op = aoMulEq
+		case tkSlashEq:
+			n.op = aoDivEq
+		case tkPercentEq:
+			n.op = aoModEq
+		case tkAmpEq:
+			n.op = aoAndEq
+		case tkVBarEq:
+			n.op = aoOrEq
+		case tkCaretEq:
+			n.op = aoXorEq
+		}
+		return n
 	}
 
-	return p.expr()
+	return e
 }
 
 // if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
@@ -211,17 +246,6 @@ func (p *parser) _for() node {
 	}
 
 	n.blocks = blocks
-
-	return n
-}
-
-// assign = ident "=" expr
-func (p *parser) assign() node {
-	n := &ndAssign{}
-
-	n.left = p.ident()
-	p.must(tkEq)
-	n.right = p.expr()
 
 	return n
 }

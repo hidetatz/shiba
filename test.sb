@@ -1,8 +1,1 @@
 a = 100
-if a == 99 {
-	print("99")
-} elif a == 100 {
-	print("100")
-} else {
-	print("else")
-}
