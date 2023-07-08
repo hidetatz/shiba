@@ -4,95 +4,175 @@ import (
 	"fmt"
 )
 
-func evaluate(mod string, nd node) (o *obj, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
-		}
-	}()
-
-	return eval(mod, nd), nil
-}
-
-func eval(mod string, nd node) *obj {
+func eval(mod string, nd node) (*obj, error) {
 	switch n := nd.(type) {
 	case *ndComment:
-		return nil
+		return nil, nil
 
 	case *ndEof:
-		return nil
+		return nil, nil
 
 	case *ndAssign:
-		r := eval(mod, n.right)
+		r, err := eval(mod, n.right)
+		if err != nil {
+			return nil, err
+		}
 
-		// "=" is special as it allows the left to be undefined
-		// while all other eq operators do not.
+		l, err := eval(mod, n.left)
+
+		// Unlike others, a simple Equal sign allows the left undefined.
 		if n.op == aoEq {
-			env.setvar(mod, n.left.(*ndIdent).ident, r)
-			return nil
-		}
-
-		switch nl := n.left.(type) {
-		case *ndIdent:
-			l := eval(mod, nl)
-
-			var result *obj
-			var err error
-
-			switch n.op {
-			case aoAddEq:
-				result, err = l.add(r)
-			case aoSubEq:
-				result, err = l.sub(r)
-			case aoMulEq:
-				result, err = l.mul(r)
-			case aoDivEq:
-				result, err = l.div(r)
-			case aoModEq:
-				result, err = l.mod(r)
-			case aoAndEq:
-				result, err = l.bitwiseAnd(r)
-			case aoOrEq:
-				result, err = l.bitwiseOr(r)
-			case aoXorEq:
-				result, err = l.bitwiseXor(r)
+			// left is already defined. update it
+			if err == nil {
+				l.update(r)
+				return nil, nil
 			}
 
+			// left is undefined. create a new var
+			if _, ok := err.(*errUndefinedIdent); ok {
+				li, ok := n.left.(*ndIdent)
+				// when left is undefined, create the new var
+				// only when it is identifier
+				if !ok {
+					return nil, fmt.Errorf("cannot assign %s as undefined", n.left)
+				}
+
+				env.setvar(mod, li.ident, r)
+				return nil, nil
+
+			}
+
+			// other error
+			return nil, err
+		}
+
+		// Else, left must be already defined
+		if err != nil {
+			return nil, err
+		}
+
+		e := func(op string) error {
+			return &errInvalidAssignOp{left: l.String(), op: op, right: r.String()}
+		}
+
+		switch n.op {
+		case aoAddEq:
+			result, err := l.add(r)
 			if err != nil {
-				panic(err)
+				return nil, e("+=")
 			}
-
 			l.update(result)
-			return nil
-		case *ndSelector:
-			panic("assigning to selector is unsupported")
-		case *ndIndex:
-			panic("assigning to index is unsupported")
+			return nil, nil
+		case aoSubEq:
+			result, err := l.sub(r)
+			if err != nil {
+				return nil, e("-=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoMulEq:
+			result, err := l.mul(r)
+			if err != nil {
+				return nil, e("*=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoDivEq:
+			result, err := l.div(r)
+			if err != nil {
+				return nil, e("/=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoModEq:
+			result, err := l.mod(r)
+			if err != nil {
+				return nil, e("%=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoAndEq:
+			result, err := l.bitwiseAnd(r)
+			if err != nil {
+				return nil, e("&=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoOrEq:
+			result, err := l.bitwiseOr(r)
+			if err != nil {
+				return nil, e("|=")
+			}
+			l.update(result)
+			return nil, nil
+		case aoXorEq:
+			result, err := l.bitwiseXor(r)
+			if err != nil {
+				return nil, e("^=")
+			}
+			l.update(result)
+			return nil, nil
+		default:
+			return nil, &errInternal{msg: "unknown assignment op"}
 		}
 
-		panic(fmt.Sprintf("cannot assign value to %s", n.left))
+	case *ndIndex:
+		idx, err := eval(mod, n.idx)
+		if err != nil {
+			return nil, err
+		}
+
+		if idx.typ != tI64 {
+			return nil, fmt.Errorf("slice index %s is not a number", n.idx)
+		}
+
+		tgt, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
+
+		idxErr := func(idx, length int) error {
+			return fmt.Errorf("index out of range [%d] with length %d", idx, length)
+		}
+
+		if tgt.typ == tString {
+			rs := []rune(tgt.sval)
+			if len(rs) < int(idx.ival) {
+				return nil, idxErr(int(idx.ival), len(rs))
+			}
+			return &obj{typ: tString, sval: string(rs[idx.ival])}, nil
+		}
+
+		if tgt.typ == tList {
+			if len(tgt.objs) < int(idx.ival) {
+				return nil, idxErr(int(idx.ival), len(tgt.objs))
+			}
+			return tgt.objs[idx.ival], nil
+		}
+
+		return nil, fmt.Errorf("cannot specify index with %s", tgt)
 
 	case *ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
-			args = append(args, eval(mod, a))
-		}
-
-		switch nfn := n.fn.(type) {
-		case *ndIdent:
-			bf, ok := lookupBuiltinFn(nfn.ident)
-			if !ok {
-				panic(fmt.Sprintf("function %s is undefined", nfn.ident))
+			o, err := eval(mod, a)
+			if err != nil {
+				return nil, err
 			}
 
-			return bf(args...)
-
-		case *ndSelector:
-			panic("caling by selector is unsupported")
-		case *ndIndex:
-			panic("calling by index is unsupported")
+			args = append(args, o)
 		}
-		panic(fmt.Sprintf("cannot call %s", n.fn))
+
+		fn, err := eval(mod, n.fn)
+		if err != nil {
+			return nil, err
+		}
+
+		if fn.typ != tBfn {
+			return nil, fmt.Errorf("cannot call %s", n.fn)
+		}
+
+		return fn.bfnbody(args...), nil
 
 	case *ndIf:
 		env.createscope(mod)
@@ -107,171 +187,316 @@ func eval(mod string, nd node) *obj {
 				blocks = b
 			}
 
-			r := eval(mod, cond)
+			r, err := eval(mod, cond)
+			if err != nil {
+				return nil, err
+			}
+
 			if !r.isTruethy() {
 				continue
 			}
 
+			evaluated = true
 			for _, block := range blocks {
-				eval(mod, block)
+				_, err := eval(mod, block)
+				if err != nil {
+					return nil, err
+				}
 			}
 
-			evaluated = true
 			break
 		}
 
 		if evaluated {
 			env.delscope(mod)
-			return nil
+			return nil, nil
 		}
 
 		// when coming here, every if/elif block is not evaluated true.
 		// Evaluate else condition if exists.
 		if n.els != nil {
 			for _, block := range n.els {
-				eval(mod, block)
+				_, err := eval(mod, block)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		env.delscope(mod)
-		return nil
+		return nil, nil
 
 	case *ndLoop:
 		env.createscope(mod)
-		target := eval(mod, n.target)
-		// todo: support string
-		if target.typ != tList {
-			panic(fmt.Sprintf("invalid loop target %s", n.target))
+
+		icnt, ok := n.cnt.(*ndIdent)
+		if !ok {
+			return nil, fmt.Errorf("invalid counter %s in loop", n.cnt)
 		}
 
-		for i, o := range target.objs {
-			env.setvar(mod, n.cnt.(*ndIdent).ident, &obj{typ: tI64, ival: int64(i)})
-			env.setvar(mod, n.elem.(*ndIdent).ident, o)
+		ielem, ok := n.elem.(*ndIdent)
+		if !ok {
+			return nil, fmt.Errorf("invalid element %s in loop", n.cnt)
+		}
 
+		target, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
+
+		doloop := func(i int, o *obj) error {
+			env.setvar(mod, icnt.ident, &obj{typ: tI64, ival: int64(i)})
+			env.setvar(mod, ielem.ident, o)
 			for _, block := range n.blocks {
-				eval(mod, block)
+				_, err := eval(mod, block)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+
+		switch target.typ {
+		case tString:
+			for i, r := range []rune(target.sval) {
+				o := &obj{typ: tString, sval: string(r)}
+				if err := doloop(i, o); err != nil {
+					return nil, err
+				}
+			}
+		case tList:
+			for i, o := range target.objs {
+				if err := doloop(i, o); err != nil {
+					return nil, err
+				}
 			}
 		}
 
 		env.delscope(mod)
-		return nil
+		return nil, nil
 
 	case *ndList:
 		o := &obj{typ: tList}
 		for _, n := range n.v {
-			o.objs = append(o.objs, eval(mod, n))
+			e, err := eval(mod, n)
+			if err != nil {
+				return nil, err
+			}
+			o.objs = append(o.objs, e)
 		}
 
-		return o
+		return o, nil
 
 	case *ndIdent:
 		o, ok := env.getvar(mod, n.ident)
-		if !ok {
-			panic(fmt.Sprintf("undefined identifier: %s", n.ident))
+		if ok {
+			return o, nil
 		}
 
-		return o
+		// o, ok := env.getfunc(mod, n.ident)
+		// if ok {
+		// 	return o, nil
+		// }
+
+		bf, ok := lookupBuiltinFn(n.ident)
+		if ok {
+			return bf, nil
+		}
+
+		return nil, &errUndefinedIdent{ident: n.ident}
 
 	case *ndBinaryOp:
-		l := eval(mod, n.left)
-		r := eval(mod, n.right)
-		var (
-			o   *obj
-			err error
-		)
+		l, err := eval(mod, n.left)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := eval(mod, n.right)
+		if err != nil {
+			return nil, err
+		}
+
+		e := func(op string) error {
+			return &errInvalidBinaryOp{left: l.String(), op: op, right: r.String()}
+		}
 		switch n.op {
 		case boAdd:
-			o, err = l.add(r)
+			o, err := l.add(r)
+			if err != nil {
+				return nil, e("+")
+			}
+			return o, nil
 		case boSub:
-			o, err = l.sub(r)
+			o, err := l.sub(r)
+			if err != nil {
+				return nil, e("-")
+			}
+			return o, nil
 		case boMul:
-			o, err = l.mul(r)
+			o, err := l.mul(r)
+			if err != nil {
+				return nil, e("+")
+			}
+			return o, nil
 		case boDiv:
-			o, err = l.div(r)
+			o, err := l.div(r)
+			if err != nil {
+				return nil, e("/")
+			}
+			return o, nil
 		case boMod:
-			o, err = l.mod(r)
+			o, err := l.mod(r)
+			if err != nil {
+				return nil, e("%")
+			}
+			return o, nil
 		case boEq:
-			o, err = l.equals(r)
+			o, err := l.equals(r)
+			if err != nil {
+				return nil, e("==")
+			}
+			return o, nil
 		case boNotEq:
-			o, err = l.equals(r)
+			o, err := l.equals(r)
+			if err != nil {
+				return nil, e("!=")
+			}
 			o.bval = !o.bval
+			return o, nil
 		case boLess:
-			o, err = l.less(r)
+			o, err := l.less(r)
+			if err != nil {
+				return nil, e("<")
+			}
+			return o, nil
 		case boLessEq:
-			o, err = l.lessEq(r)
+			o, err := l.lessEq(r)
+			if err != nil {
+				return nil, e("<=")
+			}
+			return o, nil
 		case boGreater:
-			o, err = l.greater(r)
+			o, err := l.greater(r)
+			if err != nil {
+				return nil, e(">")
+			}
+			return o, nil
 		case boGreaterEq:
-			o, err = l.greaterEq(r)
+			o, err := l.greaterEq(r)
+			if err != nil {
+				return nil, e(">=")
+			}
+			return o, nil
 		case boLogicalOr:
-			o, err = l.logicalOr(r)
+			o, err := l.logicalOr(r)
+			if err != nil {
+				return nil, e("||")
+			}
+			return o, nil
 		case boLogicalAnd:
-			o, err = l.logicalAnd(r)
+			o, err := l.logicalAnd(r)
+			if err != nil {
+				return nil, e("&&")
+			}
+			return o, nil
 		case boBitwiseOr:
-			o, err = l.bitwiseOr(r)
+			o, err := l.bitwiseOr(r)
+			if err != nil {
+				return nil, e("|")
+			}
+			return o, nil
 		case boBitwiseXor:
-			o, err = l.bitwiseXor(r)
+			o, err := l.bitwiseXor(r)
+			if err != nil {
+				return nil, e("^")
+			}
+			return o, nil
 		case boBitwiseAnd:
-			o, err = l.bitwiseAnd(r)
+			o, err := l.bitwiseAnd(r)
+			if err != nil {
+				return nil, e("&")
+			}
+			return o, nil
 		case boLeftShift:
-			o, err = l.leftshift(r)
+			o, err := l.leftshift(r)
+			if err != nil {
+				return nil, e("<<")
+			}
+			return o, nil
 		case boRightShift:
-			o, err = l.rightshift(r)
+			o, err := l.rightshift(r)
+			if err != nil {
+				return nil, e(">>")
+			}
+			return o, nil
 		default:
-			panic(fmt.Errorf("unknown binaryoperation in switch"))
+			return nil, &errInternal{msg: "unknown bin op"}
 		}
-		if err != nil {
-			panic(err)
-		}
-
-		return o
 
 	case *ndPlus:
-		return eval(mod, n.target)
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
+
+		if o.typ != tI64 && o.typ != tF64 {
+			return nil, &errInvalidUnaryOp{op: "+", target: o.String()}
+		}
+
+		return o, nil
 
 	case *ndMinus:
-		o := eval(mod, n.target)
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
 
 		if o.typ == tI64 {
 			o.ival = -o.ival
 		} else if o.typ == tF64 {
 			o.fval = -o.fval
 		} else {
-			panic(fmt.Errorf("- must not lead %s", n))
+			return nil, &errInvalidUnaryOp{op: "-", target: o.String()}
 		}
-		return o
+		return o, nil
 
 	case *ndLogicalNot:
-		o := eval(mod, n.target)
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
 
 		if o.typ == tBool {
 			o.bval = !o.bval
-			return o
+			return o, nil
 		}
 
-		panic(fmt.Errorf("! must not lead %s", n))
+		return nil, &errInvalidUnaryOp{op: "!", target: o.String()}
 
 	case *ndBitwiseNot:
-		o := eval(mod, n.target)
+		o, err := eval(mod, n.target)
+		if err != nil {
+			return nil, err
+		}
 
 		if o.typ == tI64 {
 			o.ival = ^o.ival
-			return o
+			return o, nil
 		}
 
-		panic(fmt.Errorf("^ must not lead %s", n))
+		return nil, &errInvalidUnaryOp{op: "^", target: o.String()}
 
 	case *ndStr:
-		return &obj{typ: tString, sval: n.v}
+		return &obj{typ: tString, sval: n.v}, nil
 
 	case *ndI64:
-		return &obj{typ: tI64, ival: n.v}
+		return &obj{typ: tI64, ival: n.v}, nil
 
 	case *ndF64:
-		return &obj{typ: tF64, fval: n.v}
+		return &obj{typ: tF64, fval: n.v}, nil
 
 	case *ndBool:
-		return &obj{typ: tBool, bval: n.v}
+		return &obj{typ: tBool, bval: n.v}, nil
 
 	default:
 		panic(fmt.Errorf("unknown node: %v", n))
@@ -282,7 +507,7 @@ func lookupFn(fnname string) (*obj, bool) {
 	return nil, false
 }
 
-func lookupBuiltinFn(fnname string) (func(objs ...*obj) *obj, bool) {
+func lookupBuiltinFn(fnname string) (*obj, bool) {
 	o, ok := bulitinFns[fnname]
 	return o, ok
 }

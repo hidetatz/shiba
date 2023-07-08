@@ -53,7 +53,7 @@ type obj struct {
 
 	// builtin function
 	bfnname string
-	bfnbody func(objs ...obj) obj
+	bfnbody func(objs ...*obj) *obj
 }
 
 func (o *obj) update(x *obj) {
