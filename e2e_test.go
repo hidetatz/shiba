@@ -326,6 +326,24 @@ func TestArithmetic(t *testing.T) {
 				0
 			`),
 		},
+		"index1": {
+			content: d(`
+				a = "abcde"
+				print(a[0])
+				b = ["abc", 1, true]
+				for i, e in b {
+					print(b[i])
+				}
+				print(b[0][1])
+			`),
+			out: d(`
+				a
+				abc
+				1
+				true
+				b
+			`),
+		},
 	}
 
 	td := t.TempDir()
