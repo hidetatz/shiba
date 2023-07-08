@@ -32,7 +32,6 @@ func eval(mod string, nd node) *obj {
 			return nil
 		}
 
-
 		switch nl := n.left.(type) {
 		case *ndIdent:
 			l := eval(mod, nl)
