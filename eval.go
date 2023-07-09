@@ -37,7 +37,7 @@ func eval(mod string, nd node) (*obj, error) {
 					return nil, fmt.Errorf("cannot assign %s as undefined", n.left)
 				}
 
-				env.setvar(mod, li.ident, r)
+				env.setobj(mod, li.ident, r)
 				return nil, nil
 
 			}
@@ -168,14 +168,35 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, err
 		}
 
-		if fn.typ != tBfn {
-			return nil, fmt.Errorf("cannot call %s", n.fn)
+		if fn.typ == tBfn {
+			return fn.bfnbody(args...)
 		}
 
-		return fn.bfnbody(args...)
+		if fn.typ == tFn {
+			if len(fn.fnargs) != len(args) {
+				return nil, fmt.Errorf("argument mismatch on %s()", fn.fnname)
+			}
+
+			env.createfuncscope(mod)
+			for i, arg := range args {
+				argname := fn.fnargs[i]
+				env.setobj(mod, argname, arg)
+			}
+
+			for _, block := range fn.fnbody {
+				_, err := eval(mod, block)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			env.delfuncscope(mod)
+		}
+
+		return nil, fmt.Errorf("cannot call %s", n.fn)
 
 	case *ndIf:
-		env.createscope(mod)
+		env.createblockscope(mod)
 
 		evaluated := false
 		for _, opt := range n.conds {
@@ -208,7 +229,7 @@ func eval(mod string, nd node) (*obj, error) {
 		}
 
 		if evaluated {
-			env.delscope(mod)
+			env.delblockscope(mod)
 			return nil, nil
 		}
 
@@ -223,11 +244,11 @@ func eval(mod string, nd node) (*obj, error) {
 			}
 		}
 
-		env.delscope(mod)
+		env.delblockscope(mod)
 		return nil, nil
 
 	case *ndLoop:
-		env.createscope(mod)
+		env.createblockscope(mod)
 
 		icnt, ok := n.cnt.(*ndIdent)
 		if !ok {
@@ -245,8 +266,8 @@ func eval(mod string, nd node) (*obj, error) {
 		}
 
 		doloop := func(i int, o *obj) error {
-			env.setvar(mod, icnt.ident, &obj{typ: tI64, ival: int64(i)})
-			env.setvar(mod, ielem.ident, o)
+			env.setobj(mod, icnt.ident, &obj{typ: tI64, ival: int64(i)})
+			env.setobj(mod, ielem.ident, o)
 			for _, block := range n.blocks {
 				_, err := eval(mod, block)
 				if err != nil {
@@ -272,7 +293,17 @@ func eval(mod string, nd node) (*obj, error) {
 			}
 		}
 
-		env.delscope(mod)
+		env.delblockscope(mod)
+		return nil, nil
+
+	case *ndFunDef:
+		f := &obj{
+			typ: tFn,
+			fnname: n.name,
+			fnargs: n.args,
+			fnbody: n.blocks,
+		}
+		env.setobj(mod, n.name, f)
 		return nil, nil
 
 	case *ndList:
@@ -288,15 +319,10 @@ func eval(mod string, nd node) (*obj, error) {
 		return o, nil
 
 	case *ndIdent:
-		o, ok := env.getvar(mod, n.ident)
+		o, ok := env.getobj(mod, n.ident)
 		if ok {
 			return o, nil
 		}
-
-		// o, ok := env.getfunc(mod, n.ident)
-		// if ok {
-		// 	return o, nil
-		// }
 
 		bf, ok := lookupBuiltinFn(n.ident)
 		if ok {

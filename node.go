@@ -226,6 +226,18 @@ func (n *ndLoop) String() string {
 	return sb.String()
 }
 
+type ndFunDef struct {
+	node
+
+	name string
+	args []string
+	blocks []node
+}
+
+func (n *ndFunDef) String() string {
+	return fmt.Sprintf("def %s(%s)", n.name, strings.Join(n.args, ", "))
+}
+
 /*
  * expressions
  */

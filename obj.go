@@ -16,6 +16,7 @@ const (
 	tI64
 	tF64
 	tBool
+	tFn
 	tBfn
 	tList
 )
@@ -32,6 +33,8 @@ func (ot objtype) String() string {
 		return "<f64>"
 	case tBool:
 		return "<bool>"
+	case tFn:
+		return "<func>"
 	case tBfn:
 		return "<builtin func>"
 	case tList:
@@ -51,6 +54,10 @@ type obj struct {
 
 	objs []*obj
 
+	fnname string
+	fnargs []string
+	fnbody []node
+
 	// builtin function
 	bfnname string
 	bfnbody func(objs ...*obj) (*obj, error)
@@ -63,6 +70,9 @@ func (o *obj) update(x *obj) {
 	o.fval = x.fval
 	o.bval = x.bval
 	o.objs = x.objs
+	o.fnname = x.fnname
+	o.fnargs = x.fnargs
+	o.fnbody = x.fnbody
 	o.bfnname = x.bfnname
 	o.bfnbody = x.bfnbody
 }

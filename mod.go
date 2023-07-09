@@ -1,92 +1,63 @@
 package main
 
+import "container/list"
+
 type module struct {
 	name   string
-	root   *scope
-	bottom *scope
+	globscope *scope
+	funcscopes *list.List
 }
 
 func newmodule(mod string) *module {
-	m := &module{
+	return &module{
 		name: mod,
+		globscope: newscope(),
+		funcscopes: list.New(),
 	}
-	m.createscope()
-	return m
 }
 
-func (m *module) createscope() {
-	if m.root == nil {
-		s := newscope()
-		m.root = s
-		m.bottom = s
+func (m *module) createfuncscope() {
+	m.funcscopes.PushBack(newscope())
+}
+
+func (m *module) delfuncscope() {
+	m.funcscopes.Remove(m.funcscopes.Back())
+}
+
+func (m *module) createblockscope() {
+	if m.funcscopes.Len() != 0 {
+		m.funcscopes.Back().Value.(*scope).addblockscope()
 		return
 	}
 
-	s := m.root
-	for {
-		if s.child == nil {
-			break
-		}
+	m.globscope.addblockscope()
+}
 
-		s = s.child
+func (m *module) delblockscope() {
+	if m.funcscopes.Len() != 0 {
+		m.funcscopes.Back().Value.(*scope).addblockscope()
+		return
 	}
 
-	ns := newscope()
-	s.child = ns
-	ns.parent = s
-	m.bottom = ns
+	m.globscope.delblockscope()
 }
 
-func (m *module) delscope() {
-	m.bottom = m.bottom.parent
-}
-
-func (m *module) setvar(name string, o *obj) {
-	s := m.bottom
-	for {
-		if s == nil {
-			break
-		}
-
-		_, ok := s.vars[name]
-		if ok {
-			s.vars[name] = o
-			return
-		}
-		s = s.parent
+func (m *module) setobj(name string, o *obj) {
+	if m.funcscopes.Len() != 0 {
+		m.funcscopes.Back().Value.(*scope).setobj(name, o)
+		return
 	}
 
-	m.bottom.vars[name] = o
-	return
+	m.globscope.setobj(name, o)
 }
 
-func (m *module) getvar(name string) (*obj, bool) {
-	s := m.bottom
-	for {
-		if s == nil {
-			break
-		}
-
-		o, ok := s.vars[name]
+func (m *module) getobj(name string) (*obj, bool) {
+	if m.funcscopes.Len() != 0 {
+		o, ok := m.funcscopes.Back().Value.(*scope).getobj(name)
 		if ok {
 			return o, true
 		}
-		s = s.parent
 	}
-	return nil, false
-}
 
-type scope struct {
-	parent *scope
-	child  *scope
-	vars   map[string]*obj
-	fns    map[string]*obj
-}
-
-func newscope() *scope {
-	s := &scope{
-		vars: map[string]*obj{},
-		fns:  map[string]*obj{},
-	}
-	return s
+	return m.globscope.getobj(name)
 }

@@ -128,6 +128,10 @@ func (p *parser) stmt() node {
 		return p._for()
 	}
 
+	if p.iscur(tkDef) {
+		return p.def()
+	}
+
 	e := p.expr()
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}
@@ -248,6 +252,45 @@ func (p *parser) _for() node {
 	n.blocks = blocks
 
 	return n
+}
+
+// def = "def" ident "(" (ident ",")* ")" "{" STATEMENTS "}"
+func (p *parser) def() node {
+	p.must(tkDef)
+	name := p.ident()
+	p.must(tkLParen)
+	args := []string{}
+	for {
+		if p.iscur(tkRParen) {
+			p.proceed()
+			break
+		}
+
+		args = append(args, p.ident().(*ndIdent).ident)
+
+		if p.iscur(tkComma) {
+			p.proceed()
+			continue
+		}
+
+		// argument list can finish with ",",
+		// but if comma is missing after expr it means
+		// the argument list terminated.
+		p.must(tkRParen)
+		break
+	}
+	p.must(tkLBrace)
+
+	blocks := []node{}
+	for {
+		blocks = append(blocks, p.stmt())
+		if p.iscur(tkRBrace) {
+			p.proceed()
+			break
+		}
+	}
+
+	return &ndFunDef{name: name.(*ndIdent).ident,args: args, blocks: blocks}
 }
 
 /*
