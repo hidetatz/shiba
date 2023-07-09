@@ -273,6 +273,31 @@ func TestArithmetic(t *testing.T) {
 				$$filename:1 identifier i is undefined
 			`),
 		},
+		"scope3": {
+			content: d(`
+				a = 1
+				print(a)
+				if true {
+					print(a)
+					a = 2
+					if true {
+						print(a)
+						a = 3
+						print(a)
+					}
+					print(a)
+				}
+				print(a)
+			`),
+			out: d(`
+				1
+				1
+				2
+				3
+				3
+				3
+			`),
+		},
 		"bool1": {
 			content: d(`
 				if false {
