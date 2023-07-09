@@ -191,6 +191,7 @@ func eval(mod string, nd node) (*obj, error) {
 			}
 
 			env.delfuncscope(mod)
+			return nil, nil
 		}
 
 		return nil, fmt.Errorf("cannot call %s", n.fn)

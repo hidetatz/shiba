@@ -379,6 +379,25 @@ func TestArithmetic(t *testing.T) {
 				3
 			`),
 		},
+		"func def": {
+			content: d(`
+				def p(a1, a2) {
+				    print(a1, a2)
+				}
+				
+				a = ["a", true, false, 100, [9, 8, 7]]
+				for i, e in a {
+				    p(i, e)
+				}
+			`),
+			out: d(`
+				0 a
+				1 true
+				2 false
+				3 100
+				4 [9, 8, 7]
+			`),
+		},
 	}
 
 	td := t.TempDir()
