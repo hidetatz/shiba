@@ -115,7 +115,8 @@ func (p *parser) parsestmt() (n *node, err error) {
 func (p *parser) stmt() *node {
 	if p.iscur(tkHash) {
 		// when the token is hash, lit is the comment message.
-		n := &node{typ: ndComment, message: p.cur.lit}
+		n := newnode(ndComment, p.cur)
+		n.message = p.cur.lit
 		p.proceed()
 		return n
 	}
@@ -136,8 +137,10 @@ func (p *parser) stmt() *node {
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}
 	if ok, t := p.iscurin(assignops); ok {
+		n := newnode(ndAssign, p.cur)
 		p.proceed()
-		n := &node{typ: ndAssign, aoleft: e, aoright: p.expr()}
+		n.aoleft= e
+		n.aoright= p.expr()
 		switch t {
 		case tkEq:
 			n.aop = aoEq
@@ -166,8 +169,8 @@ func (p *parser) stmt() *node {
 
 // if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
 func (p *parser) _if() *node {
+	n := newnode(ndIf, p.cur)
 	p.must(tkIf)
-	n := &node{typ: ndIf}
 	cond := p.expr()
 	p.must(tkLBrace)
 	blocks := []*node{}
@@ -224,7 +227,7 @@ func (p *parser) _if() *node {
 
 // for = "for" ident "," ident "in" expr "{" STATEMENTS "}"
 func (p *parser) _for() *node {
-	n := &node{typ: ndLoop}
+	n := newnode(ndLoop, p.cur)
 
 	p.must(tkFor)
 
@@ -256,8 +259,9 @@ func (p *parser) _for() *node {
 
 // def = "def" ident "(" (ident ",")* ")" "{" STATEMENTS "}"
 func (p *parser) def() *node {
+	n := newnode(ndFunDef,p.cur)
 	p.must(tkDef)
-	name := p.ident()
+	n.defname = p.ident().ident
 	p.must(tkLParen)
 	params := []string{}
 	for {
@@ -280,6 +284,7 @@ func (p *parser) def() *node {
 		break
 	}
 	p.must(tkLBrace)
+	n.params = params
 
 	blocks := []*node{}
 	for {
@@ -289,8 +294,9 @@ func (p *parser) def() *node {
 			break
 		}
 	}
+	n.defblocks = blocks
 
-	return &node{typ: ndFunDef, defname: name.ident, params: params, defblocks: blocks}
+	return n
 }
 
 /*
@@ -307,8 +313,11 @@ func (p *parser) logor() *node {
 	n := p.logand()
 	for {
 		if p.iscur(tk2VBar) {
+			n2 := newbinaryop(p.cur, boLogicalOr)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boLogicalOr, boleft: n, boright: p.logand()}
+			n2.boleft = n
+			n2.boright = p.logand()
+			n = n2
 			continue
 		}
 
@@ -323,8 +332,11 @@ func (p *parser) logand() *node {
 	n := p.bitor()
 	for {
 		if p.iscur(tk2Amp) {
+			n2 := newbinaryop(p.cur, boLogicalAnd)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boLogicalAnd, boleft: n, boright: p.bitor()}
+			n2.boleft = n
+			n2.boright = p.bitor()
+			n = n2
 			continue
 		}
 
@@ -339,8 +351,11 @@ func (p *parser) bitor() *node {
 	n := p.bitxor()
 	for {
 		if p.iscur(tkVBar) {
+			n2 := newbinaryop(p.cur, boBitwiseOr)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boBitwiseOr, boleft: n, boright: p.bitxor()}
+			n2.boleft = n
+			n2.boright = p.bitxor()
+			n = n2
 			continue
 		}
 
@@ -356,8 +371,11 @@ func (p *parser) bitxor() *node {
 	n := p.bitand()
 	for {
 		if p.iscur(tkCaret) {
+			n2 := newbinaryop(p.cur, boBitwiseXor)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boBitwiseXor, boleft: n, boright: p.bitand()}
+			n2.boleft = n
+			n2.boright = p.bitand()
+			n = n2
 			continue
 		}
 
@@ -389,14 +407,20 @@ func (p *parser) equality() *node {
 	n := p.relational()
 	for {
 		if p.iscur(tk2Eq) {
+			n2 := newbinaryop(p.cur, boEq)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boEq, boleft: n, boright: p.relational()}
+			n2.boleft = n
+			n2.boright = p.relational()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkBangEq) {
+			n2 := newbinaryop(p.cur, boNotEq)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boNotEq, boleft: n, boright: p.relational()}
+			n2.boleft = n
+			n2.boright = p.relational()
+			n = n2
 			continue
 		}
 
@@ -411,26 +435,38 @@ func (p *parser) relational() *node {
 	n := p.shift()
 	for {
 		if p.iscur(tkLess) {
+			n2 := newbinaryop(p.cur, boLess)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boLess, boleft: n, boright: p.shift()}
+			n2.boleft = n
+			n2.boright = p.shift()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkLessEq) {
+			n2 := newbinaryop(p.cur, boLessEq)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boLessEq, boleft: n, boright: p.shift()}
+			n2.boleft = n
+			n2.boright = p.shift()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkGreater) {
+			n2 := newbinaryop(p.cur, boGreater)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boGreater, boleft: n, boright: p.shift()}
+			n2.boleft = n
+			n2.boright = p.shift()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkGreaterEq) {
+			n2 := newbinaryop(p.cur, boGreaterEq)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boGreaterEq, boleft: n, boright: p.shift()}
+			n2.boleft = n
+			n2.boright = p.shift()
+			n = n2
 			continue
 		}
 
@@ -445,14 +481,20 @@ func (p *parser) shift() *node {
 	n := p.add()
 	for {
 		if p.iscur(tk2Less) {
+			n2 := newbinaryop(p.cur, boLeftShift)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boLeftShift, boleft: n, boright: p.add()}
+			n2.boleft = n
+			n2.boright = p.add()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tk2Greater) {
+			n2 := newbinaryop(p.cur, boRightShift)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boRightShift, boleft: n, boright: p.add()}
+			n2.boleft = n
+			n2.boright = p.add()
+			n = n2
 			continue
 		}
 
@@ -467,14 +509,20 @@ func (p *parser) add() *node {
 	n := p.mul()
 	for {
 		if p.iscur(tkPlus) {
+			n2 := newbinaryop(p.cur, boAdd)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boAdd, boleft: n, boright: p.mul()}
+			n2.boleft = n
+			n2.boright = p.mul()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkHyphen) {
+			n2 := newbinaryop(p.cur, boSub)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boSub, boleft: n, boright: p.mul()}
+			n2.boleft = n
+			n2.boright = p.mul()
+			n = n2
 			continue
 		}
 
@@ -489,20 +537,29 @@ func (p *parser) mul() *node {
 	n := p.unary()
 	for {
 		if p.iscur(tkStar) {
+			n2 := newbinaryop(p.cur, boMul)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boMul, boleft: n, boright: p.unary()}
+			n2.boleft = n
+			n2.boright = p.unary()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkSlash) {
+			n2 := newbinaryop(p.cur, boDiv)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boDiv, boleft: n, boright: p.unary()}
+			n2.boleft = n
+			n2.boright = p.unary()
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkPercent) {
+			n2 := newbinaryop(p.cur, boMod)
 			p.proceed()
-			n = &node{typ: ndBinaryOp, bop: boMod, boleft: n, boright: p.unary()}
+			n2.boleft = n
+			n2.boright = p.unary()
+			n = n2
 			continue
 		}
 
@@ -515,23 +572,31 @@ func (p *parser) mul() *node {
 // unary = ("+" unary | "-" unary | "!" unary | "^" unary | postfix)
 func (p *parser) unary() *node {
 	if p.iscur(tkPlus) {
+		n := newunaryop(p.cur, uoPlus)
 		p.proceed()
-		return &node{typ: ndUnaryOp, uop: uoPlus, uotarget: p.unary()}
+		n.uotarget = p.unary()
+		return n
 	}
 
 	if p.iscur(tkHyphen) {
+		n := newunaryop(p.cur, uoMinus)
 		p.proceed()
-		return &node{typ: ndUnaryOp, uop: uoMinus, uotarget: p.unary()}
+		n.uotarget = p.unary()
+		return n
 	}
 
 	if p.iscur(tkBang) {
+		n := newunaryop(p.cur, uoLogicalNot)
 		p.proceed()
-		return &node{typ: ndUnaryOp, uop: uoLogicalNot, uotarget: p.unary()}
+		n.uotarget = p.unary()
+		return n
 	}
 
 	if p.iscur(tkCaret) {
+		n := newunaryop(p.cur, uoBitwiseNot)
 		p.proceed()
-		return &node{typ: ndUnaryOp, uop: uoBitwiseNot, uotarget: p.unary()}
+		n.uotarget = p.unary()
+		return n
 	}
 
 	return p.postfix()
@@ -549,8 +614,11 @@ func (p *parser) postfix() *node {
 
 	for {
 		if p.iscur(tkDot) {
+			n2 := newnode(ndSelector, p.cur)
 			p.proceed()
-			n = &node{typ: ndSelector, selector: n, selectortarget: p.ident()}
+			n2.selector = n
+			n2.selectortarget = p.ident()
+			n = n2
 			continue
 		}
 
@@ -560,20 +628,27 @@ func (p *parser) postfix() *node {
 
 			// index
 			if p.iscur(tkRBracket) {
+				n2 := newnode(ndIndex, p.cur)
 				p.proceed()
-				n = &node{typ: ndIndex, idx: e, indextarget: n}
+				n2.idx = e
+				n2.indextarget = n
+				n = n2
 				continue
 			}
 
 			// slice
 			p.must(tkColon)
-			e2 := p.expr()
-			p.must(tkRBracket)
-			n = &node{typ: ndSlice, slicestart: e, sliceend: e2, slicetarget: n}
+			n2 := newnode(ndSlice, p.cur)
+			p.proceed()
+			n2.slicestart = e
+			n2.sliceend = n2
+			n2.slicetarget = n
+			n = n2
 			continue
 		}
 
 		if p.iscur(tkLParen) {
+			n2 := newnode(ndFuncall, p.cur)
 			p.proceed()
 			args := []*node{}
 			for {
@@ -596,7 +671,9 @@ func (p *parser) postfix() *node {
 				break
 			}
 
-			n = &node{typ: ndFuncall, callfn: n, args: args}
+			n2.callfn = n
+			n2.args = args
+			n = n2
 			continue
 		}
 
@@ -621,7 +698,8 @@ func (p *parser) primary() *node {
 	}
 
 	if p.iscur(tkStr) {
-		n := &node{typ: ndStr, sval: p.cur.lit}
+		n := newnode(ndStr, p.cur)
+		n.sval= p.cur.lit
 		p.proceed()
 		return n
 	}
@@ -631,14 +709,16 @@ func (p *parser) primary() *node {
 
 		i, err := strconv.ParseInt(s, 10, 64)
 		if err == nil {
-			n := &node{typ: ndI64, ival: i}
+			n := newnode(ndI64, p.cur)
+			n.ival = i
 			p.proceed()
 			return n
 		}
 
 		f, err := strconv.ParseFloat(s, 64)
 		if err == nil {
-			n := &node{typ: ndF64, fval: f}
+			n := newnode(ndF64, p.cur)
+			n.fval = f
 			p.proceed()
 			return n
 		}
@@ -647,13 +727,15 @@ func (p *parser) primary() *node {
 	}
 
 	if p.iscur(tkTrue) {
-		n := &node{typ: ndBool, bval: true}
+		n := newnode(ndBool, p.cur)
+		n.bval = true
 		p.proceed()
 		return n
 	}
 
 	if p.iscur(tkFalse) {
-		n := &node{typ: ndBool, bval: false}
+		n := newnode(ndBool, p.cur)
+		n.bval = false
 		p.proceed()
 		return n
 	}
@@ -668,8 +750,8 @@ func (p *parser) primary() *node {
 // list = "[" (expr ",")* "]"
 // the comma after last element is optional.
 func (p *parser) list() *node {
+	n := newnode(ndList, p.cur)
 	p.must(tkLBracket)
-	n := &node{typ: ndList}
 
 	for {
 		if p.iscur(tkRBracket) {
@@ -692,11 +774,12 @@ func (p *parser) list() *node {
 
 // ident = IDENT
 func (p *parser) ident() *node {
+	n := newnode(ndIdent, p.cur)
 	if !p.iscur(tkIdent) {
 		panic("identifier is expected")
 	}
 
-	n := &node{typ: ndIdent, ident: p.cur.lit}
+	n.ident= p.cur.lit
 	p.proceed()
 	return n
 }

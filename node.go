@@ -164,6 +164,9 @@ const (
 type node struct {
 	typ nodetype
 
+	// token that represents the node
+	tok *token
+
 	// ndComment
 	message string
 
@@ -235,6 +238,18 @@ type node struct {
 
 	// ndList
 	list []*node
+}
+
+func newnode(typ nodetype, tok *token) *node {
+	return &node{typ: typ, tok: tok}
+}
+
+func newbinaryop(tok *token, op binaryOp) *node {
+	return &node{typ: ndBinaryOp, tok: tok, bop: op}
+}
+
+func newunaryop(tok *token, op unaryOp) *node {
+	return &node{typ: ndUnaryOp, tok: tok, uop: op}
 }
 
 func (n *node) String() string {
