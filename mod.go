@@ -31,6 +31,7 @@ import "container/list"
  *
  * Function scope is mostly the same as global scope itself, but the difference is that
  * in a function scope, the gloval scope is also visible. e.g.
+ * ```
  * a = 1
  *
  * def f2() {
@@ -44,7 +45,7 @@ import "container/list"
  *     b = 1
  *     f1()
  * }
- *
+ * ```
  * In both f1 and f2, the global var a should be visible. Note that f2 is called from f1, but b in f1 must not be visible from f2.
  */
 type module struct {
