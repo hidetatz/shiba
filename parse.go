@@ -139,8 +139,8 @@ func (p *parser) stmt() *node {
 	if ok, t := p.iscurin(assignops); ok {
 		n := newnode(ndAssign, p.cur)
 		p.proceed()
-		n.aoleft= e
-		n.aoright= p.expr()
+		n.aoleft = e
+		n.aoright = p.expr()
 		switch t {
 		case tkEq:
 			n.aop = aoEq
@@ -259,7 +259,7 @@ func (p *parser) _for() *node {
 
 // def = "def" ident "(" (ident ",")* ")" "{" STATEMENTS "}"
 func (p *parser) def() *node {
-	n := newnode(ndFunDef,p.cur)
+	n := newnode(ndFunDef, p.cur)
 	p.must(tkDef)
 	n.defname = p.ident().ident
 	p.must(tkLParen)
@@ -699,7 +699,7 @@ func (p *parser) primary() *node {
 
 	if p.iscur(tkStr) {
 		n := newnode(ndStr, p.cur)
-		n.sval= p.cur.lit
+		n.sval = p.cur.lit
 		p.proceed()
 		return n
 	}
@@ -779,7 +779,7 @@ func (p *parser) ident() *node {
 		panic("identifier is expected")
 	}
 
-	n.ident= p.cur.lit
+	n.ident = p.cur.lit
 	p.proceed()
 	return n
 }

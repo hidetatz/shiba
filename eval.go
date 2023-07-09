@@ -47,9 +47,9 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		e := func(op string) shibaErr {
 			return &errInvalidAssignOp{
-				left: l.String(),
-				op: op,
-				right: r.String(),
+				left:    l.String(),
+				op:      op,
+				right:   r.String(),
 				errLine: el,
 			}
 		}
@@ -124,8 +124,8 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		if idx.typ != tI64 {
 			return nil, &errTypeMismatch{
 				expected: tI64.String(),
-				actual: idx.typ.String(),
-				errLine:el,
+				actual:   idx.typ.String(),
+				errLine:  el,
 			}
 		}
 
@@ -135,7 +135,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		}
 
 		idxErr := func(idx, length int) shibaErr {
-			return &errInvalidIndex{idx: idx,length:length, errLine: el}
+			return &errInvalidIndex{idx: idx, length: length, errLine: el}
 		}
 
 		if tgt.typ == tString {
@@ -183,7 +183,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		if fn.typ == tFn {
 			if len(fn.fnargs) != len(args) {
 				return nil, &errSimple{
-					msg: fmt.Sprintf("argument mismatch on %s()", fn.fnname),
+					msg:     fmt.Sprintf("argument mismatch on %s()", fn.fnname),
 					errLine: el,
 				}
 			}
@@ -206,7 +206,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		}
 
 		return nil, &errSimple{
-			msg: fmt.Sprintf("cannot call %s", n.callfn),
+			msg:     fmt.Sprintf("cannot call %s", n.callfn),
 			errLine: el,
 		}
 
@@ -267,11 +267,11 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		env.createblockscope(mod)
 
 		if n.cnt.typ != ndIdent {
-			return nil, &errSimple{msg:fmt.Sprintf("invalid counter %s in loop", n.cnt) , errLine: el}
+			return nil, &errSimple{msg: fmt.Sprintf("invalid counter %s in loop", n.cnt), errLine: el}
 		}
 
 		if n.elem.typ != ndIdent {
-			return nil, &errSimple{msg:fmt.Sprintf("invalid element %s in loop", n.cnt) , errLine: el}
+			return nil, &errSimple{msg: fmt.Sprintf("invalid element %s in loop", n.cnt), errLine: el}
 		}
 
 		target, err := eval(mod, n.looptarget)
@@ -358,9 +358,9 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		e := func(op string) shibaErr {
 			return &errInvalidBinaryOp{
-				left: l.String(),
-				op: op,
-				right: r.String(),
+				left:    l.String(),
+				op:      op,
+				right:   r.String(),
 				errLine: el,
 			}
 		}

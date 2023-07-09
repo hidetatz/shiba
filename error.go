@@ -44,7 +44,7 @@ func (e *errParse) Error() string {
 type errTypeMismatch struct {
 	*errLine
 	expected string
-	actual string
+	actual   string
 }
 
 func (e *errTypeMismatch) Error() string {
@@ -53,7 +53,7 @@ func (e *errTypeMismatch) Error() string {
 
 type errInvalidIndex struct {
 	*errLine
-	idx int
+	idx    int
 	length int
 }
 
