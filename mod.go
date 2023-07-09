@@ -103,6 +103,8 @@ func (m *module) getobj(name string) (*obj, bool) {
 		if ok {
 			return o, true
 		}
+
+		return m.globscope.getglobobj(name)
 	}
 
 	return m.globscope.getobj(name)

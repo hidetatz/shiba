@@ -298,6 +298,38 @@ func TestArithmetic(t *testing.T) {
 				3
 			`),
 		},
+		"scope4": {
+			content: d(`
+				def p() {
+					print(a)
+				}
+				
+				if true {
+					a = 1
+					p()
+				}
+			`),
+			out: d(`
+				$$filename:1 identifier a is undefined
+			`),
+		},
+		"scope5": {
+			content: d(`
+				def p(a) {
+					if a {
+						print("true")
+					}
+				}
+				
+				if true {
+					a = 0
+					p(1)
+				}
+			`),
+			out: d(`
+				true
+			`),
+		},
 		"bool1": {
 			content: d(`
 				if false {

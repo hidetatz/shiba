@@ -40,7 +40,6 @@ func (s *scope) setobj(name string, o *obj) {
 }
 
 func (s *scope) getobj(name string) (*obj, bool) {
-	// first, try to find blockscope
 	for e := s.blockscopes.Back(); e != nil; e = e.Prev() {
 		bs := e.Value.(*blockscope)
 		if o, ok := bs.objs[name]; ok {
@@ -48,7 +47,11 @@ func (s *scope) getobj(name string) (*obj, bool) {
 		}
 	}
 
-	// if not found, look for objs
+	o, ok := s.objs[name]
+	return o, ok
+}
+
+func (s *scope) getglobobj(name string) (*obj, bool) {
 	o, ok := s.objs[name]
 	return o, ok
 }
