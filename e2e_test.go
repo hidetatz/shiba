@@ -430,6 +430,23 @@ func TestArithmetic(t *testing.T) {
 				4 [9, 8, 7]
 			`),
 		},
+		"slice 1": {
+			content: d(`
+				a = ["a", true, false, 100, [9, 8, 7]]
+				print(a[0:4])
+				print(a[4:4])
+				print(a[0:0])
+				print(a[4:5])
+				print(a[0:1])
+			`),
+			out: d(`
+				[a, true, false, 100]
+				[]
+				[]
+				[[9, 8, 7]]
+				[a]
+			`),
+		},
 	}
 
 	td := t.TempDir()

@@ -7,7 +7,7 @@ func runmod(mod string, repl bool) int {
 	for {
 		stmt, err := p.parsestmt()
 		if err != nil {
-			werr("%s:%d", mod, err.line(), err)
+			werr("%s:%d %s", mod, err.line(), err)
 			return 1
 		}
 

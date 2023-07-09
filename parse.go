@@ -639,9 +639,10 @@ func (p *parser) postfix() *node {
 			// slice
 			p.must(tkColon)
 			n2 := newnode(ndSlice, p.cur)
-			p.proceed()
+			e2 := p.expr()
+			p.must(tkRBracket)
 			n2.slicestart = e
-			n2.sliceend = n2
+			n2.sliceend = e2
 			n2.slicetarget = n
 			n = n2
 			continue

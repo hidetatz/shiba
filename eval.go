@@ -155,6 +155,78 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return nil, &errTypeMismatch{expected: "list or string", actual: tgt.String(), errLine: el}
 
+	case ndSlice:
+		start, err := eval(mod, n.slicestart)
+		if err != nil {
+			return nil, err
+		}
+
+		if start.typ != tI64 {
+			return nil, &errTypeMismatch{
+				expected: tI64.String(),
+				actual:   start.typ.String(),
+				errLine:  el,
+			}
+		}
+
+		end, err := eval(mod, n.sliceend)
+		if err != nil {
+			return nil, err
+		}
+
+		if end.typ != tI64 {
+			return nil, &errTypeMismatch{
+				expected: tI64.String(),
+				actual:   end.typ.String(),
+				errLine:  el,
+			}
+		}
+
+		if end.ival < start.ival {
+			return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices %d < %d", end.ival, start.ival), errLine: el}
+		}
+
+		if start.ival < 0 {
+			return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices %d < 0", start.ival), errLine: el}
+		}
+
+		idxErr := func(idx, length int) shibaErr {
+			return &errInvalidIndex{idx: idx, length: length, errLine: el}
+		}
+
+		tgt, err := eval(mod, n.slicetarget)
+		if err != nil {
+			return nil, err
+		}
+
+		if tgt.typ == tString {
+			rs := []rune(tgt.sval)
+			if len(rs) < int(start.ival) {
+				return nil, idxErr(int(start.ival), len(rs))
+			}
+
+			if len(rs) < int(end.ival) {
+				return nil, idxErr(int(end.ival), len(rs))
+			}
+
+			return &obj{typ: tString, sval: string(rs[start.ival:end.ival])}, nil
+		}
+
+		if tgt.typ == tList {
+			if len(tgt.objs) < int(start.ival) {
+				return nil, idxErr(int(start.ival), len(tgt.objs))
+			}
+
+			if len(tgt.objs) < int(end.ival) {
+				return nil, idxErr(int(end.ival), len(tgt.objs))
+			}
+
+			return &obj{typ: tList, objs: tgt.objs[start.ival:end.ival]}, nil
+
+		}
+
+		return nil, &errTypeMismatch{expected: "list or string", actual: tgt.String(), errLine: el}
+
 	case ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
