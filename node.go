@@ -159,6 +159,8 @@ const (
 	ndF64
 	ndBool
 	ndList
+	ndContinue
+	ndBreak
 )
 
 type node struct {
@@ -354,6 +356,10 @@ func (n *node) String() string {
 		sb.WriteString("]")
 
 		return sb.String()
+	case ndContinue:
+		return "continue"
+	case ndBreak:
+		return "break"
 	default:
 		return "<unknown node>"
 	}

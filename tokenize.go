@@ -50,14 +50,16 @@ const (
 	tkCaretEq          // ^=
 
 	// keywords
-	tkTrue  // true
-	tkFalse // false
-	tkIf    // if
-	tkElif  // elif
-	tkElse  // else
-	tkFor   // for
-	tkIn    // in
-	tkDef   // def
+	tkTrue     // true
+	tkFalse    // false
+	tkIf       // if
+	tkElif     // elif
+	tkElse     // else
+	tkFor      // for
+	tkIn       // in
+	tkDef      // def
+	tkContinue // continue
+	tkBreak    // break
 
 	tkIdent
 	tkStr
@@ -79,6 +81,8 @@ var keywords = []*strToTktype{
 	{"for", tkFor},
 	{"in", tkIn},
 	{"def", tkDef},
+	{"continue", tkContinue},
+	{"break", tkBreak},
 }
 
 var punctuators = []*strToTktype{

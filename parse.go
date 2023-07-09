@@ -133,6 +133,18 @@ func (p *parser) stmt() *node {
 		return p.def()
 	}
 
+	if p.iscur(tkContinue) {
+		n := newnode(ndContinue, p.cur)
+		p.proceed()
+		return n
+	}
+
+	if p.iscur(tkBreak) {
+		n := newnode(ndBreak, p.cur)
+		p.proceed()
+		return n
+	}
+
 	e := p.expr()
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}

@@ -241,6 +241,33 @@ func TestArithmetic(t *testing.T) {
 				3
 			`),
 		},
+		"for2": {
+			content: d(`
+				a = [1, 2, 3, 4]
+				for i, e in a {
+					if i == 1 {
+						continue
+					}
+
+					if i == 2 {
+						break
+					}
+
+					print(e)
+				}
+			`),
+			out: d(`
+				1
+			`),
+		},
+		"for3": {
+			content: d(`
+				continue
+			`),
+			out: d(`
+				$$filename:1 continue in non-loop
+			`),
+		},
 		"scope1": {
 			content: d(`
 				if 1 {

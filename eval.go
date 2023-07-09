@@ -357,6 +357,10 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			for _, block := range n.loopblocks {
 				_, err := eval(mod, block)
 				if err != nil {
+					if _, ok := err.(*errContinue); ok {
+						return nil
+					}
+
 					return err
 				}
 			}
@@ -368,12 +372,20 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			for i, r := range []rune(target.sval) {
 				o := &obj{typ: tString, sval: string(r)}
 				if err := doloop(i, o); err != nil {
+					if _, ok := err.(*errBreak); ok {
+						break
+					}
+
 					return nil, err
 				}
 			}
 		case tList:
 			for i, o := range target.objs {
 				if err := doloop(i, o); err != nil {
+					if _, ok := err.(*errBreak); ok {
+						break
+					}
+
 					return nil, err
 				}
 			}
@@ -391,6 +403,12 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		}
 		env.setobj(mod, n.defname, f)
 		return nil, nil
+
+	case ndContinue:
+		return nil, &errContinue{errLine: el}
+
+	case ndBreak:
+		return nil, &errBreak{errLine: el}
 
 	case ndList:
 		o := &obj{typ: tList}
