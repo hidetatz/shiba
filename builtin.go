@@ -10,7 +10,7 @@ var FALSE = &obj{typ: tBool, bval: false}
 
 var bulitinFns = map[string]*obj{
 	"print": &obj{
-		typ: tBfn,
+		typ:     tBfn,
 		bfnname: "print",
 		bfnbody: func(args ...*obj) (*obj, error) {
 			for i, arg := range args {
@@ -26,7 +26,7 @@ var bulitinFns = map[string]*obj{
 		},
 	},
 	"len": &obj{
-		typ: tBfn,
+		typ:     tBfn,
 		bfnname: "len",
 		bfnbody: func(args ...*obj) (*obj, error) {
 			if len(args) != 1 {

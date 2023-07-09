@@ -229,8 +229,8 @@ func (n *ndLoop) String() string {
 type ndFunDef struct {
 	node
 
-	name string
-	args []string
+	name   string
+	args   []string
 	blocks []node
 }
 

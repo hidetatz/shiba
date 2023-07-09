@@ -15,8 +15,8 @@ func (e *errUndefinedIdent) Error() string {
 }
 
 type errInvalidAssignOp struct {
-	op string
-	left string
+	op    string
+	left  string
 	right string
 }
 
@@ -25,8 +25,8 @@ func (e *errInvalidAssignOp) Error() string {
 }
 
 type errInvalidBinaryOp struct {
-	op string
-	left string
+	op    string
+	left  string
 	right string
 }
 
@@ -35,7 +35,7 @@ func (e *errInvalidBinaryOp) Error() string {
 }
 
 type errInvalidUnaryOp struct {
-	op string
+	op     string
 	target string
 }
 

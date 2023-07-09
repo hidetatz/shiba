@@ -290,7 +290,7 @@ func (p *parser) def() node {
 		}
 	}
 
-	return &ndFunDef{name: name.(*ndIdent).ident,args: args, blocks: blocks}
+	return &ndFunDef{name: name.(*ndIdent).ident, args: args, blocks: blocks}
 }
 
 /*

@@ -3,13 +3,13 @@ package main
 import "container/list"
 
 type scope struct {
-	objs   map[string]*obj
+	objs        map[string]*obj
 	blockscopes *list.List
 }
 
 func newscope() *scope {
 	return &scope{
-		objs: map[string]*obj{},
+		objs:        map[string]*obj{},
 		blockscopes: list.New(),
 	}
 }
@@ -54,9 +54,9 @@ func (s *scope) getobj(name string) (*obj, bool) {
 }
 
 type blockscope struct {
-	objs   map[string]*obj
+	objs map[string]*obj
 }
 
 func newblockscope() *blockscope {
-	return &blockscope{ objs: map[string]*obj{}, }
+	return &blockscope{objs: map[string]*obj{}}
 }

@@ -298,7 +298,7 @@ func eval(mod string, nd node) (*obj, error) {
 
 	case *ndFunDef:
 		f := &obj{
-			typ: tFn,
+			typ:    tFn,
 			fnname: n.name,
 			fnargs: n.args,
 			fnbody: n.blocks,

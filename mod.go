@@ -3,15 +3,15 @@ package main
 import "container/list"
 
 type module struct {
-	name   string
-	globscope *scope
+	name       string
+	globscope  *scope
 	funcscopes *list.List
 }
 
 func newmodule(mod string) *module {
 	return &module{
-		name: mod,
-		globscope: newscope(),
+		name:       mod,
+		globscope:  newscope(),
 		funcscopes: list.New(),
 	}
 }
