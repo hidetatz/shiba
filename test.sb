@@ -1,8 +1,8 @@
-def p(cond, a) {
-    print(e)
+def p() {
+	print(a)
 }
 
-a = ["a", true, false, 0, [9, 8, 7]]
-for i, e in a {
-    p(e, e)
+if true {
+	a = 1
+	p()
 }

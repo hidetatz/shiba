@@ -2,11 +2,67 @@ package main
 
 import "fmt"
 
+type shibaErr interface {
+	error
+	line() int
+}
+
+type errLine struct {
+	l int
+}
+
+func (e *errLine) line() int {
+	return e.l
+}
+
+type errSimple struct {
+	*errLine
+	msg string
+}
+
+func (e *errSimple) Error() string {
+	return e.msg
+}
+
+/*
+ * Parse error
+ */
+
+type errParse struct {
+	*errLine
+	msg string
+}
+
+func (e *errParse) Error() string {
+	return e.msg
+}
+
 /*
  * Evaluation error
  */
 
+type errTypeMismatch struct {
+	*errLine
+	expected string
+	actual string
+}
+
+func (e *errTypeMismatch) Error() string {
+	return fmt.Sprintf("type %s is expected but got %s", e.expected, e.actual)
+}
+
+type errInvalidIndex struct {
+	*errLine
+	idx int
+	length int
+}
+
+func (e *errInvalidIndex) Error() string {
+	return fmt.Sprintf("index out of range [%d] with length %d", e.idx, e.length)
+}
+
 type errUndefinedIdent struct {
+	*errLine
 	ident string
 }
 
@@ -15,6 +71,7 @@ func (e *errUndefinedIdent) Error() string {
 }
 
 type errInvalidAssignOp struct {
+	*errLine
 	op    string
 	left  string
 	right string
@@ -25,6 +82,7 @@ func (e *errInvalidAssignOp) Error() string {
 }
 
 type errInvalidBinaryOp struct {
+	*errLine
 	op    string
 	left  string
 	right string
@@ -35,6 +93,7 @@ func (e *errInvalidBinaryOp) Error() string {
 }
 
 type errInvalidUnaryOp struct {
+	*errLine
 	op     string
 	target string
 }
@@ -44,6 +103,7 @@ func (e *errInvalidUnaryOp) Error() string {
 }
 
 type errInternal struct {
+	*errLine
 	msg string
 }
 

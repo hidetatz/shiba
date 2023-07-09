@@ -251,7 +251,7 @@ func TestArithmetic(t *testing.T) {
 			`),
 			out: d(`
 				1
-				$$filename:1 identifier a is undefined
+				$$filename:5 identifier a is undefined
 			`),
 		},
 		"scope2": {
@@ -270,7 +270,7 @@ func TestArithmetic(t *testing.T) {
 				2
 				2
 				3
-				$$filename:1 identifier i is undefined
+				$$filename:5 identifier i is undefined
 			`),
 		},
 		"scope3": {
@@ -310,7 +310,7 @@ func TestArithmetic(t *testing.T) {
 				}
 			`),
 			out: d(`
-				$$filename:1 identifier a is undefined
+				$$filename:2 identifier a is undefined
 			`),
 		},
 		"scope5": {

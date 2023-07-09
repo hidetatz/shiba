@@ -1,24 +1,28 @@
 package main
 
-func runmod(mod string) int {
+func runmod(mod string, repl bool) int {
 	env.modules[mod] = newmodule(mod)
 
 	p := newparser(mod)
 	for {
 		stmt, err := p.parsestmt()
 		if err != nil {
-			werr("%s", err)
-			return 3
+			werr("%s:%d", mod, err.line(), err)
+			return 1
 		}
 
 		if stmt.typ == ndEof {
 			break
 		}
 
-		_, err = eval(mod, stmt)
+		o, err := eval(mod, stmt)
 		if err != nil {
-			werr("%s:%d %s", mod, 1, err)
-			return 5
+			werr("%s:%d %s", mod, err.line(), err.Error())
+			return 2
+		}
+
+		if repl {
+			wout("%s", o)
 		}
 	}
 

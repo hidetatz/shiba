@@ -94,13 +94,13 @@ func (p *parser) must(t tktype) {
  * Parse implementation
  */
 
-func (p *parser) parsestmt() (n *node, err error) {
+func (p *parser) parsestmt() (n *node, err shibaErr) {
 	// Panic/recover is used to escape from deeply nested recursive descent parser
 	// to top level caller function (here).
 	// Returning error will make the parser code not easy to read.
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("%v", r)
+			err = &errParse{msg: fmt.Sprintf("%v", r), errLine: &errLine{l: p.cur.line}}
 		}
 	}()
 
