@@ -27,7 +27,7 @@ import "container/list"
  * Block scope is created when the code execution enters a block, such as if or for-loop.
  * On the above code, the block scope in global scope will hold 2 blocks; one is for outer if-block, the other is for inner if-block.
  * The block scope is defined as linked list. So actual look will be like [outer] -> [inner].
- * This is because the variable/definition in outer block will be visible in inner block.
+ * This is because the variable/definition in outer block will be visible in inner block so they must be connected.
  *
  * Function scope is mostly the same as global scope itself, but the difference is that
  * in a function scope, the gloval scope is also visible. e.g.
