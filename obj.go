@@ -56,7 +56,7 @@ type obj struct {
 
 	fnname string
 	fnargs []string
-	fnbody []node
+	fnbody []*node
 
 	// builtin function
 	bfnname string

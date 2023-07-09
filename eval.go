@@ -4,24 +4,24 @@ import (
 	"fmt"
 )
 
-func eval(mod string, nd node) (*obj, error) {
-	switch n := nd.(type) {
-	case *ndComment:
+func eval(mod string, n *node) (*obj, error) {
+	switch n.typ {
+	case ndComment:
 		return nil, nil
 
-	case *ndEof:
+	case ndEof:
 		return nil, nil
 
-	case *ndAssign:
-		r, err := eval(mod, n.right)
+	case ndAssign:
+		r, err := eval(mod, n.aoright)
 		if err != nil {
 			return nil, err
 		}
 
-		l, err := eval(mod, n.left)
+		l, err := eval(mod, n.aoleft)
 
 		// Unlike others, a simple Equal sign allows the left undefined.
-		if n.op == aoEq {
+		if n.aop == aoEq {
 			// left is already defined. update it
 			if err == nil {
 				l.update(r)
@@ -30,14 +30,13 @@ func eval(mod string, nd node) (*obj, error) {
 
 			// left is undefined. create a new var
 			if _, ok := err.(*errUndefinedIdent); ok {
-				li, ok := n.left.(*ndIdent)
 				// when left is undefined, create the new var
 				// only when it is identifier
-				if !ok {
-					return nil, fmt.Errorf("cannot assign %s as undefined", n.left)
+				if n.aoleft.typ != ndIdent {
+					return nil, fmt.Errorf("cannot assign %s as undefined", n.aoleft)
 				}
 
-				env.setobj(mod, li.ident, r)
+				env.setobj(mod, n.aoleft.ident, r)
 				return nil, nil
 
 			}
@@ -55,7 +54,7 @@ func eval(mod string, nd node) (*obj, error) {
 			return &errInvalidAssignOp{left: l.String(), op: op, right: r.String()}
 		}
 
-		switch n.op {
+		switch n.aop {
 		case aoAddEq:
 			result, err := l.add(r)
 			if err != nil {
@@ -116,7 +115,7 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, &errInternal{msg: "unknown assignment op"}
 		}
 
-	case *ndIndex:
+	case ndIndex:
 		idx, err := eval(mod, n.idx)
 		if err != nil {
 			return nil, err
@@ -126,7 +125,7 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, fmt.Errorf("slice index %s is not a number", n.idx)
 		}
 
-		tgt, err := eval(mod, n.target)
+		tgt, err := eval(mod, n.indextarget)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +151,7 @@ func eval(mod string, nd node) (*obj, error) {
 
 		return nil, fmt.Errorf("cannot specify index with %s", tgt)
 
-	case *ndFuncall:
+	case ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
 			o, err := eval(mod, a)
@@ -163,7 +162,7 @@ func eval(mod string, nd node) (*obj, error) {
 			args = append(args, o)
 		}
 
-		fn, err := eval(mod, n.fn)
+		fn, err := eval(mod, n.callfn)
 		if err != nil {
 			return nil, err
 		}
@@ -194,15 +193,15 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, nil
 		}
 
-		return nil, fmt.Errorf("cannot call %s", n.fn)
+		return nil, fmt.Errorf("cannot call %s", n.callfn)
 
-	case *ndIf:
+	case ndIf:
 		env.createblockscope(mod)
 
 		evaluated := false
 		for _, opt := range n.conds {
-			var cond node
-			var blocks []node
+			var cond *node
+			var blocks []*node
 			// extract key and value
 			for c, b := range opt {
 				cond = c
@@ -240,6 +239,7 @@ func eval(mod string, nd node) (*obj, error) {
 			for _, block := range n.els {
 				_, err := eval(mod, block)
 				if err != nil {
+					env.delblockscope(mod)
 					return nil, err
 				}
 			}
@@ -248,28 +248,26 @@ func eval(mod string, nd node) (*obj, error) {
 		env.delblockscope(mod)
 		return nil, nil
 
-	case *ndLoop:
+	case ndLoop:
 		env.createblockscope(mod)
 
-		icnt, ok := n.cnt.(*ndIdent)
-		if !ok {
+		if n.cnt.typ != ndIdent {
 			return nil, fmt.Errorf("invalid counter %s in loop", n.cnt)
 		}
 
-		ielem, ok := n.elem.(*ndIdent)
-		if !ok {
+		if n.elem.typ != ndIdent {
 			return nil, fmt.Errorf("invalid element %s in loop", n.cnt)
 		}
 
-		target, err := eval(mod, n.target)
+		target, err := eval(mod, n.looptarget)
 		if err != nil {
 			return nil, err
 		}
 
 		doloop := func(i int, o *obj) error {
-			env.setobj(mod, icnt.ident, &obj{typ: tI64, ival: int64(i)})
-			env.setobj(mod, ielem.ident, o)
-			for _, block := range n.blocks {
+			env.setobj(mod, n.cnt.ident, &obj{typ: tI64, ival: int64(i)})
+			env.setobj(mod, n.elem.ident, o)
+			for _, block := range n.loopblocks {
 				_, err := eval(mod, block)
 				if err != nil {
 					return err
@@ -297,20 +295,20 @@ func eval(mod string, nd node) (*obj, error) {
 		env.delblockscope(mod)
 		return nil, nil
 
-	case *ndFunDef:
+	case ndFunDef:
 		f := &obj{
 			typ:    tFn,
-			fnname: n.name,
-			fnargs: n.args,
-			fnbody: n.blocks,
+			fnname: n.defname,
+			fnargs: n.params,
+			fnbody: n.defblocks,
 		}
-		env.setobj(mod, n.name, f)
+		env.setobj(mod, n.defname, f)
 		return nil, nil
 
-	case *ndList:
+	case ndList:
 		o := &obj{typ: tList}
-		for _, n := range n.v {
-			e, err := eval(mod, n)
+		for _, l := range n.list {
+			e, err := eval(mod, l)
 			if err != nil {
 				return nil, err
 			}
@@ -319,7 +317,7 @@ func eval(mod string, nd node) (*obj, error) {
 
 		return o, nil
 
-	case *ndIdent:
+	case ndIdent:
 		o, ok := env.getobj(mod, n.ident)
 		if ok {
 			return o, nil
@@ -332,13 +330,13 @@ func eval(mod string, nd node) (*obj, error) {
 
 		return nil, &errUndefinedIdent{ident: n.ident}
 
-	case *ndBinaryOp:
-		l, err := eval(mod, n.left)
+	case ndBinaryOp:
+		l, err := eval(mod, n.boleft)
 		if err != nil {
 			return nil, err
 		}
 
-		r, err := eval(mod, n.right)
+		r, err := eval(mod, n.boright)
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +344,7 @@ func eval(mod string, nd node) (*obj, error) {
 		e := func(op string) error {
 			return &errInvalidBinaryOp{left: l.String(), op: op, right: r.String()}
 		}
-		switch n.op {
+		switch n.bop {
 		case boAdd:
 			o, err := l.add(r)
 			if err != nil {
@@ -460,74 +458,76 @@ func eval(mod string, nd node) (*obj, error) {
 			return nil, &errInternal{msg: "unknown bin op"}
 		}
 
-	case *ndPlus:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return nil, err
-		}
+	case ndUnaryOp:
+		switch n.uop {
+		case uoPlus:
+			o, err := eval(mod, n.uotarget)
+			if err != nil {
+				return nil, err
+			}
 
-		if o.typ != tI64 && o.typ != tF64 {
-			return nil, &errInvalidUnaryOp{op: "+", target: o.String()}
-		}
+			if o.typ != tI64 && o.typ != tF64 {
+				return nil, &errInvalidUnaryOp{op: "+", target: o.String()}
+			}
 
-		return o, nil
-
-	case *ndMinus:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return nil, err
-		}
-
-		if o.typ == tI64 {
-			o.ival = -o.ival
-		} else if o.typ == tF64 {
-			o.fval = -o.fval
-		} else {
-			return nil, &errInvalidUnaryOp{op: "-", target: o.String()}
-		}
-		return o, nil
-
-	case *ndLogicalNot:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return nil, err
-		}
-
-		if o.typ == tBool {
-			o.bval = !o.bval
 			return o, nil
-		}
 
-		return nil, &errInvalidUnaryOp{op: "!", target: o.String()}
+		case uoMinus:
+			o, err := eval(mod, n.uotarget)
+			if err != nil {
+				return nil, err
+			}
 
-	case *ndBitwiseNot:
-		o, err := eval(mod, n.target)
-		if err != nil {
-			return nil, err
-		}
-
-		if o.typ == tI64 {
-			o.ival = ^o.ival
+			if o.typ == tI64 {
+				o.ival = -o.ival
+			} else if o.typ == tF64 {
+				o.fval = -o.fval
+			} else {
+				return nil, &errInvalidUnaryOp{op: "-", target: o.String()}
+			}
 			return o, nil
+
+		case uoLogicalNot:
+			o, err := eval(mod, n.uotarget)
+			if err != nil {
+				return nil, err
+			}
+
+			if o.typ == tBool {
+				o.bval = !o.bval
+				return o, nil
+			}
+
+			return nil, &errInvalidUnaryOp{op: "!", target: o.String()}
+
+		case uoBitwiseNot:
+			o, err := eval(mod, n.uotarget)
+			if err != nil {
+				return nil, err
+			}
+
+			if o.typ == tI64 {
+				o.ival = ^o.ival
+				return o, nil
+			}
+
+			return nil, &errInvalidUnaryOp{op: "^", target: o.String()}
+		default:
+			return nil, &errInternal{msg: fmt.Sprintf("unhandled unary op: %s", n)}
 		}
+	case ndStr:
+		return &obj{typ: tString, sval: n.sval}, nil
 
-		return nil, &errInvalidUnaryOp{op: "^", target: o.String()}
+	case ndI64:
+		return &obj{typ: tI64, ival: n.ival}, nil
 
-	case *ndStr:
-		return &obj{typ: tString, sval: n.v}, nil
+	case ndF64:
+		return &obj{typ: tF64, fval: n.fval}, nil
 
-	case *ndI64:
-		return &obj{typ: tI64, ival: n.v}, nil
-
-	case *ndF64:
-		return &obj{typ: tF64, fval: n.v}, nil
-
-	case *ndBool:
-		return &obj{typ: tBool, bval: n.v}, nil
-
-	default:
-		panic(fmt.Errorf("unknown node: %v", n))
+	case ndBool:
+		return &obj{typ: tBool, bval: n.bval}, nil
 	}
+	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", n)}
 }
 
 func lookupFn(fnname string) (*obj, bool) {
