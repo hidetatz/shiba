@@ -291,16 +291,8 @@ func eval(mod string, nd node) (*obj, shibaErr) {
 		env.createblockscope(mod)
 
 		evaluated := false
-		for _, opt := range n.conds {
-			var cond node
-			var blocks []node
-			// extract key and value
-			for c, b := range opt {
-				cond = c
-				blocks = b
-			}
-
-			r, err := eval(mod, cond)
+		for i := range n.conds {
+			r, err := eval(mod, n.conds[i])
 			if err != nil {
 				return nil, err
 			}
@@ -310,7 +302,7 @@ func eval(mod string, nd node) (*obj, shibaErr) {
 			}
 
 			evaluated = true
-			for _, block := range blocks {
+			for _, block := range n.blocks[i] {
 				_, err := eval(mod, block)
 				if err != nil {
 					return nil, err

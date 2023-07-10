@@ -193,27 +193,32 @@ func (p *parser) stmt() node {
 	return e
 }
 
-// if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
+// block = "{" stmt* "}"
+func (p *parser) block() []node {
+	p.must(tkLBrace)
+	blk := []node{}
+	for {
+		p.skipnewline()
+
+		if p.iscur(tkRBrace) {
+			p.proceed()
+			break
+		}
+
+		blk = append(blk, p.stmt())
+	}
+
+	return blk
+}
+
+// if = "if" expr block ("elif" expr block)* ("else" block)?
 func (p *parser) _if() node {
 	p.skipnewline()
 	n := &ndIf{tokenHolder: p.tokenHolder()}
 	p.must(tkIf)
-	cond := p.expr()
-	p.must(tkLBrace)
-	blocks := []node{}
-	for {
-		blocks = append(blocks, p.stmt())
-		p.skipnewline()
-		if p.iscur(tkRBrace) {
-			p.proceed()
-			if !p.isnext(tkElif) && !p.isnext(tkElse) {
-				p.skipnewline()
-			}
-			break
-		}
-	}
-
-	n.conds = append(n.conds, map[node][]node{cond: blocks})
+	n.conds = append(n.conds, p.expr())
+	n.blocks = append(n.blocks, p.block())
+	p.skipnewline()
 
 	// parse multiple elifs
 	for {
@@ -222,42 +227,16 @@ func (p *parser) _if() node {
 			break
 		}
 		p.proceed()
-
-		cond := p.expr()
-		p.must(tkLBrace)
-		blocks := []node{}
-		for {
-			blocks = append(blocks, p.stmt())
-			p.skipnewline()
-			if p.iscur(tkRBrace) {
-				p.proceed()
-				if !p.isnext(tkElif) && !p.isnext(tkElse) {
-					p.skipnewline()
-				}
-				break
-			}
-		}
-
-		n.conds = append(n.conds, map[node][]node{cond: blocks})
+		n.conds = append(n.conds, p.expr())
+		n.blocks = append(n.blocks, p.block())
 	}
 
 	// parse else
-	if p.iscur(tkElse) {
-		p.proceed()
-		p.must(tkLBrace)
-		blocks := []node{}
-		for {
-			blocks = append(blocks, p.stmt())
-			p.skipnewline()
-			if p.iscur(tkRBrace) {
-				p.proceed()
-				p.skipnewline()
-				break
-			}
-		}
-
-		n.els = blocks
+	if !p.iscur(tkElse) {
+		return n
 	}
+	p.proceed()
+	n.els = p.block()
 
 	return n
 }

@@ -181,28 +181,23 @@ func (n *ndAssign) String() string {
 
 type ndIf struct {
 	*tokenHolder
-	// key: condition, value: block statements
-	// when condition is true, the statements should be evaluated.
-	conds []map[node][]node
-	// if none of conds is evaluated, els should be evaluated.
+	// len(conds) must be the same as len(blocks)
+	conds []node
+	blocks [][]node
+	// if none of conds is evaluated true, els should be evaluated.
 	els []node
 }
 
 func (n *ndIf) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("if ")
-	for i, o := range n.conds {
-		for cond, blocks := range o {
-			if cond != nil {
-				sb.WriteString(cond.String() + " ")
-			}
-			sb.WriteString("{ ")
-			for _, block := range blocks {
-				sb.WriteString(block.String())
-				sb.WriteString("; ")
-			}
-			sb.WriteString("} ")
+	for i := range n.conds {
+		sb.WriteString(n.conds[i].String() + " {")
+		for _, block := range n.blocks[i] {
+			sb.WriteString(block.String())
+			sb.WriteString("; ")
 		}
+		sb.WriteString("} ")
 
 		if i < len(n.conds)-1 {
 			sb.WriteString("elif ")
