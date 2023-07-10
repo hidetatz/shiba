@@ -233,12 +233,16 @@ func (n *ndLoop) String() string {
 type ndFunDef struct {
 	*tokenHolder
 	name   string
-	params    []string
+	params []node
 	blocks []node
 }
 
 func (n *ndFunDef) String() string {
-	return fmt.Sprintf("def %s(%s)", n.name, strings.Join(n.params, ", "))
+	fnargs := []string{}
+	for _, p := range n.params {
+		fnargs = append(fnargs, p.(*ndIdent).ident)
+	}
+	return fmt.Sprintf("def %s(%s)", n.name, strings.Join(fnargs, ", "))
 }
 
 type ndBinaryOp struct {

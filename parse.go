@@ -211,6 +211,33 @@ func (p *parser) block() []node {
 	return blk
 }
 
+// exprlist = terminate // empty list
+//          | (expr ",")* terminate // non-empty
+// if non-empty, the last comma is optional.
+func (p *parser) exprlist(terminate tktype) []node {
+	exprs := []node{}
+	if p.iscur(terminate) {
+		p.proceed()
+		return exprs
+	}
+
+	for {
+		exprs = append(exprs, p.expr())
+		if p.iscur(tkComma) {
+			p.proceed()
+			p.skipnewline()
+			continue
+		}
+
+		// the last comma is optional, so if there is no comma after expr,
+		// there must be terminate.
+		p.must(terminate)
+		break
+	}
+
+	return exprs
+}
+
 // if = "if" expr block ("elif" expr block)* ("else" block)?
 func (p *parser) _if() node {
 	p.skipnewline()
@@ -255,65 +282,25 @@ func (p *parser) _for() node {
 	return n
 }
 
-// def = "def" ident "(" (ident ",")* ")" block
+// def = "def" ident "(" expr-list ")" block
 func (p *parser) def() node {
 	p.skipnewline()
 	n := &ndFunDef{tokenHolder: p.tokenHolder()}
 	p.must(tkDef)
 	n.name = p.ident().(*ndIdent).ident
 	p.must(tkLParen)
-	params := []string{}
-	for {
-		p.skipnewline()
-		if p.iscur(tkRParen) {
-			p.proceed()
-			p.skipnewline()
-			break
-		}
-
-		params = append(params, p.ident().(*ndIdent).ident)
-
-		if p.iscur(tkComma) {
-			p.proceed()
-			p.skipnewline()
-			continue
-		}
-
-		// argument list can finish with ",",
-		// but if comma is missing after expr it means
-		// the argument list terminated.
-		p.must(tkRParen)
-		break
-	}
-	n.params = params
+	p.skipnewline()
+	n.params = p.exprlist(tkRParen)
 	n.blocks = p.block()
 	return n
 }
 
-// return = "return" (expr ",")*
+// return = "return" expr-list \n
 func (p *parser) _return() node {
 	p.skipnewline()
 	n := &ndReturn{tokenHolder: p.tokenHolder()}
 	p.must(tkReturn)
-
-	n.vals = []node{}
-	if p.iscur(tkNewLine) {
-		return n
-	}
-
-	for {
-		n.vals = append(n.vals, p.expr())
-
-		if p.iscur(tkComma) {
-			p.proceed()
-			p.skipnewline()
-			continue
-		}
-
-		p.must(tkNewLine)
-		break
-	}
-
+	n.vals = p.exprlist(tkNewLine)
 	return n
 }
 
@@ -647,7 +634,7 @@ func (p *parser) unary() node {
 //
 //	| "[" expr "]"
 //	| "[" expr ":" expr "]"
-//	| "(" (expr ",")* ")" <- the last comma is optional
+//	| "(" expr-list ")"
 func (p *parser) postfix() node {
 	n := p.primary()
 
@@ -695,32 +682,8 @@ func (p *parser) postfix() node {
 			n2 := &ndFuncall{tokenHolder: p.tokenHolder()}
 			p.proceed()
 			p.skipnewline()
-			args := []node{}
-			for {
-				if p.iscur(tkRParen) {
-					p.proceed()
-					p.skipnewline()
-					break
-				}
-
-				args = append(args, p.expr())
-
-				if p.iscur(tkComma) {
-					p.proceed()
-					p.skipnewline()
-					continue
-				}
-
-				// argument list can finish with ",",
-				// but if comma is missing after expr it means
-				// the argument list terminated.
-				p.must(tkRParen)
-				p.skipnewline()
-				break
-			}
-
 			n2.fn = n
-			n2.args = args
+			n2.args = p.exprlist(tkRParen)
 			n = n2
 			continue
 		}
@@ -797,32 +760,12 @@ func (p *parser) primary() node {
 	return p.ident()
 }
 
-// list = "[" (expr ",")* "]"
-// the comma after last element is optional.
+// list = "[" expr-list "]"
 func (p *parser) list() node {
 	n := &ndList{tokenHolder: p.tokenHolder()}
 	p.must(tkLBracket)
 	p.skipnewline()
-
-	for {
-		if p.iscur(tkRBracket) {
-			p.proceed()
-			p.skipnewline()
-			break
-		}
-
-		n.vals = append(n.vals, p.expr())
-		if p.iscur(tkComma) {
-			p.proceed()
-			p.skipnewline()
-			continue
-		}
-
-		p.must(tkRBracket)
-		p.skipnewline()
-		break
-	}
-
+	n.vals = p.exprlist(tkRBracket)
 	return n
 }
 

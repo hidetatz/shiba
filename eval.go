@@ -409,10 +409,14 @@ func eval(mod string, nd node) (*obj, shibaErr) {
 		return nil, nil
 
 	case *ndFunDef:
+		fnargs := []string{}
+		for _, p := range n.params {
+			fnargs = append(fnargs, p.(*ndIdent).ident)
+		}
 		f := &obj{
 			typ:    tFn,
 			fnname: n.name,
-			fnargs: n.params,
+			fnargs: fnargs,
 			fnbody: n.blocks,
 		}
 		env.setobj(mod, n.name, f)
