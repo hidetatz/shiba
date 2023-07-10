@@ -5,7 +5,7 @@ import (
 )
 
 func eval(mod string, n *node) (*obj, shibaErr) {
-	el := &errLine{n.tok.line}
+	el := newErrLine(n.tok.line)
 	switch n.typ {
 	case ndComment:
 		return nil, nil

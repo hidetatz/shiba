@@ -209,7 +209,7 @@ func (t *tokenizer) readstring() (*token, error) {
 	// todo: handle intermediate quote
 	for {
 		if !t.hasnext() {
-			return nil, &tokenizeErr{"unterminated string is invalid", line, col}
+			return nil, &errTokenize{msg: "string unterminated", errLine: newErrLine(line)}
 		}
 
 		c := t.cur()
@@ -244,7 +244,7 @@ func (t *tokenizer) readnum() (*token, error) {
 
 	dots := strings.Count(s, ".")
 	if dots >= 2 {
-		return nil, &tokenizeErr{"invalid decimal expression", line, col}
+		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(line) }
 	}
 
 	return t.newtoken(tkNum, line, col, s), nil
@@ -386,17 +386,7 @@ func (t *tokenizer) nexttoken() (*token, error) {
 		return tk, nil
 	}
 
-	return nil, &tokenizeErr{"invalid token", t.line, t.col}
-}
-
-type tokenizeErr struct {
-	reason string
-	line   int
-	col    int
-}
-
-func (e *tokenizeErr) Error() string {
-	return fmt.Sprintf("error in tokenization: %s\n\n%s^ around here", e.reason, strings.Repeat(" ", e.col))
+	return nil, &errTokenize{msg: "invalid token", errLine: newErrLine(t.line)}
 }
 
 func isdigit(r rune) bool {

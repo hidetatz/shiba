@@ -11,6 +11,10 @@ type errLine struct {
 	l int
 }
 
+func newErrLine(l int) *errLine {
+	return &errLine{l: l}
+}
+
 func (e *errLine) line() int {
 	return e.l
 }
@@ -27,6 +31,16 @@ func (e *errSimple) Error() string {
 /*
  * Parse error
  */
+
+type errTokenize struct {
+	*errLine
+	msg string
+}
+
+func (e *errTokenize) Error() string {
+	return e.msg
+}
+
 
 type errParse struct {
 	*errLine
