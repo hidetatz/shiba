@@ -164,6 +164,11 @@ const (
 	ndReturn
 )
 
+// type node interface {
+// 	tok() *token
+// 	fmt.Stringer
+// }
+
 type node struct {
 	typ nodetype
 
