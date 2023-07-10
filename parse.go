@@ -125,7 +125,6 @@ func (p *parser) stmt() *node {
 		n := newnode(ndComment, p.cur)
 		n.message = p.cur.lit
 		p.proceed()
-		p.skipnewline()
 		return n
 	}
 
@@ -148,14 +147,12 @@ func (p *parser) stmt() *node {
 	if p.iscur(tkContinue) {
 		n := newnode(ndContinue, p.cur)
 		p.proceed()
-		p.skipnewline()
 		return n
 	}
 
 	if p.iscur(tkBreak) {
 		n := newnode(ndBreak, p.cur)
 		p.proceed()
-		p.skipnewline()
 		return n
 	}
 
@@ -301,6 +298,7 @@ func (p *parser) _for() *node {
 
 // def = "def" ident "(" (ident ",")* ")" "{" STATEMENTS "}"
 func (p *parser) def() *node {
+	p.skipnewline()
 	n := newnode(ndFunDef, p.cur)
 	p.must(tkDef)
 	n.defname = p.ident().ident
@@ -349,6 +347,7 @@ func (p *parser) def() *node {
 
 // return = "return" (expr ",")*
 func (p *parser) _return() *node {
+	p.skipnewline()
 	n := newnode(ndReturn, p.cur)
 	p.must(tkReturn)
 
@@ -369,7 +368,6 @@ func (p *parser) _return() *node {
 		p.must(tkNewLine)
 		break
 	}
-	p.skipnewline()
 
 	return n
 }
