@@ -161,6 +161,7 @@ const (
 	ndList
 	ndContinue
 	ndBreak
+	ndReturn
 )
 
 type node struct {
@@ -240,6 +241,9 @@ type node struct {
 
 	// ndList
 	list []*node
+
+	// ndReturn
+	ret []*node
 }
 
 func newnode(typ nodetype, tok *token) *node {

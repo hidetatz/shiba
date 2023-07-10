@@ -83,6 +83,12 @@ func (p *parser) proceed() {
 	p.nextnext = c
 }
 
+func (p *parser) skipnewline() {
+	for p.cur.typ == tkNewLine {
+		p.proceed()
+	}
+}
+
 func (p *parser) must(t tktype) {
 	if p.cur.typ != t {
 		panic(fmt.Sprintf("%v is expected but %v is found!", t, p.cur.typ))
@@ -111,13 +117,15 @@ func (p *parser) parsestmt() (n *node, err shibaErr) {
  * statements
  */
 
-// stmt = if | for | assign | expr
+// stmt = if | for | assign | return | continue | break | expr
 func (p *parser) stmt() *node {
+	p.skipnewline()
 	if p.iscur(tkHash) {
 		// when the token is hash, lit is the comment message.
 		n := newnode(ndComment, p.cur)
 		n.message = p.cur.lit
 		p.proceed()
+		p.skipnewline()
 		return n
 	}
 
@@ -133,15 +141,21 @@ func (p *parser) stmt() *node {
 		return p.def()
 	}
 
+	if p.iscur(tkReturn) {
+		return p._return()
+	}
+
 	if p.iscur(tkContinue) {
 		n := newnode(ndContinue, p.cur)
 		p.proceed()
+		p.skipnewline()
 		return n
 	}
 
 	if p.iscur(tkBreak) {
 		n := newnode(ndBreak, p.cur)
 		p.proceed()
+		p.skipnewline()
 		return n
 	}
 
@@ -151,6 +165,7 @@ func (p *parser) stmt() *node {
 	if ok, t := p.iscurin(assignops); ok {
 		n := newnode(ndAssign, p.cur)
 		p.proceed()
+		p.skipnewline()
 		n.aoleft = e
 		n.aoright = p.expr()
 		switch t {
@@ -181,6 +196,7 @@ func (p *parser) stmt() *node {
 
 // if = "if" expr "{" STATEMENTS "}" ("elif" expr "{" STATEMENTS)* ("else" "{" STATEMENTS)? "}"
 func (p *parser) _if() *node {
+	p.skipnewline()
 	n := newnode(ndIf, p.cur)
 	p.must(tkIf)
 	cond := p.expr()
@@ -188,8 +204,12 @@ func (p *parser) _if() *node {
 	blocks := []*node{}
 	for {
 		blocks = append(blocks, p.stmt())
+		p.skipnewline()
 		if p.iscur(tkRBrace) {
 			p.proceed()
+			if !p.isnext(tkElif) && !p.isnext(tkElse) {
+				p.skipnewline()
+			}
 			break
 		}
 	}
@@ -209,11 +229,15 @@ func (p *parser) _if() *node {
 		blocks := []*node{}
 		for {
 			blocks = append(blocks, p.stmt())
+			p.skipnewline()
 			if p.iscur(tkRBrace) {
+				p.proceed()
+				if !p.isnext(tkElif) && !p.isnext(tkElse) {
+					p.skipnewline()
+				}
 				break
 			}
 		}
-		p.proceed()
 
 		n.conds = append(n.conds, map[*node][]*node{cond: blocks})
 	}
@@ -225,8 +249,10 @@ func (p *parser) _if() *node {
 		blocks := []*node{}
 		for {
 			blocks = append(blocks, p.stmt())
+			p.skipnewline()
 			if p.iscur(tkRBrace) {
 				p.proceed()
+				p.skipnewline()
 				break
 			}
 		}
@@ -239,6 +265,7 @@ func (p *parser) _if() *node {
 
 // for = "for" ident "," ident "in" expr "{" STATEMENTS "}"
 func (p *parser) _for() *node {
+	p.skipnewline()
 	n := newnode(ndLoop, p.cur)
 
 	p.must(tkFor)
@@ -254,11 +281,14 @@ func (p *parser) _for() *node {
 	n.looptarget = p.expr()
 
 	p.must(tkLBrace)
+	p.skipnewline()
 
 	blocks := []*node{}
 	for {
 		blocks = append(blocks, p.stmt())
+		p.skipnewline()
 		if p.iscur(tkRBrace) {
+			p.skipnewline()
 			p.proceed()
 			break
 		}
@@ -277,8 +307,10 @@ func (p *parser) def() *node {
 	p.must(tkLParen)
 	params := []string{}
 	for {
+		p.skipnewline()
 		if p.iscur(tkRParen) {
 			p.proceed()
+			p.skipnewline()
 			break
 		}
 
@@ -286,6 +318,7 @@ func (p *parser) def() *node {
 
 		if p.iscur(tkComma) {
 			p.proceed()
+			p.skipnewline()
 			continue
 		}
 
@@ -296,17 +329,47 @@ func (p *parser) def() *node {
 		break
 	}
 	p.must(tkLBrace)
+	p.skipnewline()
 	n.params = params
 
 	blocks := []*node{}
 	for {
 		blocks = append(blocks, p.stmt())
+		p.skipnewline()
 		if p.iscur(tkRBrace) {
 			p.proceed()
+			p.skipnewline()
 			break
 		}
 	}
 	n.defblocks = blocks
+
+	return n
+}
+
+// return = "return" (expr ",")*
+func (p *parser) _return() *node {
+	n := newnode(ndReturn, p.cur)
+	p.must(tkReturn)
+
+	n.ret = []*node{}
+	if p.iscur(tkNewLine) {
+		return n
+	}
+
+	for {
+		n.ret = append(n.ret, p.expr())
+
+		if p.iscur(tkComma) {
+			p.proceed()
+			p.skipnewline()
+			continue
+		}
+
+		p.must(tkNewLine)
+		break
+	}
+	p.skipnewline()
 
 	return n
 }
@@ -327,6 +390,7 @@ func (p *parser) logor() *node {
 		if p.iscur(tk2VBar) {
 			n2 := newbinaryop(p.cur, boLogicalOr)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.logand()
 			n = n2
@@ -346,6 +410,7 @@ func (p *parser) logand() *node {
 		if p.iscur(tk2Amp) {
 			n2 := newbinaryop(p.cur, boLogicalAnd)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.bitor()
 			n = n2
@@ -365,6 +430,7 @@ func (p *parser) bitor() *node {
 		if p.iscur(tkVBar) {
 			n2 := newbinaryop(p.cur, boBitwiseOr)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.bitxor()
 			n = n2
@@ -385,6 +451,7 @@ func (p *parser) bitxor() *node {
 		if p.iscur(tkCaret) {
 			n2 := newbinaryop(p.cur, boBitwiseXor)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.bitand()
 			n = n2
@@ -404,6 +471,7 @@ func (p *parser) bitand() *node {
 	for {
 		if p.iscur(tkAmp) {
 			p.proceed()
+			p.skipnewline()
 			n = &node{typ: ndBinaryOp, bop: boBitwiseAnd, boleft: n, boright: p.equality()}
 			continue
 		}
@@ -421,6 +489,7 @@ func (p *parser) equality() *node {
 		if p.iscur(tk2Eq) {
 			n2 := newbinaryop(p.cur, boEq)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.relational()
 			n = n2
@@ -430,6 +499,7 @@ func (p *parser) equality() *node {
 		if p.iscur(tkBangEq) {
 			n2 := newbinaryop(p.cur, boNotEq)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.relational()
 			n = n2
@@ -449,6 +519,7 @@ func (p *parser) relational() *node {
 		if p.iscur(tkLess) {
 			n2 := newbinaryop(p.cur, boLess)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.shift()
 			n = n2
@@ -458,6 +529,7 @@ func (p *parser) relational() *node {
 		if p.iscur(tkLessEq) {
 			n2 := newbinaryop(p.cur, boLessEq)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.shift()
 			n = n2
@@ -467,6 +539,7 @@ func (p *parser) relational() *node {
 		if p.iscur(tkGreater) {
 			n2 := newbinaryop(p.cur, boGreater)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.shift()
 			n = n2
@@ -476,6 +549,7 @@ func (p *parser) relational() *node {
 		if p.iscur(tkGreaterEq) {
 			n2 := newbinaryop(p.cur, boGreaterEq)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.shift()
 			n = n2
@@ -495,6 +569,7 @@ func (p *parser) shift() *node {
 		if p.iscur(tk2Less) {
 			n2 := newbinaryop(p.cur, boLeftShift)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.add()
 			n = n2
@@ -504,6 +579,7 @@ func (p *parser) shift() *node {
 		if p.iscur(tk2Greater) {
 			n2 := newbinaryop(p.cur, boRightShift)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.add()
 			n = n2
@@ -523,6 +599,7 @@ func (p *parser) add() *node {
 		if p.iscur(tkPlus) {
 			n2 := newbinaryop(p.cur, boAdd)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.mul()
 			n = n2
@@ -532,6 +609,7 @@ func (p *parser) add() *node {
 		if p.iscur(tkHyphen) {
 			n2 := newbinaryop(p.cur, boSub)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.mul()
 			n = n2
@@ -551,6 +629,7 @@ func (p *parser) mul() *node {
 		if p.iscur(tkStar) {
 			n2 := newbinaryop(p.cur, boMul)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.unary()
 			n = n2
@@ -560,6 +639,7 @@ func (p *parser) mul() *node {
 		if p.iscur(tkSlash) {
 			n2 := newbinaryop(p.cur, boDiv)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.unary()
 			n = n2
@@ -569,6 +649,7 @@ func (p *parser) mul() *node {
 		if p.iscur(tkPercent) {
 			n2 := newbinaryop(p.cur, boMod)
 			p.proceed()
+			p.skipnewline()
 			n2.boleft = n
 			n2.boright = p.unary()
 			n = n2
@@ -628,6 +709,7 @@ func (p *parser) postfix() *node {
 		if p.iscur(tkDot) {
 			n2 := newnode(ndSelector, p.cur)
 			p.proceed()
+			p.skipnewline()
 			n2.selector = n
 			n2.selectortarget = p.ident()
 			n = n2
@@ -636,12 +718,14 @@ func (p *parser) postfix() *node {
 
 		if p.iscur(tkLBracket) {
 			p.proceed()
+			p.skipnewline()
 			e := p.expr()
 
 			// index
 			if p.iscur(tkRBracket) {
 				n2 := newnode(ndIndex, p.cur)
 				p.proceed()
+				p.skipnewline()
 				n2.idx = e
 				n2.indextarget = n
 				n = n2
@@ -650,6 +734,7 @@ func (p *parser) postfix() *node {
 
 			// slice
 			p.must(tkColon)
+			p.skipnewline()
 			n2 := newnode(ndSlice, p.cur)
 			e2 := p.expr()
 			p.must(tkRBracket)
@@ -663,10 +748,12 @@ func (p *parser) postfix() *node {
 		if p.iscur(tkLParen) {
 			n2 := newnode(ndFuncall, p.cur)
 			p.proceed()
+			p.skipnewline()
 			args := []*node{}
 			for {
 				if p.iscur(tkRParen) {
 					p.proceed()
+					p.skipnewline()
 					break
 				}
 
@@ -674,6 +761,7 @@ func (p *parser) postfix() *node {
 
 				if p.iscur(tkComma) {
 					p.proceed()
+					p.skipnewline()
 					continue
 				}
 
@@ -681,6 +769,7 @@ func (p *parser) postfix() *node {
 				// but if comma is missing after expr it means
 				// the argument list terminated.
 				p.must(tkRParen)
+				p.skipnewline()
 				break
 			}
 
@@ -705,8 +794,10 @@ func (p *parser) primary() *node {
 
 	if p.iscur(tkLParen) {
 		p.proceed()
+		p.skipnewline()
 		n := p.expr()
 		p.must(tkRParen)
+		p.skipnewline()
 		return n
 	}
 
@@ -765,20 +856,24 @@ func (p *parser) primary() *node {
 func (p *parser) list() *node {
 	n := newnode(ndList, p.cur)
 	p.must(tkLBracket)
+	p.skipnewline()
 
 	for {
 		if p.iscur(tkRBracket) {
 			p.proceed()
+			p.skipnewline()
 			break
 		}
 
 		n.list = append(n.list, p.expr())
 		if p.iscur(tkComma) {
 			p.proceed()
+			p.skipnewline()
 			continue
 		}
 
 		p.must(tkRBracket)
+		p.skipnewline()
 		break
 	}
 

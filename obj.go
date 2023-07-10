@@ -19,6 +19,7 @@ const (
 	tFn
 	tBfn
 	tList
+	tReturnedList
 )
 
 func (ot objtype) String() string {
@@ -39,6 +40,8 @@ func (ot objtype) String() string {
 		return "<builtin func>"
 	case tList:
 		return "<list>"
+	case tReturnedList:
+		return "<returnedlist>"
 	}
 	return "<unknown object>"
 }
@@ -374,6 +377,18 @@ func (o *obj) String() string {
 	case tBfn:
 		return fmt.Sprintf("builtin.%s()", o.bfnname)
 	case tList:
+		sb := strings.Builder{}
+		sb.WriteString("[")
+		for i, n := range o.objs {
+			sb.WriteString(n.String())
+			if i < len(o.objs)-1 {
+				sb.WriteString(", ")
+			}
+		}
+		sb.WriteString("]")
+
+		return sb.String()
+	case tReturnedList:
 		sb := strings.Builder{}
 		sb.WriteString("[")
 		for i, n := range o.objs {

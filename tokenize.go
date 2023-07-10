@@ -11,6 +11,7 @@ type tktype int
 const (
 	// punctuators
 	tkDot       = iota // .
+	tkNewLine          // \n
 	tkColon            // :
 	tkEq               // =
 	tkHash             // #
@@ -60,6 +61,7 @@ const (
 	tkDef      // def
 	tkContinue // continue
 	tkBreak    // break
+	tkReturn   // return
 
 	tkIdent
 	tkStr
@@ -83,6 +85,7 @@ var keywords = []*strToTktype{
 	{"def", tkDef},
 	{"continue", tkContinue},
 	{"break", tkBreak},
+	{"return", tkReturn},
 }
 
 var punctuators = []*strToTktype{
@@ -122,6 +125,7 @@ var punctuators = []*strToTktype{
 	{"|", tkVBar},
 	{"^", tkCaret},
 	{"!", tkBang},
+	{"\n", tkNewLine},
 }
 
 func (t tktype) String() string {
@@ -404,7 +408,7 @@ func isidentletter(r rune) bool {
 }
 
 func isspace(r rune) bool {
-	return r == ' ' || r == '\t' || r == '\n'
+	return r == ' ' || r == '\t'
 }
 
 func isdot(r rune) bool {

@@ -267,9 +267,14 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			}
 
 			for _, block := range fn.fnbody {
-				_, err := eval(mod, block)
+				o, err := eval(mod, block)
 				if err != nil {
 					return nil, err
+				}
+
+				if o != nil && o.typ == tReturnedList {
+					env.delfuncscope(mod)
+					return o, nil
 				}
 			}
 
@@ -351,42 +356,59 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return nil, err
 		}
 
-		doloop := func(i int, o *obj) shibaErr {
+		doloop := func(i int, o *obj) (*obj, shibaErr) {
 			env.setobj(mod, n.cnt.ident, &obj{typ: tI64, ival: int64(i)})
 			env.setobj(mod, n.elem.ident, o)
 			for _, block := range n.loopblocks {
-				_, err := eval(mod, block)
+				io, err := eval(mod, block)
 				if err != nil {
 					if _, ok := err.(*errContinue); ok {
-						return nil
+						return nil, nil
 					}
 
-					return err
+					return nil, err
+				}
+
+				if io != nil && io.typ == tReturnedList {
+					return io, nil
 				}
 			}
-			return nil
+			return nil, nil
 		}
 
 		switch target.typ {
 		case tString:
 			for i, r := range []rune(target.sval) {
 				o := &obj{typ: tString, sval: string(r)}
-				if err := doloop(i, o); err != nil {
+				lo, err := doloop(i, o)
+				if err != nil {
 					if _, ok := err.(*errBreak); ok {
 						break
 					}
 
+					env.delblockscope(mod)
 					return nil, err
+				}
+
+				if lo!= nil && lo.typ == tReturnedList {
+					env.delblockscope(mod)
+					return lo, nil
 				}
 			}
 		case tList:
 			for i, o := range target.objs {
-				if err := doloop(i, o); err != nil {
+				lo, err := doloop(i, o)
+				if err != nil {
 					if _, ok := err.(*errBreak); ok {
 						break
 					}
 
+					env.delblockscope(mod)
 					return nil, err
+				}
+				if lo!= nil && lo.typ == tReturnedList {
+					env.delblockscope(mod)
+					return lo, nil
 				}
 			}
 		}
@@ -409,6 +431,18 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 	case ndBreak:
 		return nil, &errBreak{errLine: el}
+
+	case ndReturn:
+		ret := &obj{typ: tReturnedList}
+		for _, r := range n.ret {
+			o, err := eval(mod, r)
+			if err != nil {
+				return nil, err
+			}
+			ret.objs = append(ret.objs, o)
+		}
+
+		return ret, nil
 
 	case ndList:
 		o := &obj{typ: tList}

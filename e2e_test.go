@@ -268,6 +268,22 @@ func TestArithmetic(t *testing.T) {
 				$$filename:1 continue in non-loop
 			`),
 		},
+		"return1": {
+			content: d(`
+				def f() {
+					a = 1
+					print(a)
+					return a
+				}
+
+				b = f()
+				print(b)
+			`),
+			out: d(`
+				1
+				[1]
+			`),
+		},
 		"scope1": {
 			content: d(`
 				if 1 {
