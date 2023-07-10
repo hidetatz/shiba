@@ -241,43 +241,21 @@ func (p *parser) _if() node {
 	return n
 }
 
-// for = "for" ident "," ident "in" expr "{" STATEMENTS "}"
+// for = "for" ident "," ident "in" expr block
 func (p *parser) _for() node {
 	p.skipnewline()
 	n := &ndLoop{tokenHolder: p.tokenHolder()}
-
 	p.must(tkFor)
-
 	n.cnt = p.ident()
-
 	p.must(tkComma)
-
 	n.elem = p.ident()
-
 	p.must(tkIn)
-
 	n.target = p.expr()
-
-	p.must(tkLBrace)
-	p.skipnewline()
-
-	blocks := []node{}
-	for {
-		blocks = append(blocks, p.stmt())
-		p.skipnewline()
-		if p.iscur(tkRBrace) {
-			p.skipnewline()
-			p.proceed()
-			break
-		}
-	}
-
-	n.blocks = blocks
-
+	n.blocks = p.block()
 	return n
 }
 
-// def = "def" ident "(" (ident ",")* ")" "{" STATEMENTS "}"
+// def = "def" ident "(" (ident ",")* ")" block
 func (p *parser) def() node {
 	p.skipnewline()
 	n := &ndFunDef{tokenHolder: p.tokenHolder()}
@@ -307,22 +285,8 @@ func (p *parser) def() node {
 		p.must(tkRParen)
 		break
 	}
-	p.must(tkLBrace)
-	p.skipnewline()
 	n.params = params
-
-	blocks := []node{}
-	for {
-		blocks = append(blocks, p.stmt())
-		p.skipnewline()
-		if p.iscur(tkRBrace) {
-			p.proceed()
-			p.skipnewline()
-			break
-		}
-	}
-	n.blocks = blocks
-
+	n.blocks = p.block()
 	return n
 }
 
