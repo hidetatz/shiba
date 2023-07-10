@@ -11,7 +11,7 @@ func runmod(mod string, repl bool) int {
 			return 1
 		}
 
-		if stmt.typ == ndEof {
+		if _, ok := stmt.(*ndEof); ok {
 			break
 		}
 

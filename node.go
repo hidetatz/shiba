@@ -138,238 +138,269 @@ const (
 	uoBitwiseNot
 )
 
-type nodetype int
+type node interface {
+	tok() *token
+	fmt.Stringer
+}
 
-const (
-	ndEof nodetype = iota
-	ndComment
-	ndAssign
-	ndIf
-	ndLoop
-	ndFunDef
-	ndBinaryOp
-	ndUnaryOp
-	ndSelector
-	ndIndex
-	ndSlice
-	ndFuncall
-	ndIdent
-	ndStr
-	ndI64
-	ndF64
-	ndBool
-	ndList
-	ndContinue
-	ndBreak
-	ndReturn
-)
+type tokenHolder struct {
+	t *token
+}
 
-// type node interface {
-// 	tok() *token
-// 	fmt.Stringer
-// }
+func (tg *tokenHolder) tok() *token {
+	return tg.t
+}
 
-type node struct {
-	typ nodetype
+type ndEof struct {
+	*tokenHolder
+}
 
-	// token that represents the node
-	tok *token
+func (n *ndEof) String() string {
+	return "<eof>"
+}
 
-	// ndComment
+type ndComment struct {
+	*tokenHolder
 	message string
+}
 
-	// ndAssign
-	aop     assignOp
-	aoleft  *node
-	aoright *node
+func (n *ndComment) String() string {
+	return "# " + n.message
+}
 
-	// ndIf
+type ndAssign struct {
+	*tokenHolder
+	op     assignOp
+	left  node
+	right node
+}
+
+func (n *ndAssign) String() string {
+	return fmt.Sprintf("%s %s %s", n.left, n.op, n.right)
+}
+
+type ndIf struct {
+	*tokenHolder
 	// key: condition, value: block statements
 	// when condition is true, the statements should be evaluated.
-	conds []map[*node][]*node
+	conds []map[node][]node
 	// if none of conds is evaluated, els should be evaluated.
-	els []*node
-
-	// ndLoop
-	// loop target, something iterable
-	looptarget *node
-	// counter, element var name
-	cnt        *node
-	elem       *node
-	loopblocks []*node
-
-	// ndFunDef
-	defname   string
-	params    []string
-	defblocks []*node
-
-	// ndBinaryOp
-	bop     binaryOp
-	boleft  *node
-	boright *node
-
-	// ndUnaryOp
-	uop      unaryOp
-	uotarget *node
-
-	// ndSelector
-	selector       *node
-	selectortarget *node
-
-	// ndIndex
-	idx         *node
-	indextarget *node
-
-	// ndSlice
-	slicestart  *node
-	sliceend    *node
-	slicetarget *node
-
-	// ndFuncall
-	callfn *node
-	args   []*node
-
-	// ndIdent
-	ident string
-
-	// ndStr
-	sval string
-
-	// ndI64
-	ival int64
-
-	// ndF64
-	fval float64
-
-	// ndBool
-	bval bool
-
-	// ndList
-	list []*node
-
-	// ndReturn
-	ret []*node
+	els []node
 }
 
-func newnode(typ nodetype, tok *token) *node {
-	return &node{typ: typ, tok: tok}
-}
-
-func newbinaryop(tok *token, op binaryOp) *node {
-	return &node{typ: ndBinaryOp, tok: tok, bop: op}
-}
-
-func newunaryop(tok *token, op unaryOp) *node {
-	return &node{typ: ndUnaryOp, tok: tok, uop: op}
-}
-
-func (n *node) String() string {
-	switch n.typ {
-	case ndEof:
-		return "<eof>"
-	case ndComment:
-		return "# " + n.message
-	case ndAssign:
-		return fmt.Sprintf("%s %s %s", n.aoleft, n.aop, n.aoright)
-	case ndIf:
-		sb := strings.Builder{}
-		sb.WriteString("if ")
-		for i, o := range n.conds {
-			for cond, blocks := range o {
-				if cond != nil {
-					sb.WriteString(cond.String() + " ")
-				}
-				sb.WriteString("{ ")
-				for _, block := range blocks {
-					sb.WriteString(block.String())
-					sb.WriteString("; ")
-				}
-				sb.WriteString("} ")
+func (n *ndIf) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("if ")
+	for i, o := range n.conds {
+		for cond, blocks := range o {
+			if cond != nil {
+				sb.WriteString(cond.String() + " ")
 			}
-
-			if i < len(n.conds)-1 {
-				sb.WriteString("elif ")
-			}
-		}
-
-		if n.els != nil {
-			sb.WriteString("else ")
-			for _, block := range n.els {
+			sb.WriteString("{ ")
+			for _, block := range blocks {
 				sb.WriteString(block.String())
 				sb.WriteString("; ")
 			}
-			sb.WriteString("}")
+			sb.WriteString("} ")
 		}
 
-		return sb.String()
-	case ndLoop:
-		sb := strings.Builder{}
-		sb.WriteString("for ")
-		sb.WriteString(n.cnt.String())
-		sb.WriteString(", ")
-		sb.WriteString(n.elem.String())
-		sb.WriteString(" in ")
-		sb.WriteString(n.looptarget.String())
-		sb.WriteString(" { ")
-		for _, nd := range n.loopblocks {
-			sb.WriteString(nd.String())
+		if i < len(n.conds)-1 {
+			sb.WriteString("elif ")
+		}
+	}
+
+	if n.els != nil {
+		sb.WriteString("else ")
+		for _, block := range n.els {
+			sb.WriteString(block.String())
 			sb.WriteString("; ")
 		}
 		sb.WriteString("}")
-
-		return sb.String()
-	case ndFunDef:
-		return fmt.Sprintf("def %s(%s)", n.defname, strings.Join(n.params, ", "))
-	case ndBinaryOp:
-		return fmt.Sprintf("(%s %s %s)", n.boleft.String(), n.bop.String(), n.boright.String())
-	case ndUnaryOp:
-		return fmt.Sprintf("%s%s", n.uop, n.uotarget)
-	case ndSelector:
-		return fmt.Sprintf("%s.%s", n.selector, n.selectortarget)
-	case ndIndex:
-		return fmt.Sprintf("%s[%s]", n.indextarget, n.idx)
-	case ndSlice:
-		return fmt.Sprintf("%s[%s:%s]", n.slicetarget, n.slicestart, n.sliceend)
-	case ndFuncall:
-		sb := strings.Builder{}
-		sb.WriteString(n.callfn.String())
-		sb.WriteString("(")
-		for i, a := range n.args {
-			sb.WriteString(a.String())
-			if i < len(n.args)-1 {
-				sb.WriteString(", ")
-			}
-		}
-		sb.WriteString(")")
-
-		return sb.String()
-	case ndIdent:
-		return n.ident + "(ident)"
-	case ndStr:
-		return "\"" + n.sval + "(str)\""
-	case ndI64:
-		return fmt.Sprintf("%d(i64)", n.ival)
-	case ndF64:
-		return fmt.Sprintf("%f(f64)", n.fval)
-	case ndBool:
-		return fmt.Sprintf("%t(bool)", n.bval)
-	case ndList:
-		sb := strings.Builder{}
-		sb.WriteString("[")
-		for i, nn := range n.list {
-			sb.WriteString(nn.String())
-			if i < len(n.list)-1 {
-				sb.WriteString(", ")
-			}
-		}
-		sb.WriteString("]")
-
-		return sb.String()
-	case ndContinue:
-		return "continue"
-	case ndBreak:
-		return "break"
-	default:
-		return "<unknown node>"
 	}
+
+	return sb.String()
+}
+
+type ndLoop struct {
+	*tokenHolder
+	// loop target, something iterable
+	target node
+	// counter, element var name
+	cnt        node
+	elem       node
+	blocks []node
+}
+
+func (n *ndLoop) String() string {
+	return fmt.Sprintf("for %s, %s in %s { ... }", n.cnt, n.elem, n.target)
+}
+
+type ndFunDef struct {
+	*tokenHolder
+	name   string
+	params    []string
+	blocks []node
+}
+
+func (n *ndFunDef) String() string {
+	return fmt.Sprintf("def %s(%s)", n.name, strings.Join(n.params, ", "))
+}
+
+type ndBinaryOp struct {
+	*tokenHolder
+	op    binaryOp
+	left  node
+	right node
+}
+
+func (n *ndBinaryOp) String() string {
+	return fmt.Sprintf("(%s %s %s)", n.left, n.op, n.right)
+}
+
+type ndUnaryOp struct {
+	*tokenHolder
+	op      unaryOp
+	target node
+}
+
+func (n *ndUnaryOp) String() string {
+	return fmt.Sprintf("%s%s", n.op, n.target)
+}
+
+type ndSelector struct {
+	*tokenHolder
+	selector       node
+	target node
+}
+
+func (n *ndSelector) String() string {
+	return fmt.Sprintf("%s.%s", n.selector, n.target)
+}
+
+type ndIndex struct {
+	*tokenHolder
+	idx         node
+	target node
+}
+
+func (n *ndIndex) String() string {
+	return fmt.Sprintf("%s[%s]", n.target, n.idx)
+}
+
+type ndSlice struct {
+	*tokenHolder
+	start  node
+	end    node
+	target node
+}
+
+func (n *ndSlice) String() string {
+	return fmt.Sprintf("%s[%s:%s]", n.target, n.start, n.end)
+}
+
+type ndFuncall struct {
+	*tokenHolder
+	fn node
+	args   []node
+}
+
+func (n *ndFuncall) String() string {
+	return fmt.Sprintf("%s(...)", n.fn)
+}
+
+type ndIdent struct {
+	*tokenHolder
+	ident string
+}
+
+func (n *ndIdent) String() string {
+	return n.ident + "(ident)"
+}
+
+type ndStr struct {
+	*tokenHolder
+	val string
+}
+
+func (n *ndStr) String() string {
+	return "\"" + n.val + "(str)\""
+}
+
+type ndI64 struct {
+	*tokenHolder
+	val int64
+}
+
+func (n *ndI64) String() string {
+	return fmt.Sprintf("%d(i64)", n.val)
+}
+
+type ndF64 struct {
+	*tokenHolder
+	val float64
+}
+
+func (n *ndF64) String() string {
+	return fmt.Sprintf("%f(f64)", n.val)
+}
+
+type ndBool struct {
+	*tokenHolder
+	val bool
+}
+
+func (n *ndBool) String() string {
+	return fmt.Sprintf("%t(bool)", n.val)
+}
+
+type ndList struct {
+	*tokenHolder
+	vals []node
+}
+
+func (n *ndList) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("[")
+	for i, val := range n.vals {
+		sb.WriteString(val.String())
+		if i < len(n.vals)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteString("]")
+
+	return sb.String()
+}
+
+type ndContinue struct {
+	*tokenHolder
+}
+
+func (n *ndContinue) String() string {
+	return "continue"
+}
+
+type ndBreak struct {
+	*tokenHolder
+}
+
+func (n *ndBreak) String() string {
+	return "break"
+}
+
+type ndReturn struct {
+	*tokenHolder
+	vals []node
+}
+
+func (n *ndReturn) String() string {
+	return "return"
+}
+
+func newbinaryop(tok *token, op binaryOp ) *ndBinaryOp {
+	return &ndBinaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
+}
+
+func newunaryop(tok *token, op unaryOp ) *ndUnaryOp {
+	return &ndUnaryOp{op: op,tokenHolder: &tokenHolder{t: tok}}
 }

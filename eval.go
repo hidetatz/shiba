@@ -4,25 +4,25 @@ import (
 	"fmt"
 )
 
-func eval(mod string, n *node) (*obj, shibaErr) {
-	el := newErrLine(n.tok.line)
-	switch n.typ {
-	case ndComment:
+func eval(mod string, nd node) (*obj, shibaErr) {
+	el := newErrLine(nd.tok().line)
+	switch n := nd.(type) {
+	case *ndComment:
 		return nil, nil
 
-	case ndEof:
+	case *ndEof:
 		return nil, nil
 
-	case ndAssign:
-		r, err := eval(mod, n.aoright)
+	case *ndAssign:
+		r, err := eval(mod, n.right)
 		if err != nil {
 			return nil, err
 		}
 
-		l, err := eval(mod, n.aoleft)
+		l, err := eval(mod, n.left)
 
 		// Unlike others, a simple Equal sign allows the left undefined.
-		if n.aop == aoEq {
+		if n.op == aoEq {
 			// left is already defined. update it
 			if err == nil {
 				l.update(r)
@@ -31,7 +31,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 			// left is undefined. create a new var
 			if _, ok := err.(*errUndefinedIdent); ok {
-				env.setobj(mod, n.aoleft.ident, r)
+				env.setobj(mod, n.left.(*ndIdent).ident, r)
 				return nil, nil
 
 			}
@@ -54,7 +54,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			}
 		}
 
-		switch n.aop {
+		switch n.op {
 		case aoAddEq:
 			result, err := l.add(r)
 			if err != nil {
@@ -115,7 +115,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return nil, &errInternal{msg: "unknown assignment op", errLine: el}
 		}
 
-	case ndIndex:
+	case *ndIndex:
 		idx, err := eval(mod, n.idx)
 		if err != nil {
 			return nil, err
@@ -129,7 +129,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			}
 		}
 
-		tgt, err := eval(mod, n.indextarget)
+		tgt, err := eval(mod, n.target)
 		if err != nil {
 			return nil, err
 		}
@@ -155,8 +155,8 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return nil, &errTypeMismatch{expected: "list or string", actual: tgt.String(), errLine: el}
 
-	case ndSlice:
-		start, err := eval(mod, n.slicestart)
+	case *ndSlice:
+		start, err := eval(mod, n.start)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +169,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			}
 		}
 
-		end, err := eval(mod, n.sliceend)
+		end, err := eval(mod, n.end)
 		if err != nil {
 			return nil, err
 		}
@@ -194,7 +194,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return &errInvalidIndex{idx: idx, length: length, errLine: el}
 		}
 
-		tgt, err := eval(mod, n.slicetarget)
+		tgt, err := eval(mod, n.target)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +227,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return nil, &errTypeMismatch{expected: "list or string", actual: tgt.String(), errLine: el}
 
-	case ndFuncall:
+	case *ndFuncall:
 		args := []*obj{}
 		for _, a := range n.args {
 			o, err := eval(mod, a)
@@ -238,7 +238,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			args = append(args, o)
 		}
 
-		fn, err := eval(mod, n.callfn)
+		fn, err := eval(mod, n.fn)
 		if err != nil {
 			return nil, err
 		}
@@ -283,17 +283,17 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		}
 
 		return nil, &errSimple{
-			msg:     fmt.Sprintf("cannot call %s", n.callfn),
+			msg:     fmt.Sprintf("cannot call %s", n.fn),
 			errLine: el,
 		}
 
-	case ndIf:
+	case *ndIf:
 		env.createblockscope(mod)
 
 		evaluated := false
 		for _, opt := range n.conds {
-			var cond *node
-			var blocks []*node
+			var cond node
+			var blocks []node
 			// extract key and value
 			for c, b := range opt {
 				cond = c
@@ -340,26 +340,26 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		env.delblockscope(mod)
 		return nil, nil
 
-	case ndLoop:
+	case *ndLoop:
 		env.createblockscope(mod)
 
-		if n.cnt.typ != ndIdent {
+		if _, ok := n.cnt.(*ndIdent); !ok {
 			return nil, &errSimple{msg: fmt.Sprintf("invalid counter %s in loop", n.cnt), errLine: el}
 		}
 
-		if n.elem.typ != ndIdent {
+		if _, ok := n.elem.(*ndIdent); !ok {
 			return nil, &errSimple{msg: fmt.Sprintf("invalid element %s in loop", n.cnt), errLine: el}
 		}
 
-		target, err := eval(mod, n.looptarget)
+		target, err := eval(mod, n.target)
 		if err != nil {
 			return nil, err
 		}
 
 		doloop := func(i int, o *obj) (*obj, shibaErr) {
-			env.setobj(mod, n.cnt.ident, &obj{typ: tI64, ival: int64(i)})
-			env.setobj(mod, n.elem.ident, o)
-			for _, block := range n.loopblocks {
+			env.setobj(mod, n.cnt.(*ndIdent).ident, &obj{typ: tI64, ival: int64(i)})
+			env.setobj(mod, n.elem.(*ndIdent).ident, o)
+			for _, block := range n.blocks {
 				io, err := eval(mod, block)
 				if err != nil {
 					if _, ok := err.(*errContinue); ok {
@@ -416,25 +416,25 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		env.delblockscope(mod)
 		return nil, nil
 
-	case ndFunDef:
+	case *ndFunDef:
 		f := &obj{
 			typ:    tFn,
-			fnname: n.defname,
+			fnname: n.name,
 			fnargs: n.params,
-			fnbody: n.defblocks,
+			fnbody: n.blocks,
 		}
-		env.setobj(mod, n.defname, f)
+		env.setobj(mod, n.name, f)
 		return nil, nil
 
-	case ndContinue:
+	case *ndContinue:
 		return nil, &errContinue{errLine: el}
 
-	case ndBreak:
+	case *ndBreak:
 		return nil, &errBreak{errLine: el}
 
-	case ndReturn:
+	case *ndReturn:
 		ret := &obj{typ: tReturnedList}
-		for _, r := range n.ret {
+		for _, r := range n.vals {
 			o, err := eval(mod, r)
 			if err != nil {
 				return nil, err
@@ -444,9 +444,9 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return ret, nil
 
-	case ndList:
+	case *ndList:
 		o := &obj{typ: tList}
-		for _, l := range n.list {
+		for _, l := range n.vals {
 			e, err := eval(mod, l)
 			if err != nil {
 				return nil, err
@@ -456,7 +456,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return o, nil
 
-	case ndIdent:
+	case *ndIdent:
 		o, ok := env.getobj(mod, n.ident)
 		if ok {
 			return o, nil
@@ -469,13 +469,13 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 
 		return nil, &errUndefinedIdent{ident: n.ident, errLine: el}
 
-	case ndBinaryOp:
-		l, err := eval(mod, n.boleft)
+	case *ndBinaryOp:
+		l, err := eval(mod, n.left)
 		if err != nil {
 			return nil, err
 		}
 
-		r, err := eval(mod, n.boright)
+		r, err := eval(mod, n.right)
 		if err != nil {
 			return nil, err
 		}
@@ -488,7 +488,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 				errLine: el,
 			}
 		}
-		switch n.bop {
+		switch n.op {
 		case boAdd:
 			o, err := l.add(r)
 			if err != nil {
@@ -602,10 +602,10 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return nil, &errInternal{msg: "unknown bin op", errLine: el}
 		}
 
-	case ndUnaryOp:
-		switch n.uop {
+	case *ndUnaryOp:
+		switch n.op {
 		case uoPlus:
-			o, err := eval(mod, n.uotarget)
+			o, err := eval(mod, n.target)
 			if err != nil {
 				return nil, err
 			}
@@ -617,7 +617,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return o, nil
 
 		case uoMinus:
-			o, err := eval(mod, n.uotarget)
+			o, err := eval(mod, n.target)
 			if err != nil {
 				return nil, err
 			}
@@ -632,7 +632,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return o, nil
 
 		case uoLogicalNot:
-			o, err := eval(mod, n.uotarget)
+			o, err := eval(mod, n.target)
 			if err != nil {
 				return nil, err
 			}
@@ -645,7 +645,7 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 			return nil, &errInvalidUnaryOp{op: "!", target: o.String(), errLine: el}
 
 		case uoBitwiseNot:
-			o, err := eval(mod, n.uotarget)
+			o, err := eval(mod, n.target)
 			if err != nil {
 				return nil, err
 			}
@@ -659,19 +659,19 @@ func eval(mod string, n *node) (*obj, shibaErr) {
 		default:
 			return nil, &errInternal{msg: fmt.Sprintf("unhandled unary op: %s", n), errLine: el}
 		}
-	case ndStr:
-		return &obj{typ: tString, sval: n.sval}, nil
+	case *ndStr:
+		return &obj{typ: tString, sval: n.val}, nil
 
-	case ndI64:
-		return &obj{typ: tI64, ival: n.ival}, nil
+	case *ndI64:
+		return &obj{typ: tI64, ival: n.val}, nil
 
-	case ndF64:
-		return &obj{typ: tF64, fval: n.fval}, nil
+	case *ndF64:
+		return &obj{typ: tF64, fval: n.val}, nil
 
-	case ndBool:
-		return &obj{typ: tBool, bval: n.bval}, nil
+	case *ndBool:
+		return &obj{typ: tBool, bval: n.val}, nil
 	}
-	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", n), errLine: el}
+	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", nd), errLine: el}
 }
 
 func lookupFn(fnname string) (*obj, bool) {
