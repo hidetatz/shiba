@@ -243,14 +243,14 @@ func (t *tokenizer) readnum() (*token, error) {
 
 	dots := strings.Count(s, ".")
 	if dots >= 2 {
-		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(line) }
+		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(line)}
 	}
 
 	return t.newtoken(tkNum, line, s), nil
 }
 
 func (t *tokenizer) readident() (*token, bool) {
-	line  := t.line
+	line := t.line
 	ident := ""
 	for {
 		if !t.hasnext() {

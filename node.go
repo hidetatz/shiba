@@ -170,7 +170,7 @@ func (n *ndComment) String() string {
 
 type ndAssign struct {
 	*tokenHolder
-	op     assignOp
+	op    assignOp
 	left  node
 	right node
 }
@@ -182,10 +182,8 @@ func (n *ndAssign) String() string {
 type ndIf struct {
 	*tokenHolder
 	// len(conds) must be the same as len(blocks)
-	conds []node
+	conds  []node
 	blocks [][]node
-	// if none of conds is evaluated true, els should be evaluated.
-	els []node
 }
 
 func (n *ndIf) String() string {
@@ -204,15 +202,6 @@ func (n *ndIf) String() string {
 		}
 	}
 
-	if n.els != nil {
-		sb.WriteString("else ")
-		for _, block := range n.els {
-			sb.WriteString(block.String())
-			sb.WriteString("; ")
-		}
-		sb.WriteString("}")
-	}
-
 	return sb.String()
 }
 
@@ -221,8 +210,8 @@ type ndLoop struct {
 	// loop target, something iterable
 	target node
 	// counter, element var name
-	cnt        node
-	elem       node
+	cnt    node
+	elem   node
 	blocks []node
 }
 
@@ -258,7 +247,7 @@ func (n *ndBinaryOp) String() string {
 
 type ndUnaryOp struct {
 	*tokenHolder
-	op      unaryOp
+	op     unaryOp
 	target node
 }
 
@@ -268,8 +257,8 @@ func (n *ndUnaryOp) String() string {
 
 type ndSelector struct {
 	*tokenHolder
-	selector       node
-	target node
+	selector node
+	target   node
 }
 
 func (n *ndSelector) String() string {
@@ -278,7 +267,7 @@ func (n *ndSelector) String() string {
 
 type ndIndex struct {
 	*tokenHolder
-	idx         node
+	idx    node
 	target node
 }
 
@@ -299,8 +288,8 @@ func (n *ndSlice) String() string {
 
 type ndFuncall struct {
 	*tokenHolder
-	fn node
-	args   []node
+	fn   node
+	args []node
 }
 
 func (n *ndFuncall) String() string {
@@ -396,10 +385,10 @@ func (n *ndReturn) String() string {
 	return "return"
 }
 
-func newbinaryop(tok *token, op binaryOp ) *ndBinaryOp {
+func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
 	return &ndBinaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
 }
 
-func newunaryop(tok *token, op unaryOp ) *ndUnaryOp {
-	return &ndUnaryOp{op: op,tokenHolder: &tokenHolder{t: tok}}
+func newunaryop(tok *token, op unaryOp) *ndUnaryOp {
+	return &ndUnaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
 }

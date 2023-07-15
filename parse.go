@@ -212,7 +212,9 @@ func (p *parser) block() []node {
 }
 
 // exprlist = terminate // empty list
-//          | (expr ",")* terminate // non-empty
+//
+//	| (expr ",")* terminate // non-empty
+//
 // if non-empty, the last comma is optional.
 func (p *parser) exprlist(terminate tktype) []node {
 	exprs := []node{}
@@ -262,8 +264,11 @@ func (p *parser) _if() node {
 	if !p.iscur(tkElse) {
 		return n
 	}
+
 	p.proceed()
-	n.els = p.block()
+	// else is parsed as cond: true.
+	n.conds = append(n.conds, &ndBool{val: true})
+	n.blocks = append(n.blocks, p.block())
 
 	return n
 }

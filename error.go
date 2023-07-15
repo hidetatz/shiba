@@ -41,7 +41,6 @@ func (e *errTokenize) Error() string {
 	return e.msg
 }
 
-
 type errParse struct {
 	*errLine
 	msg string
