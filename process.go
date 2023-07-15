@@ -148,6 +148,10 @@ func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 		return nil, err
 	}
 
+	/*
+	 * TODO: extract right and set to multiple var
+	 */
+
 	l, err := procAsObj(mod, n.left)
 	// left is already defined. update it
 	if err == nil {
