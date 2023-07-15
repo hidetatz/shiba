@@ -1,6 +1,12 @@
-def p() {
-	return 1, "a", true
+def gcd(a, b) {
+    if a == 0 {
+        return b
+    }
+
+    m = b % a
+    print(b, a, m)
+    return gcd(m, a)
 }
 
-a, b, c = p()
-print(a, b, c)
+my_gcd = gcd(144, 84)
+print(my_gcd)
