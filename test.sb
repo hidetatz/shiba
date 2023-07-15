@@ -1,12 +1,6 @@
-def f(l) {
-	for i, e in l {
-		if i == 1 {
-			return e
-		}
-	}
+def p() {
+	return 1, "a", true
 }
 
-l = [1, 2, 3]
-
-a = f(["a", "b", "c"])
-print(a)
+a, b, c = p()
+print(a, b, c)

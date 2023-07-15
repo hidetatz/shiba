@@ -121,9 +121,14 @@ func (p *parser) parsestmt() (n node, err shibaErr) {
  * statements
  */
 
-// stmt = if | for | assign | return | continue | break | expr
+// stmt = if | for | def | return | continue | break | expr-list (assign-op expr-list)?
 func (p *parser) stmt() node {
 	p.skipnewline()
+
+	if p.iscur(tkEof) {
+		return &ndEof{tokenHolder: p.tokenHolder()}
+	}
+
 	if p.iscur(tkHash) {
 		// when the token is hash, lit is the comment message.
 		n := &ndComment{tokenHolder: p.tokenHolder(), message: p.cur.lit}
@@ -159,14 +164,14 @@ func (p *parser) stmt() node {
 		return n
 	}
 
-	e := p.expr()
+	el := p.exprlist()
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}
 	if ok, t := p.iscurin(assignops); ok {
-		n := &ndAssign{tokenHolder: p.tokenHolder(), left: e}
+		n := &ndAssign{tokenHolder: p.tokenHolder(), left: el}
 		p.proceed()
 		p.skipnewline()
-		n.right = p.expr()
+		n.right = p.exprlist()
 		switch t {
 		case tkEq:
 			n.op = aoEq
@@ -190,7 +195,11 @@ func (p *parser) stmt() node {
 		return n
 	}
 
-	return e
+	if len(el) == 1 {
+		return el[0]
+	}
+
+	return &ndList{vals: el,tokenHolder: p.tokenHolder()}
 }
 
 // block = "{" stmt* "}"
@@ -211,30 +220,20 @@ func (p *parser) block() []node {
 	return blk
 }
 
-// exprlist = terminate // empty list
-//
-//	| (expr ",")* terminate // non-empty
-//
-// if non-empty, the last comma is optional.
-func (p *parser) exprlist(terminate tktype) []node {
+// exprlist = expr ("," expr)*
+func (p *parser) exprlist() []node {
 	exprs := []node{}
-	if p.iscur(terminate) {
-		p.proceed()
-		return exprs
-	}
+	exprs = append(exprs, p.expr())
 
 	for {
-		exprs = append(exprs, p.expr())
-		if p.iscur(tkComma) {
-			p.proceed()
-			p.skipnewline()
-			continue
+		if !p.iscur(tkComma) {
+			break
 		}
 
-		// the last comma is optional, so if there is no comma after expr,
-		// there must be terminate.
-		p.must(terminate)
-		break
+		p.proceed()
+		p.skipnewline()
+
+		exprs = append(exprs, p.expr())
 	}
 
 	return exprs
@@ -287,7 +286,7 @@ func (p *parser) _for() node {
 	return n
 }
 
-// def = "def" ident "(" expr-list ")" block
+// def = "def" ident "(" expr-list? ")" block
 func (p *parser) def() node {
 	p.skipnewline()
 	n := &ndFunDef{tokenHolder: p.tokenHolder()}
@@ -295,7 +294,12 @@ func (p *parser) def() node {
 	n.name = p.ident().(*ndIdent).ident
 	p.must(tkLParen)
 	p.skipnewline()
-	n.params = p.exprlist(tkRParen)
+
+	if !p.iscur(tkRParen) {
+		n.params = p.exprlist()
+	}
+	p.must(tkRParen)
+
 	n.blocks = p.block()
 	return n
 }
@@ -305,7 +309,10 @@ func (p *parser) _return() node {
 	p.skipnewline()
 	n := &ndReturn{tokenHolder: p.tokenHolder()}
 	p.must(tkReturn)
-	n.vals = p.exprlist(tkNewLine)
+	if !p.iscur(tkNewLine) {
+		n.vals = p.exprlist()
+	}
+
 	return n
 }
 
@@ -688,7 +695,10 @@ func (p *parser) postfix() node {
 			p.proceed()
 			p.skipnewline()
 			n2.fn = n
-			n2.args = p.exprlist(tkRParen)
+			if !p.iscur(tkRParen) {
+				n2.args = p.exprlist()
+			}
+			p.must(tkRParen)
 			n = n2
 			continue
 		}
@@ -700,7 +710,7 @@ func (p *parser) postfix() node {
 	return n
 }
 
-// primary = list | "(" expr ")" | str | num | "true" | "false" | eof | ident
+// primary = list | "(" expr ")" | str | num | "true" | "false" | ident
 func (p *parser) primary() node {
 	if p.iscur(tkLBracket) {
 		return p.list()
@@ -758,19 +768,18 @@ func (p *parser) primary() node {
 		return n
 	}
 
-	if p.iscur(tkEof) {
-		return &ndEof{tokenHolder: p.tokenHolder()}
-	}
-
 	return p.ident()
 }
 
-// list = "[" expr-list "]"
+// list = "[" expr-list? "]"
 func (p *parser) list() node {
 	n := &ndList{tokenHolder: p.tokenHolder()}
 	p.must(tkLBracket)
 	p.skipnewline()
-	n.vals = p.exprlist(tkRBracket)
+	if !p.iscur(tkRBracket) {
+		n.vals = p.exprlist()
+	}
+	p.must(tkRBracket)
 	return n
 }
 

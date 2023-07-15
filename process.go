@@ -94,65 +94,28 @@ func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
 }
 
 func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
-	// Compute left and right as binary operation, then
-	// update the left with the result.
 	if n.op != aoEq {
-		var bo binaryOp
-		switch n.op {
-		case aoAddEq:
-			bo = boAdd
-		case aoSubEq:
-			bo = boSub
-		case aoMulEq:
-			bo = boMul
-		case aoDivEq:
-			bo = boDiv
-		case aoModEq:
-			bo = boMod
-		case aoAndEq:
-			bo = boBitwiseAnd
-		case aoOrEq:
-			bo = boBitwiseOr
-		case aoXorEq:
-			bo = boBitwiseXor
-		}
+		return procComputeAssign(mod, n)
+	}
 
-		l, err := procAsObj(mod, n.left)
-		if err != nil {
-			return nil, err
-		}
+	if 1 < len(n.left) {
+		return procMultipleAssign(mod, n)
+	}
 
-		r, err := procAsObj(mod, n.right)
-		if err != nil {
-			return nil, err
-		}
+	// only one assignee on the left side.
 
-		o, err2 := computeBinaryOp(l, r, bo)
-		if err2 != nil {
-			return nil, &errInvalidAssignOp{
-				left:    l.String(),
-				op:      n.op.String(),
-				right:   r.String(),
-				errLine: toel(n),
-			}
-		}
-
-		l.update(o)
-		return nil, nil
+	if len(n.right) != 1 {
+		return nil, &errSimple{msg: fmt.Sprintf("assignment mismatch: right side has %d items", len(n.right)), errLine: toel(n)}
 	}
 
 	// If op is simple equal sign, the left undefined is allowed.
 	// If undefined, define it. Else, update it.
-	r, err := procAsObj(mod, n.right)
+	r, err := procAsObj(mod, n.right[0])
 	if err != nil {
 		return nil, err
 	}
 
-	/*
-	 * TODO: extract right and set to multiple var
-	 */
-
-	l, err := procAsObj(mod, n.left)
+	l, err := procAsObj(mod, n.left[0])
 	// left is already defined. update it
 	if err == nil {
 		l.update(r)
@@ -161,12 +124,139 @@ func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 
 	// left is undefined. create a new var
 	if _, ok := err.(*errUndefinedIdent); ok {
-		env.setobj(mod, n.left.(*ndIdent).ident, r)
+		env.setobj(mod, n.left[0].(*ndIdent).ident, r)
 		return nil, nil
 	}
 
 	// other error
 	return nil, err
+}
+
+func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+	if len(n.left) != 1 {
+		return nil, &errSimple{msg: fmt.Sprintf("cannot assign to multiple values by %s", n.op), errLine: toel(n)}
+	}
+
+	if len(n.right) != 1 {
+		return nil, &errSimple{msg: fmt.Sprintf("cannot assign multiple values with %s", n.op), errLine: toel(n)}
+	}
+
+	left := n.left[0]
+	right := n.right[0]
+
+	var bo binaryOp
+	switch n.op {
+	case aoAddEq:
+		bo = boAdd
+	case aoSubEq:
+		bo = boSub
+	case aoMulEq:
+		bo = boMul
+	case aoDivEq:
+		bo = boDiv
+	case aoModEq:
+		bo = boMod
+	case aoAndEq:
+		bo = boBitwiseAnd
+	case aoOrEq:
+		bo = boBitwiseOr
+	case aoXorEq:
+		bo = boBitwiseXor
+	}
+
+	l, err := procAsObj(mod, left)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := procAsObj(mod, right)
+	if err != nil {
+		return nil, err
+	}
+
+	o, err2 := computeBinaryOp(l, r, bo)
+	if err2 != nil {
+		return nil, &errInvalidAssignOp{
+			left:    l.String(),
+			op:      n.op.String(),
+			right:   r.String(),
+			errLine: toel(n),
+		}
+	}
+
+	l.update(o)
+	return nil, nil
+}
+
+// if there are multiple assignee on the left side, the right side can be either of below:
+// * only one funcall which returns multiple values
+// * multiple values, the same number as the left
+// e.g.
+// a, b, c = f() // f() returns 3 values
+// a, b, c = 1, 2, 3
+// In case, the below is *not* allowed
+// a, b, c = 1, f() // f() returns 2 values
+func procMultipleAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+	if len(n.right) == 1 {
+		r, err := procAsObj(mod, n.right[0])
+		if err != nil {
+			return nil, err
+		}
+
+		if r.typ != tList {
+			return nil, &errSimple{msg: fmt.Sprintf("%s must be multiple-values", n.right[0]), errLine: toel(n)}
+		}
+
+		if len(n.left) != len(r.list) {
+			return nil, &errSimple{msg: fmt.Sprintf("assignment mismatch left: %d, right: %d", len(n.left), len(r.list)), errLine: toel(n)}
+		}
+
+		for i := range n.left {
+			l, err := procAsObj(mod, n.left[i])
+			// left is already defined. update it
+			if err == nil {
+				l.update(r.list[i])
+				continue
+			}
+
+			// left is undefined. create a new var
+			if _, ok := err.(*errUndefinedIdent); ok {
+				env.setobj(mod, n.left[i].(*ndIdent).ident, r.list[i])
+				continue
+			}
+
+			// other error
+			return nil, err
+		}
+
+		return nil, nil
+	}
+
+
+	for i := range n.left {
+		r, err := procAsObj(mod, n.right[i])
+		if err != nil {
+			return nil, err
+		}
+
+		l, err := procAsObj(mod, n.left[i])
+		// left is already defined. update it
+		if err == nil {
+			l.update(r)
+			continue
+		}
+
+		// left is undefined. create a new var
+		if _, ok := err.(*errUndefinedIdent); ok {
+			env.setobj(mod, n.left[i].(*ndIdent).ident, r)
+			continue
+		}
+
+		// other error
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func procIf(mod string, n *ndIf) (procResult, shibaErr) {

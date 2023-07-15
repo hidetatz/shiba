@@ -157,6 +157,19 @@ func TestArithmetic(t *testing.T) {
 				abc 999
 			`),
 		},
+		"assign3": {
+			content: d(`
+				a = 1
+				print(a)
+
+				a, b, c, d = 2, "3", true, [4, 5, 6]
+				print(a, b, c, d)
+			`),
+			out: d(`
+				1
+				2 3 true [4, 5, 6]
+			`),
+		},
 		"if1": {
 			content: d(`
 				if 0 {
@@ -471,6 +484,19 @@ func TestArithmetic(t *testing.T) {
 				2 false
 				3 100
 				4 [9, 8, 7]
+			`),
+		},
+		"func def2": {
+			content: d(`
+				def p() {
+					return 1, "a", true
+				}
+				
+				a, b, c = p()
+				print(a, b, c)
+			`),
+			out: d(`
+				1 a true
 			`),
 		},
 		"slice 1": {

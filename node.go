@@ -171,8 +171,8 @@ func (n *ndComment) String() string {
 type ndAssign struct {
 	*tokenHolder
 	op    assignOp
-	left  node
-	right node
+	left  []node
+	right []node
 }
 
 func (n *ndAssign) String() string {
