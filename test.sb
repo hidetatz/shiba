@@ -1,12 +1,25 @@
-def gcd(a, b) {
-    if a == 0 {
-        return b
-    }
+def get_user(id) {
+	u = users[id]
+	if u == nil {
+		raise Error("unknown id")
+	}
 
-    m = b % a
-    print(b, a, m)
-    return gcd(m, a)
+	return (u.name, u.age)
 }
 
-my_gcd = gcd(144, 84)
-print(my_gcd)
+
+
+u = get_user(id)
+name, age <= u
+
+
+
+try {
+	name, age = unpack get_user(id)
+} except e {
+	print(e.message)
+}
+
+addr = "192.168.1.1:8000"
+
+ip, port := split(addr, ":")
