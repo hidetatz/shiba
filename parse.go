@@ -304,13 +304,13 @@ func (p *parser) def() node {
 	return n
 }
 
-// return = "return" expr-list \n
+// return = "return" expr
 func (p *parser) _return() node {
 	p.skipnewline()
 	n := &ndReturn{tokenHolder: p.tokenHolder()}
 	p.must(tkReturn)
 	if !p.iscur(tkNewLine) {
-		n.vals = p.exprlist()
+		n.val = p.expr()
 	}
 
 	return n

@@ -75,22 +75,11 @@ func process(mod string, nd node) (procResult, shibaErr) {
 }
 
 func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
-	objs := []*obj{}
-	for _, val := range n.vals {
-		pr, err := process(mod, val)
-		if err != nil {
-			return nil, err
-		}
-		if pr.typ() != "obj" {
-			return nil, &errInternal{
-				msg:     fmt.Sprintf("invalid return value %s", pr),
-				errLine: toel(n),
-			}
-		}
-		objs = append(objs, pr.(*prObj).o)
+	o, err := procAsObj(mod, n.val)
+	if err != nil {
+		return nil, err
 	}
-
-	return &prReturn{ret: objs}, nil
+	return &prReturn{ret: o}, nil
 }
 
 func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
@@ -496,7 +485,7 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 
 			if r, ok := pr.(*prReturn); ok {
 				env.delblockscope(mod)
-				return &prObj{o: &obj{typ: tList, list: r.ret}}, nil
+				return &prObj{o: r.ret}, nil
 			}
 
 			if _, ok := pr.(*prBreak); ok {

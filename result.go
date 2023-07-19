@@ -23,7 +23,7 @@ type prBreak struct{}
 func (p *prBreak) typ() string { return "break" }
 
 type prReturn struct {
-	ret []*obj
+	ret *obj
 }
 
 func (p *prReturn) typ() string { return "return" }

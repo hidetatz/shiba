@@ -294,7 +294,7 @@ func TestArithmetic(t *testing.T) {
 			`),
 			out: d(`
 				1
-				[1]
+				1
 			`),
 		},
 		"scope1": {
@@ -488,15 +488,22 @@ func TestArithmetic(t *testing.T) {
 		},
 		"func def2": {
 			content: d(`
-				def p() {
-					return 1, "a", true
+				def p(t) {
+					if t {
+						return 1
+					}
+
+					return 2
 				}
 				
-				a, b, c = p()
-				print(a, b, c)
+				a = p(1)
+				print(a)
+				a = p(0)
+				print(a)
 			`),
 			out: d(`
-				1 a true
+				1
+				2
 			`),
 		},
 		"slice 1": {

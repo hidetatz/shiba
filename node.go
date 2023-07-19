@@ -378,11 +378,11 @@ func (n *ndBreak) String() string {
 
 type ndReturn struct {
 	*tokenHolder
-	vals []node
+	val node
 }
 
 func (n *ndReturn) String() string {
-	return "return"
+	return "return" + n.val.String()
 }
 
 func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
