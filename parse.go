@@ -166,7 +166,7 @@ func (p *parser) stmt() node {
 
 	el := p.exprlist()
 
-	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq}
+	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq, tkColonEq}
 	if ok, t := p.iscurin(assignops); ok {
 		n := &ndAssign{tokenHolder: p.tokenHolder(), left: el}
 		p.proceed()
@@ -191,6 +191,8 @@ func (p *parser) stmt() node {
 			n.op = aoOrEq
 		case tkCaretEq:
 			n.op = aoXorEq
+		case tkColonEq:
+			n.op = aoUnpackEq
 		}
 		return n
 	}

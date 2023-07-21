@@ -83,43 +83,86 @@ func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
 }
 
 func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+	if n.op == aoUnpackEq {
+		return procUnpackAssign(mod, n)
+	}
+
 	if n.op != aoEq {
 		return procComputeAssign(mod, n)
 	}
 
-	if 1 < len(n.left) {
-		return procMultipleAssign(mod, n)
+	return procPlainAssign(mod, n)
+}
+
+// plain assign assigns multiple right values to multiple left operand.
+func procPlainAssign(mod string, n *ndAssign)(procResult, shibaErr) {
+	if len(n.left) != len(n.right) {
+		return nil, &errSimple{msg: "assignment size mismatch", errLine: toel(n)}
 	}
 
-	// only one assignee on the left side.
+	for i := range n.left {
+		r, err := procAsObj(mod, n.right[i])
+		if err != nil {
+			return nil, err
+		}
 
+		if err := assignTo(mod, n.left[i], r); err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
+}
+
+func assignTo(mod string, dst node, o *obj) shibaErr {
+	d, err := procAsObj(mod, dst)
+	// when err is nil, the node is already defined. update it
+	if err == nil {
+		d.update(o)
+		return nil
+	}
+
+	// if left is undefined, create a new var
+	if _, ok := err.(*errUndefinedIdent); ok {
+		env.setobj(mod, dst.(*ndIdent).ident, o)
+		return nil
+	}
+
+	// other error
+	return err
+}
+
+// unpack assign unpacks right side operator to the left.
+// Right side must have only one iterable operand.
+// The left side size must be the same with right side iterable size.
+func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.right) != 1 {
-		return nil, &errSimple{msg: fmt.Sprintf("assignment mismatch: right side has %d items", len(n.right)), errLine: toel(n)}
+		return nil, &errSimple{msg: ":= cannot have multiple operand on right side", errLine: toel(n)}
 	}
 
-	// If op is simple equal sign, the left undefined is allowed.
-	// If undefined, define it. Else, update it.
 	r, err := procAsObj(mod, n.right[0])
 	if err != nil {
 		return nil, err
 	}
 
-	l, err := procAsObj(mod, n.left[0])
-	// left is already defined. update it
-	if err == nil {
-		l.update(r)
-		return nil, nil
+	if !r.isiterable() {
+		return nil, &errSimple{msg: fmt.Sprintf("cannot unpack %s", r), errLine: toel(n)}
 	}
 
-	// left is undefined. create a new var
-	if _, ok := err.(*errUndefinedIdent); ok {
-		env.setobj(mod, n.left[0].(*ndIdent).ident, r)
-		return nil, nil
+	iter := r.iterator()
+	if iter._len() != len(n.left) {
+		return nil, &errSimple{msg: fmt.Sprintf("unpack size mismatch: %s := %s", n.left, r), errLine: toel(n)}
 	}
 
-	// other error
-	return nil, err
+	for i := range n.left {
+		if err := assignTo(mod, n.left[i], iter.index(i)); err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }
+
 
 func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != 1 {

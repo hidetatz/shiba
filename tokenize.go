@@ -13,6 +13,7 @@ const (
 	tkDot       = iota // .
 	tkNewLine          // \n
 	tkColon            // :
+	tkColonEq          // :=
 	tkEq               // =
 	tkHash             // #
 	tkComma            // ,
@@ -103,6 +104,7 @@ var punctuators = []*strToTktype{
 	{"&=", tkAmpEq},
 	{"|=", tkVBarEq},
 	{"^=", tkCaretEq},
+	{":=", tkColonEq},
 	{"<", tkLess},
 	{">", tkGreater},
 	{".", tkDot},

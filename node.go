@@ -27,6 +27,8 @@ func (ao assignOp) String() string {
 		return "|="
 	case aoXorEq:
 		return "^="
+	case aoUnpackEq:
+		return ":="
 	default:
 		return "?"
 	}
@@ -42,6 +44,7 @@ const (
 	aoAndEq
 	aoOrEq
 	aoXorEq
+	aoUnpackEq
 )
 
 type binaryOp int

@@ -170,6 +170,22 @@ func TestArithmetic(t *testing.T) {
 				2 3 true [4, 5, 6]
 			`),
 		},
+		"assign4": {
+			content: d(`
+				def f() {
+					return [1, "a", true]
+				}
+
+				a = f()
+				print(a)
+				b, c, d := f()
+				print(b, c, d)
+			`),
+			out: d(`
+				[1, a, true]
+				1 a true
+			`),
+		},
 		"if1": {
 			content: d(`
 				if 0 {
