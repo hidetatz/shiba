@@ -1,9 +1,9 @@
 package main
 
+import "container/list"
+
 type iterator interface {
-	_len() int
-	index(idx int) *obj
-	slice(start, end int) []*obj
+	size() int
 	hasnext() bool
 	next() (*obj, int)
 }
@@ -13,25 +13,12 @@ type strIterator struct {
 	i     int
 }
 
-func (i *strIterator) _len() int {
+func (i *strIterator) size() int {
 	return len(i.runes)
 }
 
-func (i *strIterator) index(idx int) *obj {
-	return &obj{typ: tStr, sval: string(i.runes[idx])}
-}
-
-func (i *strIterator) slice(start, end int) []*obj {
-	rs := i.runes[start:end]
-	var ret []*obj
-	for _, r := range rs {
-		ret = append(ret, &obj{typ: tStr, sval: string(r)})
-	}
-	return ret
-}
-
 func (i *strIterator) hasnext() bool {
-	return i.i < i._len()
+	return i.i < len(i.runes)
 }
 
 func (i *strIterator) next() (*obj, int) {
@@ -46,20 +33,12 @@ type listIterator struct {
 	i    int
 }
 
-func (i *listIterator) _len() int {
+func (i *listIterator) size() int {
 	return len(i.vals)
 }
 
-func (i *listIterator) index(idx int) *obj {
-	return i.vals[idx]
-}
-
-func (i *listIterator) slice(start, end int) []*obj {
-	return i.vals[start:end]
-}
-
 func (i *listIterator) hasnext() bool {
-	return i.i < i._len()
+	return i.i < len(i.vals)
 }
 
 func (i *listIterator) next() (*obj, int) {
@@ -67,4 +46,26 @@ func (i *listIterator) next() (*obj, int) {
 	o := i.vals[idx]
 	i.i++
 	return o, idx
+}
+
+type dictIterator struct {
+	d *dict
+	i int
+	e *list.Element
+}
+
+func (i *dictIterator) size() int {
+	return i.d.keys.Len()
+}
+
+func (i *dictIterator) hasnext() bool {
+	return i.e != nil
+}
+
+func (i *dictIterator) next() (*obj, int) {
+	ret := i.e
+	retidx := i.i
+	i.e = i.e.Next()
+	i.i++
+	return i.d.kv[ret.Value.(objkey)], retidx
 }

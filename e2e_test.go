@@ -539,6 +539,30 @@ func TestArithmetic(t *testing.T) {
 				[a]
 			`),
 		},
+		"dict1": {
+			content: d(`
+				b = 3
+				a = {1: "1", "2": true, b: {4: 5, 6: 7}}
+				print(a)
+
+				a[1] = 99
+				print(a)
+				print(a["2"])
+
+				a[b][6] = 100
+				print(a)
+
+				c = a[b][6]
+				print(c)
+			`),
+			out: d(`
+				{1: 1, 2: true, 3: {4: 5, 6: 7}}
+				{1: 99, 2: true, 3: {4: 5, 6: 7}}
+				true
+				{1: 99, 2: true, 3: {4: 5, 6: 100}}
+				100
+			`),
+		},
 	}
 
 	td := t.TempDir()

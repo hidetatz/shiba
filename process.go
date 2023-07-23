@@ -55,6 +55,9 @@ func process(mod string, nd node) (procResult, shibaErr) {
 	case *ndList:
 		return procList(mod, n)
 
+	case *ndDict:
+		return procDict(mod, n)
+
 	case *ndIdent:
 		return procIdent(mod, n)
 
@@ -95,7 +98,7 @@ func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 }
 
 // plain assign assigns multiple right values to multiple left operand.
-func procPlainAssign(mod string, n *ndAssign)(procResult, shibaErr) {
+func procPlainAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != len(n.right) {
 		return nil, &errSimple{msg: "assignment size mismatch", errLine: toel(n)}
 	}
@@ -124,7 +127,11 @@ func assignTo(mod string, dst node, o *obj) shibaErr {
 
 	// if left is undefined, create a new var
 	if _, ok := err.(*errUndefinedIdent); ok {
-		env.setobj(mod, dst.(*ndIdent).ident, o)
+		ident, ok := dst.(*ndIdent)
+		if !ok {
+			return err
+		}
+		env.setobj(mod, ident.ident, o)
 		return nil
 	}
 
@@ -145,24 +152,23 @@ func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 		return nil, err
 	}
 
-	if !r.isiterable() {
+	if !r.cansequence() {
 		return nil, &errSimple{msg: fmt.Sprintf("cannot unpack %s", r), errLine: toel(n)}
 	}
 
-	iter := r.iterator()
-	if iter._len() != len(n.left) {
+	seq := r.sequence()
+	if seq.size() != len(n.left) {
 		return nil, &errSimple{msg: fmt.Sprintf("unpack size mismatch: %s := %s", n.left, r), errLine: toel(n)}
 	}
 
 	for i := range n.left {
-		if err := assignTo(mod, n.left[i], iter.index(i)); err != nil {
+		if err := assignTo(mod, n.left[i], seq.index(i)); err != nil {
 			return nil, err
 		}
 	}
 
 	return nil, nil
 }
-
 
 func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != 1 {
@@ -263,7 +269,6 @@ func procMultipleAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 
 		return nil, nil
 	}
-
 
 	for i := range n.left {
 		r, err := procAsObj(mod, n.right[i])
@@ -413,6 +418,15 @@ func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
 }
 
 func procIndex(mod string, n *ndIndex) (procResult, shibaErr) {
+	tgt, err := procAsObj(mod, n.target)
+	if err != nil {
+		return nil, err
+	}
+
+	if tgt.typ == tDict {
+		return procDictIndex(mod, tgt, n)
+	}
+
 	idx, err := procAsObj(mod, n.idx)
 	if err != nil {
 		return nil, err
@@ -422,23 +436,29 @@ func procIndex(mod string, n *ndIndex) (procResult, shibaErr) {
 		return nil, &errTypeMismatch{expected: tI64.String(), actual: idx.typ.String(), errLine: toel(n)}
 	}
 
-	tgt, err := procAsObj(mod, n.target)
+	i := int(idx.ival)
+
+	if !tgt.cansequence() {
+		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", tgt), errLine: toel(n)}
+	}
+
+	seq := tgt.sequence()
+	if seq.size() <= i {
+		return nil, &errInvalidIndex{idx: i, length: seq.size(), errLine: toel(n)}
+	}
+
+	return &prObj{o: seq.index(i)}, nil
+}
+
+func procDictIndex(mod string, d *obj, n *ndIndex) (procResult, shibaErr) {
+	key, err := procAsObj(mod, n.idx)
 	if err != nil {
 		return nil, err
 	}
 
-	i := int(idx.ival)
+	o, _ := d.dict.get(key.toObjKey())
 
-	if !tgt.isiterable() {
-		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", tgt), errLine: toel(n)}
-	}
-
-	iter := tgt.iterator()
-	if iter._len() <= i {
-		return nil, &errInvalidIndex{idx: i, length: iter._len(), errLine: toel(n)}
-	}
-
-	return &prObj{o: iter.index(i)}, nil
+	return &prObj{o: o}, nil
 }
 
 func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
@@ -465,21 +485,21 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 		return nil, err
 	}
 
-	if !target.isiterable() {
+	if !target.cansequence() {
 		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", target), errLine: toel(n)}
 	}
 
-	iter := target.iterator()
+	seq := target.sequence()
 
 	si := int(start.ival)
 	ei := int(end.ival)
-	l := iter._len()
+	l := seq.size()
 
 	if ei < si || si < 0 || l < ei {
 		return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices [%d:%d]", si, ei), errLine: toel(n)}
 	}
 
-	return &prObj{o: &obj{typ: tList, list: iter.slice(si, ei)}}, nil
+	return &prObj{o: &obj{typ: tList, list: seq.slice(si, ei)}}, nil
 }
 
 func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
@@ -615,6 +635,25 @@ func procList(mod string, n *ndList) (procResult, shibaErr) {
 	}
 
 	return &prObj{o: l}, nil
+}
+
+func procDict(mod string, n *ndDict) (procResult, shibaErr) {
+	d := &obj{typ: tDict, dict: newdict()}
+	for i := range n.keys {
+		key, err := procAsObj(mod, n.keys[i])
+		if err != nil {
+			return nil, err
+		}
+
+		val, err := procAsObj(mod, n.vals[i])
+		if err != nil {
+			return nil, err
+		}
+
+		d.dict.set(key.toObjKey(), val)
+	}
+
+	return &prObj{o: d}, nil
 }
 
 func procIdent(mod string, n *ndIdent) (procResult, shibaErr) {

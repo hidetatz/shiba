@@ -201,7 +201,7 @@ func (p *parser) stmt() node {
 		return el[0]
 	}
 
-	return &ndList{vals: el,tokenHolder: p.tokenHolder()}
+	return &ndList{vals: el, tokenHolder: p.tokenHolder()}
 }
 
 // block = "{" stmt* "}"
@@ -712,10 +712,14 @@ func (p *parser) postfix() node {
 	return n
 }
 
-// primary = list | "(" expr ")" | str | num | "true" | "false" | ident
+// primary = list | dict | "(" expr ")" | str | num | "true" | "false" | ident
 func (p *parser) primary() node {
 	if p.iscur(tkLBracket) {
 		return p.list()
+	}
+
+	if p.iscur(tkLBrace) {
+		return p.dict()
 	}
 
 	if p.iscur(tkLParen) {
@@ -782,6 +786,32 @@ func (p *parser) list() node {
 		n.vals = p.exprlist()
 	}
 	p.must(tkRBracket)
+	return n
+}
+
+// dict = "{}" | "{" expr ":" expr ("," expr ":" expr)* "}"
+func (p *parser) dict() node {
+	n := &ndDict{tokenHolder: p.tokenHolder()}
+	p.must(tkLBrace)
+	if p.iscur(tkRBrace) {
+		return n
+	}
+
+	p.skipnewline()
+	for {
+		n.keys = append(n.keys, p.expr())
+		p.must(tkColon)
+		n.vals = append(n.vals, p.expr())
+
+		if p.iscur(tkComma) {
+			p.proceed()
+			continue
+		}
+
+		break
+	}
+
+	p.must(tkRBrace)
 	return n
 }
 

@@ -34,7 +34,7 @@ var bulitinFns = map[string]*obj{
 				return NIL, fmt.Errorf("len() of %s is undefined", target)
 			}
 
-			return &obj{typ: tI64, ival: int64(target.iterator()._len())}, nil
+			return &obj{typ: tI64, ival: int64(target.iterator().size())}, nil
 		},
 	},
 }

@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+type objkey string
+
+func (o *obj) toObjKey() objkey {
+	return objkey(fmt.Sprintf("%s_%s", o.typ, o))
+}
+
 var NIL = &obj{typ: tNil}
 var TRUE = &obj{typ: tBool, bval: true}
 var FALSE = &obj{typ: tBool, bval: false}
@@ -18,6 +24,7 @@ const (
 	tI64
 	tStr
 	tList
+	tDict
 	tBuiltinFunc
 	tFunc
 )
@@ -34,6 +41,8 @@ func (o objtyp) String() string {
 		return "str"
 	case tList:
 		return "list"
+	case tDict:
+		return "dict"
 	case tFunc:
 		return "func"
 	case tBuiltinFunc:
@@ -50,6 +59,7 @@ type obj struct {
 	ival int64
 	sval string
 	list []*obj
+	dict *dict
 
 	// functions
 	name string
@@ -73,6 +83,8 @@ func (o *obj) update(x *obj) {
 		o.sval = x.sval
 	case tList:
 		o.list = x.list
+	case tDict:
+		o.dict = x.dict
 	case tFunc:
 		o.params = x.params
 		o.body = x.body
@@ -93,6 +105,8 @@ func (o *obj) isTruthy() bool {
 		return o.sval != ""
 	case tList:
 		return len(o.list) != 0
+	case tDict:
+		return o.dict.size() != 0
 	default:
 		return true
 	}
@@ -125,6 +139,9 @@ func (o *obj) equals(x *obj) bool {
 
 		return true
 
+	case tDict:
+		return o.dict == x.dict
+
 	default:
 		return o.name == x.name
 	}
@@ -152,21 +169,39 @@ func (o *obj) String() string {
 		sb.WriteString("]")
 
 		return sb.String()
+	case tDict:
+		return o.dict.String()
 	default:
 		return o.name
 	}
 }
 
 func (o *obj) isiterable() bool {
-	return o.typ == tStr || o.typ == tList
+	return o.typ == tStr || o.typ == tList || o.typ == tDict
 }
 
 func (o *obj) iterator() iterator {
-	if o.typ == tStr {
+	switch o.typ {
+	case tStr:
 		return &strIterator{runes: []rune(o.sval), i: 0}
+	case tList:
+		return &listIterator{vals: o.list, i: 0}
+	default:
+		return &dictIterator{d: o.dict, i: 0, e: o.dict.keys.Front()}
 	}
+}
 
-	return &listIterator{vals: o.list, i: 0}
+func (o *obj) cansequence() bool {
+	return o.typ == tStr || o.typ == tList
+}
+
+func (o *obj) sequence() sequence {
+	switch o.typ {
+	case tStr:
+		return &strSequence{runes: []rune(o.sval)}
+	default:
+		return &listSequence{vals: o.list}
+	}
 }
 
 func computeBinaryOp(l, r *obj, op binaryOp) (*obj, error) {

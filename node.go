@@ -363,6 +363,28 @@ func (n *ndList) String() string {
 	return sb.String()
 }
 
+type ndDict struct {
+	*tokenHolder
+	keys []node
+	vals []node
+}
+
+func (n *ndDict) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("{")
+	for i := range n.keys {
+		sb.WriteString(n.keys[i].String())
+		sb.WriteString(":")
+		sb.WriteString(n.vals[i].String())
+		if i < len(n.keys)-1 {
+			sb.WriteString(", ")
+		}
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
 type ndContinue struct {
 	*tokenHolder
 }
