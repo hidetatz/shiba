@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"os"
 )
 
 func toel(nd node) *errLine {
@@ -45,6 +47,9 @@ func process(mod string, nd node) (procResult, shibaErr) {
 
 	case *ndFuncall:
 		return procFuncall(mod, n)
+
+	case *ndImport:
+		return procImport(mod, n)
 
 	case *ndBinaryOp:
 		return procBinaryOp(mod, n)
@@ -568,6 +573,16 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 		msg:     fmt.Sprintf("cannot call %s", n.fn),
 		errLine: toel(n),
 	}
+}
+
+func procImport(mod string, n *ndImport) (procResult, shibaErr) {
+	if _, err := os.Stat(n.target); errors.Is(err, os.ErrNotExist) {
+		return nil, &errSimple{msg: fmt.Sprintf("module %s does not exist", n.target), errLine: toel(n)}
+	}
+
+	runmod(n.target, false)
+
+	return nil, nil
 }
 
 func procBinaryOp(mod string, n *ndBinaryOp) (procResult, shibaErr) {

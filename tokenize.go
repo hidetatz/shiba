@@ -63,6 +63,7 @@ const (
 	tkContinue // continue
 	tkBreak    // break
 	tkReturn   // return
+	tkImport   // import
 
 	tkIdent
 	tkStr
@@ -87,6 +88,7 @@ var keywords = []*strToTktype{
 	{"continue", tkContinue},
 	{"break", tkBreak},
 	{"return", tkReturn},
+	{"import", tkImport},
 }
 
 var punctuators = []*strToTktype{
@@ -301,7 +303,7 @@ func (t *tokenizer) readpunct() (*token, bool) {
 			t.next()
 		}
 
-		return t.newtoken(punct.t, line, ""), true
+		return t.newtoken(punct.t, line, punct.s), true
 	}
 
 	return nil, false

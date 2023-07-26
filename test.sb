@@ -1,25 +1,31 @@
-def get_user(id) {
-	u = users[id]
-	if u == nil {
-		raise Error("unknown id")
-	}
+# import calc/add
+# 
+# def get_user(id) {
+# 	u = users[id]
+# 	if u == nil {
+# 		raise Error("unknown id")
+# 	}
+# 
+# 	return (u.name, u.age)
+# }
+# 
+# 
+# 
+# u = get_user(id)
+# name, age <= u
+# 
+# 
+# 
+# try {
+# 	name, age = unpack get_user(id)
+# } except e {
+# 	print(e.message)
+# }
+# 
+# addr = "192.168.1.1:8000"
+# 
+# ip, port := split(addr, ":")
 
-	return (u.name, u.age)
-}
+import calc.py
 
-
-
-u = get_user(id)
-name, age <= u
-
-
-
-try {
-	name, age = unpack get_user(id)
-} except e {
-	print(e.message)
-}
-
-addr = "192.168.1.1:8000"
-
-ip, port := split(addr, ":")
+print("test")

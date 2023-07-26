@@ -164,6 +164,16 @@ func (p *parser) stmt() node {
 		return n
 	}
 
+	if p.iscur(tkImport) {
+		n := &ndImport{tokenHolder: p.tokenHolder()}
+		p.proceed()
+		for !p.iscur(tkNewLine) {
+			n.target += p.cur.lit
+			p.proceed()
+		}
+		return n
+	}
+
 	el := p.exprlist()
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq, tkColonEq}

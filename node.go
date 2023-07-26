@@ -410,6 +410,15 @@ func (n *ndReturn) String() string {
 	return "return" + n.val.String()
 }
 
+type ndImport struct {
+	*tokenHolder
+	target string
+}
+
+func (n *ndImport) String() string {
+	return "import " + n.target
+}
+
 func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
 	return &ndBinaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
 }
