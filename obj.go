@@ -27,10 +27,13 @@ const (
 	tDict
 	tBuiltinFunc
 	tFunc
+	tMod
 )
 
 func (o objtyp) String() string {
 	switch o {
+	case tNil:
+		return "nil"
 	case tBool:
 		return "bool"
 	case tF64:
@@ -43,10 +46,12 @@ func (o objtyp) String() string {
 		return "list"
 	case tDict:
 		return "dict"
-	case tFunc:
-		return "func"
 	case tBuiltinFunc:
 		return "builtinfunc"
+	case tFunc:
+		return "func"
+	case tMod:
+		return "module"
 	}
 	return "?"
 }
@@ -60,6 +65,7 @@ type obj struct {
 	sval string
 	list []*obj
 	dict *dict
+	mod string
 
 	// functions
 	name string
@@ -88,6 +94,8 @@ func (o *obj) update(x *obj) {
 	case tFunc:
 		o.params = x.params
 		o.body = x.body
+	case tMod:
+		o.mod = x.mod
 
 		// tBuiltinFunc cannot be updated
 	}
@@ -141,6 +149,8 @@ func (o *obj) equals(x *obj) bool {
 
 	case tDict:
 		return o.dict == x.dict
+	case tMod:
+		return o.mod == x.mod
 
 	default:
 		return o.name == x.name
@@ -171,6 +181,8 @@ func (o *obj) String() string {
 		return sb.String()
 	case tDict:
 		return o.dict.String()
+	case tMod:
+		return o.mod
 	default:
 		return o.name
 	}
