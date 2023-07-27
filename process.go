@@ -415,7 +415,7 @@ func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
 
 	f := &obj{
 		typ:    tFunc,
-		fmod:	mod,
+		fmod:   mod,
 		name:   n.name,
 		params: params,
 		body:   n.blocks,
