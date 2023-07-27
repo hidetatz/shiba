@@ -65,9 +65,10 @@ type obj struct {
 	sval string
 	list []*obj
 	dict *dict
-	mod string
+	mod  string
 
 	// functions
+	fmod string
 	name string
 	// builtin
 	bfnbody func(objs ...*obj) (*obj, error)
@@ -92,6 +93,7 @@ func (o *obj) update(x *obj) {
 	case tDict:
 		o.dict = x.dict
 	case tFunc:
+		o.fmod = x.fmod
 		o.params = x.params
 		o.body = x.body
 	case tMod:
@@ -151,9 +153,10 @@ func (o *obj) equals(x *obj) bool {
 		return o.dict == x.dict
 	case tMod:
 		return o.mod == x.mod
-
-	default:
+	case tBuiltinFunc:
 		return o.name == x.name
+	default:
+		return o.fmod == x.fmod && o.name == x.name
 	}
 }
 
@@ -183,8 +186,10 @@ func (o *obj) String() string {
 		return o.dict.String()
 	case tMod:
 		return o.mod
-	default:
+	case tBuiltinFunc:
 		return o.name
+	default:
+		return o.mod + "." + o.name
 	}
 }
 

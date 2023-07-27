@@ -1,9 +1,7 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"os"
 )
 
 func toel(nd node) *errLine {
@@ -44,6 +42,9 @@ func process(mod string, nd node) (procResult, shibaErr) {
 
 	case *ndSlice:
 		return procSlice(mod, n)
+
+	case *ndSelector:
+		return procSelector(mod, n)
 
 	case *ndFuncall:
 		return procFuncall(mod, n)
@@ -414,6 +415,7 @@ func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
 
 	f := &obj{
 		typ:    tFunc,
+		fmod:	mod,
 		name:   n.name,
 		params: params,
 		body:   n.blocks,
@@ -507,6 +509,30 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	return &prObj{o: &obj{typ: tList, list: seq.slice(si, ei)}}, nil
 }
 
+func procSelector(mod string, n *ndSelector) (procResult, shibaErr) {
+	selector, err := procAsObj(mod, n.selector)
+	if err != nil {
+		return nil, err
+	}
+
+	// currently selector typ must be mod.
+	// In the future this should support struct/field.
+	if selector.typ != tMod {
+		return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), errLine: toel(n)}
+	}
+
+	target, err := procAsObj(selector.mod, n.target)
+	if err != nil {
+		return nil, err
+	}
+
+	if target != nil {
+		return &prObj{o: target}, nil
+	}
+
+	return nil, nil
+}
+
 func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 	args := []*obj{}
 	for _, a := range n.args {
@@ -540,19 +566,19 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 			}
 		}
 
-		env.createfuncscope(mod)
+		env.createfuncscope(fn.fmod)
 		for i := range fn.params {
-			env.setobj(mod, fn.params[i], args[i])
+			env.setobj(fn.fmod, fn.params[i], args[i])
 		}
 
 		for _, block := range fn.body {
-			pr, err := process(mod, block)
+			pr, err := process(fn.fmod, block)
 			if err != nil {
 				return nil, err
 			}
 
 			if r, ok := pr.(*prReturn); ok {
-				env.delblockscope(mod)
+				env.delblockscope(fn.fmod)
 				return &prObj{o: r.ret}, nil
 			}
 
@@ -565,7 +591,7 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 			}
 		}
 
-		env.delfuncscope(mod)
+		env.delfuncscope(fn.fmod)
 		return nil, nil
 	}
 
@@ -576,14 +602,11 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 }
 
 func procImport(mod string, n *ndImport) (procResult, shibaErr) {
-	if _, err := os.Stat(n.target); errors.Is(err, os.ErrNotExist) {
-		return nil, &errSimple{msg: fmt.Sprintf("module %s does not exist", n.target), errLine: toel(n)}
-	}
-
-	err := runmod(n.target)
-	if err != nil {
+	if err := runmod(n.target); err != nil {
 		return nil, err
 	}
+
+	env.setobj(mod, n.target, &obj{typ: tMod, mod: n.target})
 
 	return nil, nil
 }
