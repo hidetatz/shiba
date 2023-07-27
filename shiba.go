@@ -1,24 +1,36 @@
 package main
 
-func runmod(mod string, repl bool) int {
-	env.modules[mod] = newmodule(mod)
+import "fmt"
 
-	p := newparser(mod)
+func interpret(filename string) int {
+	modname := filetomod(filename)
+	err := runmod(modname)
+	if err != nil {
+		werr("%s:%d %s", filename, err.line(), err)
+		// todo: code should be extracted from err
+		return 1
+	}
+	return 0
+}
+
+func runmod(modname string) shibaErr {
+	mod := newmodule(modname)
+	env.modules[modname] = mod
+
+	p := newparser(mod.filename)
 	for {
 		stmt, err := p.parsestmt()
 		if err != nil {
-			werr("%s:%d %s", mod, err.line(), err)
-			return 1
+			return err
 		}
 
 		if _, ok := stmt.(*ndEof); ok {
 			break
 		}
 
-		pr, err := process(mod, stmt)
+		pr, err := process(modname, stmt)
 		if err != nil {
-			werr("%s:%d %s", mod, err.line(), err.Error())
-			return 2
+			return err
 		}
 
 		if pr == nil {
@@ -33,9 +45,9 @@ func runmod(mod string, repl bool) int {
 			break
 
 		default:
-			werr("%s invalid %s in outside function", mod, result.typ())
+			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), errLine: &errLine{l: stmt.tok().line}}
 		}
 	}
 
-	return 0
+	return nil
 }

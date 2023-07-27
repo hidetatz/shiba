@@ -294,7 +294,7 @@ func TestArithmetic(t *testing.T) {
 				continue
 			`),
 			out: d(`
-				$$filename invalid continue in outside function
+				$$filename:1 invalid continue in outside function
 			`),
 		},
 		"return1": {

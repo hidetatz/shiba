@@ -1,6 +1,9 @@
 package main
 
-import "container/list"
+import (
+	"container/list"
+	"strings"
+)
 
 /*
  * In shiba, there are 3 kinds of scope; global scope, function scope, and block scope.
@@ -50,13 +53,15 @@ import "container/list"
  */
 type module struct {
 	name       string
+	filename   string
 	globscope  *scope
 	funcscopes *list.List
 }
 
-func newmodule(mod string) *module {
+func newmodule(modname string) *module {
 	return &module{
-		name:       mod,
+		name:       modname,
+		filename:   modtofile(modname),
 		globscope:  newscope(),
 		funcscopes: list.New(),
 	}
@@ -108,4 +113,12 @@ func (m *module) getobj(name string) (*obj, bool) {
 	}
 
 	return m.globscope.getobj(name)
+}
+
+func modtofile(modname string) string {
+	return modname + ".sb"
+}
+
+func filetomod(filename string) string {
+	return strings.TrimSuffix(filename, ".sb")
 }

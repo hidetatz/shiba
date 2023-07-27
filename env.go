@@ -10,6 +10,10 @@ type environment struct {
 	modules map[string]*module
 }
 
+func (e *environment) register(mod string, m *module) {
+	e.modules[mod] = m
+}
+
 func (e *environment) createfuncscope(mod string) error {
 	m, ok := e.modules[mod]
 	if !ok {

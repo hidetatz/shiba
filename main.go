@@ -28,6 +28,6 @@ func run(args []string) int {
 
 	env = &environment{modules: map[string]*module{}}
 
-	mod := args[1]
-	return runmod(mod, false)
+	filename := args[1]
+	return interpret(filename)
 }

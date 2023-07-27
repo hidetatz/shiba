@@ -580,7 +580,10 @@ func procImport(mod string, n *ndImport) (procResult, shibaErr) {
 		return nil, &errSimple{msg: fmt.Sprintf("module %s does not exist", n.target), errLine: toel(n)}
 	}
 
-	runmod(n.target, false)
+	err := runmod(n.target)
+	if err != nil {
+		return nil, err
+	}
 
 	return nil, nil
 }
