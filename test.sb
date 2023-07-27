@@ -1,3 +1,5 @@
-import calc
+import a 
 
-print(calc.random(1, 2))
+c = 1
+
+print(a.c)
