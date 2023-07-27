@@ -123,19 +123,3 @@ type errInternal struct {
 func (e *errInternal) Error() string {
 	return fmt.Sprintf("shiba internal error: %s", e.msg)
 }
-
-type errContinue struct {
-	*errLine
-}
-
-func (e *errContinue) Error() string {
-	return fmt.Sprintf("continue in non-loop")
-}
-
-type errBreak struct {
-	*errLine
-}
-
-func (e *errBreak) Error() string {
-	return fmt.Sprintf("break in non-loop")
-}
