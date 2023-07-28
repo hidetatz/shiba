@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -174,35 +173,21 @@ func (t *token) String() string {
 }
 
 type tokenizer struct {
-	modname string
+	mod *module
 	// line number in the mod. starts from 1.
 	line int
 	// column number in the line. starts from 1.
 	col int
 	// cursor position from head. starts from 0
-	pos   int
-	chars []rune
+	pos int
 }
 
-func newtokenizer(filename string) (*tokenizer, error) {
-	bs, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	s := string(bs)
-
-	return &tokenizer{
-		modname: filename,
-		pos:     0,
-		col:     1,
-		line:    1,
-		chars:   []rune(s),
-	}, nil
+func newtokenizer(mod *module) *tokenizer {
+	return &tokenizer{mod: mod, pos: 0, col: 1, line: 1}
 }
 
 func (t *tokenizer) newloc() *loc {
-	return newloc(t.modname, t.line, t.col, t.pos)
+	return newloc(t.mod.filename, t.line, t.col, t.pos)
 }
 
 func (t *tokenizer) newtoken(tt tktype, lit string, loc *loc) *token {
@@ -315,16 +300,16 @@ func (t *tokenizer) readpunct() (*token, bool) {
 }
 
 func (t *tokenizer) hasnext() bool {
-	return t.pos < len(t.chars)
+	return t.pos < len(t.mod.content)
 }
 
 func (t *tokenizer) cur() rune {
-	return t.chars[t.pos]
+	return t.mod.content[t.pos]
 }
 
 func (t *tokenizer) startswith(s string) bool {
 	for i, r := range []rune(s) {
-		if r != t.chars[t.pos+i] {
+		if r != t.mod.content[t.pos+i] {
 			return false
 		}
 	}
@@ -347,7 +332,7 @@ func (t *tokenizer) next() {
 }
 
 func (t *tokenizer) peek(n int) rune {
-	return t.chars[t.pos+n]
+	return t.mod.content[t.pos+n]
 }
 
 func (t *tokenizer) nexttoken() (*token, error) {

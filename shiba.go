@@ -7,7 +7,11 @@ func interpret(filename string) int {
 	err := runmod(modname)
 	if err != nil {
 		loc := err.loc()
-		werr("%s:%d:%d %s", loc.mod, loc.line, loc.col, err)
+		if loc != nil {
+			werr("%s:%d:%d %s", loc.mod, loc.line, loc.col, err)
+		} else {
+			werr("%s", err)
+		}
 		// todo: code should be extracted from err
 		return 1
 	}
@@ -15,10 +19,18 @@ func interpret(filename string) int {
 }
 
 func runmod(modname string) shibaErr {
-	mod := newmodule(modname)
-	env.modules[modname] = mod
+	mod, err := newmodule(modname)
+	if err != nil {
+		return &errSimple{msg: fmt.Sprintf("cannot load module %s: %s", modname, err)}
+	}
 
-	p := newparser(mod.filename)
+	env.register(modname, mod)
+
+	p, err := newparser(mod)
+	if err != nil {
+		return &errSimple{msg: fmt.Sprintf("cannot parse module %s: %s", modname, err)}
+	}
+
 	for {
 		stmt, err := p.parsestmt()
 		if err != nil {

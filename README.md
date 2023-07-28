@@ -1,7 +1,6 @@
 shiba is a programming language. Aims to be plain like Python, modern like Go/Rust.
 
 TODO (@hidetatz):
-- refactor module loading
 - Implement struct and method 
 - Implement exception
 - Implement systemcall

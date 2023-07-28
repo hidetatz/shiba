@@ -21,34 +21,30 @@ type parser struct {
 // so this parser always holds them.
 // When the tokenizer reaches to the bottom of the module, then just EOF token is saved.
 // I don't think this is elegant, but this is probably ok.
-func newparser(modname string) *parser {
-	p := &parser{}
-
-	tokenizer, err := newtokenizer(modname)
-	if err != nil {
-		panic(err)
+func newparser(mod *module) (*parser, error) {
+	p := &parser{
+		tokenizer: newtokenizer(mod),
 	}
-	p.tokenizer = tokenizer
 
 	c, err := p.tokenizer.nexttoken()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	p.cur = c
 
 	c2, err := p.tokenizer.nexttoken()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	p.next = c2
 
 	c3, err := p.tokenizer.nexttoken()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	p.nextnext = c3
 
-	return p
+	return p, nil
 }
 
 func (p *parser) iscur(t tktype) bool {

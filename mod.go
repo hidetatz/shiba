@@ -54,17 +54,24 @@ import (
 type module struct {
 	name       string
 	filename   string
+	content    []rune
 	globscope  *scope
 	funcscopes *list.List
 }
 
-func newmodule(modname string) *module {
+func newmodule(modname string) (*module, error) {
+	content, err := loadmod(modname)
+	if err != nil {
+		return nil, err
+	}
+
 	return &module{
 		name:       modname,
 		filename:   modtofile(modname),
+		content:    content,
 		globscope:  newscope(),
 		funcscopes: list.New(),
-	}
+	}, nil
 }
 
 func (m *module) createfuncscope() {
