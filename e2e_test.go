@@ -13,7 +13,7 @@ import (
 
 var d = heredoc.Doc
 
-func TestArithmetic(t *testing.T) {
+func TestOutput(t *testing.T) {
 	tests := map[string]struct {
 		content string
 		out     string
