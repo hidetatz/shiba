@@ -177,7 +177,7 @@ type tokenizer struct {
 	modname string
 	// line number in the mod. starts from 1.
 	line int
-	// column number in the line.
+	// column number in the line. starts from 1.
 	col int
 	// cursor position from head. starts from 0
 	pos   int
@@ -195,6 +195,7 @@ func newtokenizer(filename string) (*tokenizer, error) {
 	return &tokenizer{
 		modname: filename,
 		pos:     0,
+		col:     1,
 		line:    1,
 		chars:   []rune(s),
 	}, nil
@@ -340,7 +341,7 @@ func (t *tokenizer) next() {
 	}
 
 	if t.cur() == '\n' {
-		t.col = -1 // col gets 0 on upcoming next()
+		t.col = 0 // col gets 1 on upcoming next() call
 		t.line++
 	}
 }

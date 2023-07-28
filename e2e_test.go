@@ -294,7 +294,7 @@ func TestArithmetic(t *testing.T) {
 				continue
 			`),
 			out: d(`
-				$$filename:1 invalid continue in outside function
+				$$filename:1:1 invalid continue in outside function
 			`),
 		},
 		"return1": {
@@ -323,7 +323,7 @@ func TestArithmetic(t *testing.T) {
 			`),
 			out: d(`
 				1
-				$$filename:5 identifier a is undefined
+				$$filename:5:7 identifier a is undefined
 			`),
 		},
 		"scope2": {
@@ -342,7 +342,7 @@ func TestArithmetic(t *testing.T) {
 				2
 				2
 				3
-				$$filename:5 identifier i is undefined
+				$$filename:5:7 identifier i is undefined
 			`),
 		},
 		"scope3": {
@@ -382,7 +382,7 @@ func TestArithmetic(t *testing.T) {
 				}
 			`),
 			out: d(`
-				$$filename:2 identifier a is undefined
+				$$filename:2:8 identifier a is undefined
 			`),
 		},
 		"scope5": {

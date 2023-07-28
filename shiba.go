@@ -6,7 +6,8 @@ func interpret(filename string) int {
 	modname := filetomod(filename)
 	err := runmod(modname)
 	if err != nil {
-		werr("%s:%d %s", filename, err.loc().line, err)
+		loc := err.loc()
+		werr("%s:%d:%d %s", loc.mod, loc.line, loc.col, err)
 		// todo: code should be extracted from err
 		return 1
 	}
