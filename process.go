@@ -64,7 +64,7 @@ func process(mod string, nd node) (procResult, shibaErr) {
 		return procIdent(mod, n)
 
 	case *ndStr:
-		return &prObj{o: &obj{typ: tStr, sval: n.val}}, nil
+		return &prObj{o: &obj{typ: tStr, bytes: []byte(n.val)}}, nil
 
 	case *ndI64:
 		return &prObj{o: &obj{typ: tI64, ival: n.val}}, nil

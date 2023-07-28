@@ -15,14 +15,14 @@ func (s *strSequence) size() int {
 }
 
 func (s *strSequence) index(idx int) *obj {
-	return &obj{typ: tStr, sval: string(s.runes[idx])}
+	return &obj{typ: tStr, bytes: []byte(string(s.runes[idx]))}
 }
 
 func (s *strSequence) slice(start, end int) []*obj {
 	rs := s.runes[start:end]
 	var ret []*obj
 	for _, r := range rs {
-		ret = append(ret, &obj{typ: tStr, sval: string(r)})
+		ret = append(ret, &obj{typ: tStr, bytes: []byte(string(r))})
 	}
 	return ret
 }

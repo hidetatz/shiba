@@ -23,7 +23,7 @@ func (i *strIterator) hasnext() bool {
 
 func (i *strIterator) next() (*obj, int) {
 	idx := i.i
-	o := &obj{typ: tStr, sval: string(i.runes[idx])}
+	o := &obj{typ: tStr, bytes: []byte(string(i.runes[idx]))}
 	i.i++
 	return o, idx
 }

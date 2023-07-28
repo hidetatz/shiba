@@ -53,10 +53,8 @@ var bulitinFns = map[string]*obj{
 				case tI64:
 					return uintptr(o.ival), nil
 				case tStr:
-					// TODO: when this is used as buffer, the sval is not updated via syscall
-					// so tStr must be rewritten.
-					b := append([]byte(o.sval), 0)
-					return uintptr(unsafe.Pointer(&b[0])), nil
+					o.bytes = append(o.bytes, 0)
+					return uintptr(unsafe.Pointer(&o.bytes[0])), nil
 				default:
 					return 0, fmt.Errorf("syscall() arg must be i64 or str")
 				}

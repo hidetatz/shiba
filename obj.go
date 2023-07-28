@@ -59,13 +59,13 @@ func (o objtyp) String() string {
 type obj struct {
 	typ objtyp
 
-	bval bool
-	fval float64
-	ival int64
-	sval string
-	list []*obj
-	dict *dict
-	mod  string
+	bval  bool
+	fval  float64
+	ival  int64
+	bytes []byte
+	list  []*obj
+	dict  *dict
+	mod   string
 
 	// functions
 	fmod string
@@ -87,7 +87,7 @@ func (o *obj) update(x *obj) {
 	case tI64:
 		o.ival = x.ival
 	case tStr:
-		o.sval = x.sval
+		o.bytes = x.bytes
 	case tList:
 		o.list = x.list
 	case tDict:
@@ -112,7 +112,7 @@ func (o *obj) isTruthy() bool {
 	case tI64:
 		return o.ival != 0
 	case tStr:
-		return o.sval != ""
+		return len(o.bytes) != 0
 	case tList:
 		return len(o.list) != 0
 	case tDict:
@@ -135,7 +135,17 @@ func (o *obj) equals(x *obj) bool {
 	case tI64:
 		return o.ival == x.ival
 	case tStr:
-		return o.sval == x.sval
+		if len(o.bytes) != len(x.bytes) {
+			return false
+		}
+
+		for i := range o.bytes {
+			if o.bytes[i] != x.bytes[i] {
+				return false
+			}
+		}
+
+		return true
 	case tList:
 		if len(o.list) != len(x.list) {
 			return false
@@ -169,7 +179,7 @@ func (o *obj) String() string {
 	case tI64:
 		return fmt.Sprintf("%d", o.ival)
 	case tStr:
-		return o.sval
+		return string(o.bytes)
 	case tList:
 		sb := strings.Builder{}
 		sb.WriteString("[")
@@ -200,7 +210,7 @@ func (o *obj) isiterable() bool {
 func (o *obj) iterator() iterator {
 	switch o.typ {
 	case tStr:
-		return &strIterator{runes: []rune(o.sval), i: 0}
+		return &strIterator{runes: []rune(string(o.bytes)), i: 0}
 	case tList:
 		return &listIterator{vals: o.list, i: 0}
 	default:
@@ -215,7 +225,7 @@ func (o *obj) cansequence() bool {
 func (o *obj) sequence() sequence {
 	switch o.typ {
 	case tStr:
-		return &strSequence{runes: []rune(o.sval)}
+		return &strSequence{runes: []rune(string(o.bytes))}
 	default:
 		return &listSequence{vals: o.list}
 	}
@@ -235,16 +245,20 @@ func computeBinaryOp(l, r *obj, op binaryOp) (*obj, error) {
 
 	switch lt {
 	case tStr:
-		ls := l.sval
+		lb := l.bytes
 		switch op {
 		case boAdd:
 			if rt == tStr {
-				return &obj{typ: tStr, sval: ls + r.sval}, nil
+				return &obj{typ: tStr, bytes: append(lb, r.bytes...)}, nil
 			}
 
 		case boMul:
 			if rt == tI64 {
-				return &obj{typ: tStr, sval: strings.Repeat(ls, int(r.ival))}, nil
+				b := []byte{}
+				for i := 0; i < int(r.ival); i++ {
+					b = append(b, lb...)
+				}
+				return &obj{typ: tStr, bytes: b}, nil
 			}
 		}
 	case tList:
@@ -291,7 +305,11 @@ func computeBinaryOp(l, r *obj, op binaryOp) (*obj, error) {
 			}
 		case boMul:
 			if rt == tStr {
-				return &obj{typ: tStr, sval: strings.Repeat(r.sval, int(li))}, nil
+				b := []byte{}
+				for i := 0; i < int(li); i++ {
+					b = append(b, r.bytes...)
+				}
+				return &obj{typ: tStr, bytes: b}, nil
 			}
 			if rt == tList {
 				lii := int(li)
