@@ -29,7 +29,7 @@ var bulitinFns = map[string]*obj{
 		name: "len",
 		bfnbody: func(args ...*obj) (*obj, error) {
 			if len(args) != 1 {
-				return NIL, fmt.Errorf("%d args to len() is not allowed", len(args))
+				return NIL, fmt.Errorf("argument mismatch to len(): 1 arg required")
 			}
 
 			target := args[0]
