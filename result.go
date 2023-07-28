@@ -40,12 +40,10 @@ func procAsObj(mod string, n node) (*obj, shibaErr) {
 		return nil, err
 	}
 
-	if pr.typ() != "obj" {
-		return nil, &errSimple{
-			msg:     fmt.Sprintf("%s is not object", n),
-			errLine: newErrLine(n.tok().loc.line),
-		}
+	o, ok := pr.(*prObj)
+	if !ok {
+		return nil, &errSimple{msg: fmt.Sprintf("%s is not object", n), l: n.token().loc}
 	}
 
-	return pr.(*prObj).o, nil
+	return o.o, nil
 }

@@ -142,53 +142,49 @@ const (
 )
 
 type node interface {
-	tok() *token
+	token() *token
 	fmt.Stringer
 }
 
-type tokenHolder struct {
-	t *token
-}
-
-func (tg *tokenHolder) tok() *token {
-	return tg.t
-}
-
 type ndEof struct {
-	*tokenHolder
+	tok *token
 }
 
+func (n *ndEof) token() *token { return n.tok }
 func (n *ndEof) String() string {
 	return "<eof>"
 }
 
 type ndComment struct {
-	*tokenHolder
+	tok     *token
 	message string
 }
 
+func (n *ndComment) token() *token { return n.tok }
 func (n *ndComment) String() string {
 	return "# " + n.message
 }
 
 type ndAssign struct {
-	*tokenHolder
+	tok   *token
 	op    assignOp
 	left  []node
 	right []node
 }
 
+func (n *ndAssign) token() *token { return n.tok }
 func (n *ndAssign) String() string {
 	return fmt.Sprintf("%s %s %s", n.left, n.op, n.right)
 }
 
 type ndIf struct {
-	*tokenHolder
+	tok *token
 	// len(conds) must be the same as len(blocks)
 	conds  []node
 	blocks [][]node
 }
 
+func (n *ndIf) token() *token { return n.tok }
 func (n *ndIf) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("if ")
@@ -209,7 +205,7 @@ func (n *ndIf) String() string {
 }
 
 type ndLoop struct {
-	*tokenHolder
+	tok *token
 	// loop target, something iterable
 	target node
 	// counter, element var name
@@ -218,17 +214,19 @@ type ndLoop struct {
 	blocks []node
 }
 
+func (n *ndLoop) token() *token { return n.tok }
 func (n *ndLoop) String() string {
 	return fmt.Sprintf("for %s, %s in %s { ... }", n.cnt, n.elem, n.target)
 }
 
 type ndFunDef struct {
-	*tokenHolder
+	tok    *token
 	name   string
 	params []node
 	blocks []node
 }
 
+func (n *ndFunDef) token() *token { return n.tok }
 func (n *ndFunDef) String() string {
 	fnargs := []string{}
 	for _, p := range n.params {
@@ -238,117 +236,129 @@ func (n *ndFunDef) String() string {
 }
 
 type ndBinaryOp struct {
-	*tokenHolder
+	tok   *token
 	op    binaryOp
 	left  node
 	right node
 }
 
+func (n *ndBinaryOp) token() *token { return n.tok }
 func (n *ndBinaryOp) String() string {
 	return fmt.Sprintf("(%s %s %s)", n.left, n.op, n.right)
 }
 
 type ndUnaryOp struct {
-	*tokenHolder
+	tok    *token
 	op     unaryOp
 	target node
 }
 
+func (n *ndUnaryOp) token() *token { return n.tok }
 func (n *ndUnaryOp) String() string {
 	return fmt.Sprintf("%s%s", n.op, n.target)
 }
 
 type ndSelector struct {
-	*tokenHolder
+	tok      *token
 	selector node
 	target   node
 }
 
+func (n *ndSelector) token() *token { return n.tok }
 func (n *ndSelector) String() string {
 	return fmt.Sprintf("%s.%s", n.selector, n.target)
 }
 
 type ndIndex struct {
-	*tokenHolder
+	tok    *token
 	idx    node
 	target node
 }
 
+func (n *ndIndex) token() *token { return n.tok }
 func (n *ndIndex) String() string {
 	return fmt.Sprintf("%s[%s]", n.target, n.idx)
 }
 
 type ndSlice struct {
-	*tokenHolder
+	tok    *token
 	start  node
 	end    node
 	target node
 }
 
+func (n *ndSlice) token() *token { return n.tok }
 func (n *ndSlice) String() string {
 	return fmt.Sprintf("%s[%s:%s]", n.target, n.start, n.end)
 }
 
 type ndFuncall struct {
-	*tokenHolder
+	tok  *token
 	fn   node
 	args []node
 }
 
+func (n *ndFuncall) token() *token { return n.tok }
 func (n *ndFuncall) String() string {
 	return fmt.Sprintf("%s(...)", n.fn)
 }
 
 type ndIdent struct {
-	*tokenHolder
+	tok   *token
 	ident string
 }
 
+func (n *ndIdent) token() *token { return n.tok }
 func (n *ndIdent) String() string {
 	return n.ident + "(ident)"
 }
 
 type ndStr struct {
-	*tokenHolder
+	tok *token
 	val string
 }
 
+func (n *ndStr) token() *token { return n.tok }
 func (n *ndStr) String() string {
 	return "\"" + n.val + "(str)\""
 }
 
 type ndI64 struct {
-	*tokenHolder
+	tok *token
 	val int64
 }
 
+func (n *ndI64) token() *token { return n.tok }
 func (n *ndI64) String() string {
 	return fmt.Sprintf("%d(i64)", n.val)
 }
 
 type ndF64 struct {
-	*tokenHolder
+	tok *token
 	val float64
 }
 
+func (n *ndF64) token() *token { return n.tok }
 func (n *ndF64) String() string {
 	return fmt.Sprintf("%f(f64)", n.val)
 }
 
 type ndBool struct {
-	*tokenHolder
+	tok *token
 	val bool
 }
 
+func (n *ndBool) token() *token { return n.tok }
 func (n *ndBool) String() string {
 	return fmt.Sprintf("%t(bool)", n.val)
 }
 
 type ndList struct {
-	*tokenHolder
+	tok  *token
 	vals []node
 }
 
+func (n *ndList) token() *token { return n.tok }
 func (n *ndList) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("[")
@@ -364,11 +374,12 @@ func (n *ndList) String() string {
 }
 
 type ndDict struct {
-	*tokenHolder
+	tok  *token
 	keys []node
 	vals []node
 }
 
+func (n *ndDict) token() *token { return n.tok }
 func (n *ndDict) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("{")
@@ -386,43 +397,47 @@ func (n *ndDict) String() string {
 }
 
 type ndContinue struct {
-	*tokenHolder
+	tok *token
 }
 
+func (n *ndContinue) token() *token { return n.tok }
 func (n *ndContinue) String() string {
 	return "continue"
 }
 
 type ndBreak struct {
-	*tokenHolder
+	tok *token
 }
 
+func (n *ndBreak) token() *token { return n.tok }
 func (n *ndBreak) String() string {
 	return "break"
 }
 
 type ndReturn struct {
-	*tokenHolder
+	tok *token
 	val node
 }
 
+func (n *ndReturn) token() *token { return n.tok }
 func (n *ndReturn) String() string {
 	return "return" + n.val.String()
 }
 
 type ndImport struct {
-	*tokenHolder
+	tok    *token
 	target string
 }
 
+func (n *ndImport) token() *token { return n.tok }
 func (n *ndImport) String() string {
 	return "import " + n.target
 }
 
 func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
-	return &ndBinaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
+	return &ndBinaryOp{op: op, tok: tok}
 }
 
 func newunaryop(tok *token, op unaryOp) *ndUnaryOp {
-	return &ndUnaryOp{op: op, tokenHolder: &tokenHolder{t: tok}}
+	return &ndUnaryOp{op: op, tok: tok}
 }

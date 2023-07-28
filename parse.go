@@ -51,10 +51,6 @@ func newparser(modname string) *parser {
 	return p
 }
 
-func (p *parser) tokenHolder() *tokenHolder {
-	return &tokenHolder{t: p.cur}
-}
-
 func (p *parser) iscur(t tktype) bool {
 	return p.cur.typ == t
 }
@@ -110,7 +106,7 @@ func (p *parser) parsestmt() (n node, err shibaErr) {
 	// Returning error will make the parser code not easy to read.
 	defer func() {
 		if r := recover(); r != nil {
-			err = &errParse{msg: fmt.Sprintf("%v", r), errLine: &errLine{l: p.cur.loc.line}}
+			err = &errParse{msg: fmt.Sprintf("%v", r), l: p.cur.loc}
 		}
 	}()
 
@@ -126,12 +122,12 @@ func (p *parser) stmt() node {
 	p.skipnewline()
 
 	if p.iscur(tkEof) {
-		return &ndEof{tokenHolder: p.tokenHolder()}
+		return &ndEof{tok: p.cur}
 	}
 
 	if p.iscur(tkHash) {
 		// when the token is hash, lit is the comment message.
-		n := &ndComment{tokenHolder: p.tokenHolder(), message: p.cur.lit}
+		n := &ndComment{tok: p.cur, message: p.cur.lit}
 		p.proceed()
 		return n
 	}
@@ -153,19 +149,19 @@ func (p *parser) stmt() node {
 	}
 
 	if p.iscur(tkContinue) {
-		n := &ndContinue{tokenHolder: p.tokenHolder()}
+		n := &ndContinue{tok: p.cur}
 		p.proceed()
 		return n
 	}
 
 	if p.iscur(tkBreak) {
-		n := &ndBreak{tokenHolder: p.tokenHolder()}
+		n := &ndBreak{tok: p.cur}
 		p.proceed()
 		return n
 	}
 
 	if p.iscur(tkImport) {
-		n := &ndImport{tokenHolder: p.tokenHolder()}
+		n := &ndImport{tok: p.cur}
 		p.proceed()
 		for !p.iscur(tkNewLine) {
 			n.target += p.cur.lit
@@ -178,7 +174,7 @@ func (p *parser) stmt() node {
 
 	assignops := []tktype{tkEq, tkPlusEq, tkHyphenEq, tkStarEq, tkSlashEq, tkPercentEq, tkAmpEq, tkVBarEq, tkCaretEq, tkColonEq}
 	if ok, t := p.iscurin(assignops); ok {
-		n := &ndAssign{tokenHolder: p.tokenHolder(), left: el}
+		n := &ndAssign{tok: p.cur, left: el}
 		p.proceed()
 		p.skipnewline()
 		n.right = p.exprlist()
@@ -211,7 +207,7 @@ func (p *parser) stmt() node {
 		return el[0]
 	}
 
-	return &ndList{vals: el, tokenHolder: p.tokenHolder()}
+	return &ndList{vals: el, tok: p.cur}
 }
 
 // block = "{" stmt* "}"
@@ -254,7 +250,7 @@ func (p *parser) exprlist() []node {
 // if = "if" expr block ("elif" expr block)* ("else" block)?
 func (p *parser) _if() node {
 	p.skipnewline()
-	n := &ndIf{tokenHolder: p.tokenHolder()}
+	n := &ndIf{tok: p.cur}
 	p.must(tkIf)
 	n.conds = append(n.conds, p.expr())
 	n.blocks = append(n.blocks, p.block())
@@ -287,7 +283,7 @@ func (p *parser) _if() node {
 // for = "for" ident "," ident "in" expr block
 func (p *parser) _for() node {
 	p.skipnewline()
-	n := &ndLoop{tokenHolder: p.tokenHolder()}
+	n := &ndLoop{tok: p.cur}
 	p.must(tkFor)
 	n.cnt = p.ident()
 	p.must(tkComma)
@@ -301,7 +297,7 @@ func (p *parser) _for() node {
 // def = "def" ident "(" expr-list? ")" block
 func (p *parser) def() node {
 	p.skipnewline()
-	n := &ndFunDef{tokenHolder: p.tokenHolder()}
+	n := &ndFunDef{tok: p.cur}
 	p.must(tkDef)
 	n.name = p.ident().(*ndIdent).ident
 	p.must(tkLParen)
@@ -319,7 +315,7 @@ func (p *parser) def() node {
 // return = "return" expr
 func (p *parser) _return() node {
 	p.skipnewline()
-	n := &ndReturn{tokenHolder: p.tokenHolder()}
+	n := &ndReturn{tok: p.cur}
 	p.must(tkReturn)
 	if !p.iscur(tkNewLine) {
 		n.val = p.expr()
@@ -664,7 +660,7 @@ func (p *parser) postfix() node {
 
 	for {
 		if p.iscur(tkDot) {
-			n2 := &ndSelector{tokenHolder: p.tokenHolder()}
+			n2 := &ndSelector{tok: p.cur}
 			p.proceed()
 			p.skipnewline()
 			n2.selector = n
@@ -680,7 +676,7 @@ func (p *parser) postfix() node {
 
 			// index
 			if p.iscur(tkRBracket) {
-				n2 := &ndIndex{tokenHolder: p.tokenHolder()}
+				n2 := &ndIndex{tok: p.cur}
 				p.proceed()
 				p.skipnewline()
 				n2.idx = e
@@ -692,7 +688,7 @@ func (p *parser) postfix() node {
 			// slice
 			p.must(tkColon)
 			p.skipnewline()
-			n2 := &ndSlice{tokenHolder: p.tokenHolder()}
+			n2 := &ndSlice{tok: p.cur}
 			e2 := p.expr()
 			p.must(tkRBracket)
 			n2.start = e
@@ -703,7 +699,7 @@ func (p *parser) postfix() node {
 		}
 
 		if p.iscur(tkLParen) {
-			n2 := &ndFuncall{tokenHolder: p.tokenHolder()}
+			n2 := &ndFuncall{tok: p.cur}
 			p.proceed()
 			p.skipnewline()
 			n2.fn = n
@@ -742,7 +738,7 @@ func (p *parser) primary() node {
 	}
 
 	if p.iscur(tkStr) {
-		n := &ndStr{tokenHolder: p.tokenHolder()}
+		n := &ndStr{tok: p.cur}
 		n.val = p.cur.lit
 		p.proceed()
 		return n
@@ -753,7 +749,7 @@ func (p *parser) primary() node {
 
 		i, err := strconv.ParseInt(s, 10, 64)
 		if err == nil {
-			n := &ndI64{tokenHolder: p.tokenHolder()}
+			n := &ndI64{tok: p.cur}
 			n.val = i
 			p.proceed()
 			return n
@@ -761,7 +757,7 @@ func (p *parser) primary() node {
 
 		f, err := strconv.ParseFloat(s, 64)
 		if err == nil {
-			n := &ndF64{tokenHolder: p.tokenHolder()}
+			n := &ndF64{tok: p.cur}
 			n.val = f
 			p.proceed()
 			return n
@@ -771,14 +767,14 @@ func (p *parser) primary() node {
 	}
 
 	if p.iscur(tkTrue) {
-		n := &ndBool{tokenHolder: p.tokenHolder()}
+		n := &ndBool{tok: p.cur}
 		n.val = true
 		p.proceed()
 		return n
 	}
 
 	if p.iscur(tkFalse) {
-		n := &ndBool{tokenHolder: p.tokenHolder()}
+		n := &ndBool{tok: p.cur}
 		n.val = false
 		p.proceed()
 		return n
@@ -789,7 +785,7 @@ func (p *parser) primary() node {
 
 // list = "[" expr-list? "]"
 func (p *parser) list() node {
-	n := &ndList{tokenHolder: p.tokenHolder()}
+	n := &ndList{tok: p.cur}
 	p.must(tkLBracket)
 	p.skipnewline()
 	if !p.iscur(tkRBracket) {
@@ -801,7 +797,7 @@ func (p *parser) list() node {
 
 // dict = "{}" | "{" expr ":" expr ("," expr ":" expr)* "}"
 func (p *parser) dict() node {
-	n := &ndDict{tokenHolder: p.tokenHolder()}
+	n := &ndDict{tok: p.cur}
 	p.must(tkLBrace)
 	if p.iscur(tkRBrace) {
 		return n
@@ -831,7 +827,7 @@ func (p *parser) ident() node {
 		panic("identifier is expected")
 	}
 
-	n := &ndIdent{tokenHolder: p.tokenHolder(), ident: p.cur.lit}
+	n := &ndIdent{tok: p.cur, ident: p.cur.lit}
 	p.proceed()
 	return n
 }

@@ -4,10 +4,6 @@ import (
 	"fmt"
 )
 
-func toel(nd node) *errLine {
-	return newErrLine(nd.tok().loc.line)
-}
-
 func process(mod string, nd node) (procResult, shibaErr) {
 	switch n := nd.(type) {
 	case *ndEof:
@@ -80,7 +76,7 @@ func process(mod string, nd node) (procResult, shibaErr) {
 		return &prObj{o: &obj{typ: tBool, bval: n.val}}, nil
 	}
 
-	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", nd), errLine: toel(nd)}
+	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", nd), l: nd.token().loc}
 }
 
 func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
@@ -106,7 +102,7 @@ func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 // plain assign assigns multiple right values to multiple left operand.
 func procPlainAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != len(n.right) {
-		return nil, &errSimple{msg: "assignment size mismatch", errLine: toel(n)}
+		return nil, &errSimple{msg: "assignment size mismatch", l: n.token().loc}
 	}
 
 	for i := range n.left {
@@ -150,7 +146,7 @@ func assignTo(mod string, dst node, o *obj) shibaErr {
 // The left side size must be the same with right side iterable size.
 func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.right) != 1 {
-		return nil, &errSimple{msg: ":= cannot have multiple operand on right side", errLine: toel(n)}
+		return nil, &errSimple{msg: ":= cannot have multiple operand on right side", l: n.token().loc}
 	}
 
 	r, err := procAsObj(mod, n.right[0])
@@ -159,12 +155,12 @@ func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	}
 
 	if !r.cansequence() {
-		return nil, &errSimple{msg: fmt.Sprintf("cannot unpack %s", r), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("cannot unpack %s", r), l: n.token().loc}
 	}
 
 	seq := r.sequence()
 	if seq.size() != len(n.left) {
-		return nil, &errSimple{msg: fmt.Sprintf("unpack size mismatch: %s := %s", n.left, r), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("unpack size mismatch: %s := %s", n.left, r), l: n.token().loc}
 	}
 
 	for i := range n.left {
@@ -178,11 +174,11 @@ func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 
 func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != 1 {
-		return nil, &errSimple{msg: fmt.Sprintf("cannot assign to multiple values by %s", n.op), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("cannot assign to multiple values by %s", n.op), l: n.token().loc}
 	}
 
 	if len(n.right) != 1 {
-		return nil, &errSimple{msg: fmt.Sprintf("cannot assign multiple values with %s", n.op), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("cannot assign multiple values with %s", n.op), l: n.token().loc}
 	}
 
 	left := n.left[0]
@@ -221,10 +217,10 @@ func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	o, err2 := computeBinaryOp(l, r, bo)
 	if err2 != nil {
 		return nil, &errInvalidAssignOp{
-			left:    l.String(),
-			op:      n.op.String(),
-			right:   r.String(),
-			errLine: toel(n),
+			left:  l.String(),
+			op:    n.op.String(),
+			right: r.String(),
+			l:     n.token().loc,
 		}
 	}
 
@@ -248,11 +244,11 @@ func procMultipleAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 		}
 
 		if r.typ != tList {
-			return nil, &errSimple{msg: fmt.Sprintf("%s must be multiple-values", n.right[0]), errLine: toel(n)}
+			return nil, &errSimple{msg: fmt.Sprintf("%s must be multiple-values", n.right[0]), l: n.token().loc}
 		}
 
 		if len(n.left) != len(r.list) {
-			return nil, &errSimple{msg: fmt.Sprintf("assignment mismatch left: %d, right: %d", len(n.left), len(r.list)), errLine: toel(n)}
+			return nil, &errSimple{msg: fmt.Sprintf("assignment mismatch left: %d, right: %d", len(n.left), len(r.list)), l: n.token().loc}
 		}
 
 		for i := range n.left {
@@ -349,11 +345,11 @@ func procLoop(mod string, n *ndLoop) (procResult, shibaErr) {
 	env.createblockscope(mod)
 
 	if _, ok := n.cnt.(*ndIdent); !ok {
-		return nil, &errSimple{msg: fmt.Sprintf("invalid counter %s in loop", n.cnt), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("invalid counter %s in loop", n.cnt), l: n.token().loc}
 	}
 
 	if _, ok := n.elem.(*ndIdent); !ok {
-		return nil, &errSimple{msg: fmt.Sprintf("invalid element %s in loop", n.cnt), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("invalid element %s in loop", n.cnt), l: n.token().loc}
 	}
 
 	target, err := procAsObj(mod, n.target)
@@ -362,7 +358,7 @@ func procLoop(mod string, n *ndLoop) (procResult, shibaErr) {
 	}
 
 	if !target.isiterable() {
-		return nil, &errSimple{msg: "non-iterable loop target", errLine: toel(n)}
+		return nil, &errSimple{msg: "non-iterable loop target", l: n.token().loc}
 	}
 
 	iter := target.iterator()
@@ -405,8 +401,8 @@ func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
 		i, ok := p.(*ndIdent)
 		if !ok {
 			return nil, &errSimple{
-				msg:     fmt.Sprintf("function param %s must be identifier", p),
-				errLine: toel(n),
+				msg: fmt.Sprintf("function param %s must be identifier", p),
+				l:   n.token().loc,
 			}
 
 		}
@@ -440,18 +436,18 @@ func procIndex(mod string, n *ndIndex) (procResult, shibaErr) {
 	}
 
 	if idx.typ != tI64 {
-		return nil, &errTypeMismatch{expected: tI64.String(), actual: idx.typ.String(), errLine: toel(n)}
+		return nil, &errTypeMismatch{expected: tI64.String(), actual: idx.typ.String(), l: n.token().loc}
 	}
 
 	i := int(idx.ival)
 
 	if !tgt.cansequence() {
-		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", tgt), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", tgt), l: n.token().loc}
 	}
 
 	seq := tgt.sequence()
 	if seq.size() <= i {
-		return nil, &errInvalidIndex{idx: i, length: seq.size(), errLine: toel(n)}
+		return nil, &errInvalidIndex{idx: i, length: seq.size(), l: n.token().loc}
 	}
 
 	return &prObj{o: seq.index(i)}, nil
@@ -475,7 +471,7 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	}
 
 	if start.typ != tI64 {
-		return nil, &errTypeMismatch{expected: tI64.String(), actual: start.typ.String(), errLine: toel(n)}
+		return nil, &errTypeMismatch{expected: tI64.String(), actual: start.typ.String(), l: n.token().loc}
 	}
 
 	end, err := procAsObj(mod, n.end)
@@ -484,7 +480,7 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	}
 
 	if end.typ != tI64 {
-		return nil, &errTypeMismatch{expected: tI64.String(), actual: end.typ.String(), errLine: toel(n)}
+		return nil, &errTypeMismatch{expected: tI64.String(), actual: end.typ.String(), l: n.token().loc}
 	}
 
 	target, err := procAsObj(mod, n.target)
@@ -493,7 +489,7 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	}
 
 	if !target.cansequence() {
-		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", target), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("%s is not iterable", target), l: n.token().loc}
 	}
 
 	seq := target.sequence()
@@ -503,7 +499,7 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	l := seq.size()
 
 	if ei < si || si < 0 || l < ei {
-		return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices [%d:%d]", si, ei), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices [%d:%d]", si, ei), l: n.token().loc}
 	}
 
 	return &prObj{o: &obj{typ: tList, list: seq.slice(si, ei)}}, nil
@@ -518,7 +514,7 @@ func procSelector(mod string, n *ndSelector) (procResult, shibaErr) {
 	// currently selector typ must be mod.
 	// In the future this should support struct/field.
 	if selector.typ != tMod {
-		return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), errLine: toel(n)}
+		return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), l: n.token().loc}
 	}
 
 	target, err := procAsObj(selector.mod, n.target)
@@ -552,7 +548,7 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 	if fn.typ == tBuiltinFunc {
 		o, err := fn.bfnbody(args...)
 		if err != nil {
-			return nil, &errSimple{msg: err.Error(), errLine: toel(n)}
+			return nil, &errSimple{msg: err.Error(), l: n.token().loc}
 		}
 
 		return &prObj{o: o}, nil
@@ -561,8 +557,8 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 	if fn.typ == tFunc {
 		if len(fn.params) != len(args) {
 			return nil, &errSimple{
-				msg:     fmt.Sprintf("argument mismatch on %s()", fn.name),
-				errLine: toel(n),
+				msg: fmt.Sprintf("argument mismatch on %s()", fn.name),
+				l:   n.token().loc,
 			}
 		}
 
@@ -596,8 +592,8 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 	}
 
 	return nil, &errSimple{
-		msg:     fmt.Sprintf("cannot call %s", n.fn),
-		errLine: toel(n),
+		msg: fmt.Sprintf("cannot call %s", n.fn),
+		l:   n.token().loc,
 	}
 }
 
@@ -624,7 +620,7 @@ func procBinaryOp(mod string, n *ndBinaryOp) (procResult, shibaErr) {
 
 	o, err2 := computeBinaryOp(l, r, n.op)
 	if err2 != nil {
-		return nil, &errSimple{msg: err2.Error(), errLine: toel(n)}
+		return nil, &errSimple{msg: err2.Error(), l: n.token().loc}
 	}
 
 	return &prObj{o: o}, nil
@@ -662,7 +658,7 @@ func procUnaryOp(mod string, n *ndUnaryOp) (procResult, shibaErr) {
 		}
 	}
 
-	return nil, &errInvalidUnaryOp{op: n.op.String(), target: n.target.String(), errLine: toel(n)}
+	return nil, &errInvalidUnaryOp{op: n.op.String(), target: n.target.String(), l: n.token().loc}
 }
 
 func procList(mod string, n *ndList) (procResult, shibaErr) {
@@ -708,5 +704,5 @@ func procIdent(mod string, n *ndIdent) (procResult, shibaErr) {
 		return &prObj{o: bf}, nil
 	}
 
-	return nil, &errUndefinedIdent{ident: n.ident, errLine: toel(n)}
+	return nil, &errUndefinedIdent{ident: n.ident, l: n.token().loc}
 }

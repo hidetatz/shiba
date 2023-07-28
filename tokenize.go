@@ -159,8 +159,8 @@ func (t tktype) String() string {
 }
 
 type token struct {
-	typ  tktype
-	lit  string
+	typ tktype
+	lit string
 	loc *loc
 }
 
@@ -216,7 +216,7 @@ func (t *tokenizer) readstring() (*token, error) {
 	// todo: handle intermediate quote
 	for {
 		if !t.hasnext() {
-			return nil, &errTokenize{msg: "string unterminated", errLine: newErrLine(loc.line)}
+			return nil, &errTokenize{msg: "string unterminated", l: loc}
 		}
 
 		c := t.cur()
@@ -251,7 +251,7 @@ func (t *tokenizer) readnum() (*token, error) {
 
 	dots := strings.Count(s, ".")
 	if dots >= 2 {
-		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(loc.line)}
+		return nil, &errTokenize{msg: "invalid decimal expression", l: loc}
 	}
 
 	return t.newtoken(tkNum, s, loc), nil
@@ -394,7 +394,7 @@ func (t *tokenizer) nexttoken() (*token, error) {
 		return tk, nil
 	}
 
-	return nil, &errTokenize{msg: "invalid token", errLine: newErrLine(t.line)}
+	return nil, &errTokenize{msg: "invalid token", l: loc}
 }
 
 func isdigit(r rune) bool {

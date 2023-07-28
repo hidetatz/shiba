@@ -6,7 +6,7 @@ func interpret(filename string) int {
 	modname := filetomod(filename)
 	err := runmod(modname)
 	if err != nil {
-		werr("%s:%d %s", filename, err.line(), err)
+		werr("%s:%d %s", filename, err.loc().line, err)
 		// todo: code should be extracted from err
 		return 1
 	}
@@ -45,7 +45,7 @@ func runmod(modname string) shibaErr {
 			break
 
 		default:
-			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), errLine: &errLine{l: stmt.tok().loc.line}}
+			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), l: stmt.token().loc}
 		}
 	}
 
