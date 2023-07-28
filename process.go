@@ -5,7 +5,7 @@ import (
 )
 
 func toel(nd node) *errLine {
-	return newErrLine(nd.tok().line)
+	return newErrLine(nd.tok().loc.line)
 }
 
 func process(mod string, nd node) (procResult, shibaErr) {

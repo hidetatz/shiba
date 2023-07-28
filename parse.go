@@ -110,7 +110,7 @@ func (p *parser) parsestmt() (n node, err shibaErr) {
 	// Returning error will make the parser code not easy to read.
 	defer func() {
 		if r := recover(); r != nil {
-			err = &errParse{msg: fmt.Sprintf("%v", r), errLine: &errLine{l: p.cur.line}}
+			err = &errParse{msg: fmt.Sprintf("%v", r), errLine: &errLine{l: p.cur.loc.line}}
 		}
 	}()
 

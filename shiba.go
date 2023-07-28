@@ -45,7 +45,7 @@ func runmod(modname string) shibaErr {
 			break
 
 		default:
-			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), errLine: &errLine{l: stmt.tok().line}}
+			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), errLine: &errLine{l: stmt.tok().loc.line}}
 		}
 	}
 

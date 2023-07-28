@@ -160,16 +160,16 @@ func (t tktype) String() string {
 
 type token struct {
 	typ  tktype
-	line int
 	lit  string
+	loc *loc
 }
 
 func (t *token) String() string {
 	switch t.typ {
 	case tkIdent, tkStr, tkNum:
-		return fmt.Sprintf("{%s (%s %d)}", t.lit, t.typ.String(), t.line)
+		return fmt.Sprintf("{%s (%s %d)}", t.lit, t.typ.String(), t.loc.line)
 	default:
-		return fmt.Sprintf("{%s (%d)}", t.typ.String(), t.line)
+		return fmt.Sprintf("{%s (%d)}", t.typ.String(), t.loc.line)
 	}
 }
 
@@ -200,19 +200,23 @@ func newtokenizer(filename string) (*tokenizer, error) {
 	}, nil
 }
 
-func (t *tokenizer) newtoken(tt tktype, line int, lit string) *token {
-	return &token{typ: tt, line: line, lit: lit}
+func (t *tokenizer) newloc() *loc {
+	return &loc{mod: t.modname, line: t.line, col: t.col, pos: t.pos}
+}
+
+func (t *tokenizer) newtoken(tt tktype, lit string, loc *loc) *token {
+	return &token{typ: tt, lit: lit, loc: loc}
 }
 
 func (t *tokenizer) readstring() (*token, error) {
-	line := t.line
+	loc := t.newloc()
 	t.next() // skip left '"'
 	str := ""
 	// read until terminating " is found
 	// todo: handle intermediate quote
 	for {
 		if !t.hasnext() {
-			return nil, &errTokenize{msg: "string unterminated", errLine: newErrLine(line)}
+			return nil, &errTokenize{msg: "string unterminated", errLine: newErrLine(loc.line)}
 		}
 
 		c := t.cur()
@@ -224,11 +228,11 @@ func (t *tokenizer) readstring() (*token, error) {
 	}
 	t.next() // skip right '"'
 
-	return t.newtoken(tkStr, line, str), nil
+	return t.newtoken(tkStr, str, loc), nil
 }
 
 func (t *tokenizer) readnum() (*token, error) {
-	line := t.line
+	loc := t.newloc()
 	s := string(t.cur())
 	for {
 		if !t.hasnext() {
@@ -247,14 +251,14 @@ func (t *tokenizer) readnum() (*token, error) {
 
 	dots := strings.Count(s, ".")
 	if dots >= 2 {
-		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(line)}
+		return nil, &errTokenize{msg: "invalid decimal expression", errLine: newErrLine(loc.line)}
 	}
 
-	return t.newtoken(tkNum, line, s), nil
+	return t.newtoken(tkNum, s, loc), nil
 }
 
 func (t *tokenizer) readident() (*token, bool) {
-	line := t.line
+	loc := t.newloc()
 	ident := ""
 	for {
 		if !t.hasnext() {
@@ -276,15 +280,15 @@ func (t *tokenizer) readident() (*token, bool) {
 
 	for _, kw := range keywords {
 		if kw.s == ident {
-			return t.newtoken(kw.t, line, ""), true
+			return t.newtoken(kw.t, "", loc), true
 		}
 	}
 
-	return t.newtoken(tkIdent, line, ident), true
+	return t.newtoken(tkIdent, ident, loc), true
 }
 
 func (t *tokenizer) readpunct() (*token, bool) {
-	line := t.line
+	loc := t.newloc()
 	for _, punct := range punctuators {
 		found := true
 		// check every rune in punctuator
@@ -303,7 +307,7 @@ func (t *tokenizer) readpunct() (*token, bool) {
 			t.next()
 		}
 
-		return t.newtoken(punct.t, line, punct.s), true
+		return t.newtoken(punct.t, punct.s, loc), true
 	}
 
 	return nil, false
@@ -346,9 +350,10 @@ func (t *tokenizer) peek(n int) rune {
 }
 
 func (t *tokenizer) nexttoken() (*token, error) {
+	loc := t.newloc()
 	for {
 		if !t.hasnext() {
-			return t.newtoken(tkEof, t.line, ""), nil
+			return t.newtoken(tkEof, "", loc), nil
 		}
 
 		if !isspace(t.cur()) {
