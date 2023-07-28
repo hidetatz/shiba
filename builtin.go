@@ -7,7 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var bulitinFns = map[string]*obj{
+var builtinFns = map[string]*obj{
 	"print": &obj{
 		typ:  tBuiltinFunc,
 		name: "print",

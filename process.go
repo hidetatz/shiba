@@ -699,7 +699,7 @@ func procIdent(mod string, n *ndIdent) (procResult, shibaErr) {
 		return &prObj{o: o}, nil
 	}
 
-	bf, ok := bulitinFns[n.ident]
+	bf, ok := builtinFns[n.ident]
 	if ok {
 		return &prObj{o: bf}, nil
 	}
