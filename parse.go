@@ -827,12 +827,11 @@ func (p *parser) dict() node {
 
 // ident = IDENT
 func (p *parser) ident() node {
-	n := &ndIdent{tokenHolder: p.tokenHolder()}
 	if !p.iscur(tkIdent) {
 		panic("identifier is expected")
 	}
 
-	n.ident = p.cur.lit
+	n := &ndIdent{tokenHolder: p.tokenHolder(), ident: p.cur.lit}
 	p.proceed()
 	return n
 }
