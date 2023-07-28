@@ -202,7 +202,7 @@ func newtokenizer(filename string) (*tokenizer, error) {
 }
 
 func (t *tokenizer) newloc() *loc {
-	return &loc{mod: t.modname, line: t.line, col: t.col, pos: t.pos}
+	return newloc(t.modname, t.line, t.col, t.pos)
 }
 
 func (t *tokenizer) newtoken(tt tktype, lit string, loc *loc) *token {
