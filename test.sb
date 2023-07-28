@@ -1,5 +1,23 @@
-import a 
+# chmod = 90
+# path = "/home/hidetatz/tmp/a"
+# mode = 511 # 0777
+#
+# r1, r2, errno := syscall(chmod, path, mode, 0)
+# print(r1, r2, errno)
 
-c = 1
 
-print(a.c)
+open = 2
+path = "/home/hidetatz/tmp/a"
+flag = 0
+mode = 511 # 0777
+
+fd, r2, errno := syscall(open, path, flag, mode)
+print(fd, r2, errno)
+
+# read = 0
+# buf = "          "
+# count = 3
+#
+# r1, r2, errno := syscall(read, fd, buf, count)
+# print(r1, r2, errno)
+# print("a" + buf + "a")
