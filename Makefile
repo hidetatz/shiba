@@ -15,12 +15,7 @@ test: clean $(BIN)
 	go mod tidy
 	go vet
 	go test ./...
-
-.PHONY: testv
-testv: clean $(BIN)
-	go mod tidy
-	go vet
-	go test -v ./...
+	ls -1 tests/*.sb | xargs -L 1 ./shiba
 
 .PHONY: clean
 clean:

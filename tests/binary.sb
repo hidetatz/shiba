@@ -1,0 +1,31 @@
+import testing
+
+as = testing.assert
+
+print("running binary test")
+
+as(false, 4 == 2)
+as(false, 4 == 4.0)
+as(true, 4 == 4)
+as(true, 4 != 2)
+as(false, 4 != 4)
+as(false, 4 < 2)
+as(true, 4 > 2)
+as(true, 4 >= 2)
+as(true, 4 >= 4)
+as(false, 4 >= 5)
+as(true, 4 >= 4.0)
+as(false, 4 <= 2)
+as(true, true || true)
+as(true, true || false)
+as(true, false || true)
+as(false, false || false)
+as(true, true && true)
+as(false, true && false)
+as(false, false && true)
+as(false, false && false)
+as(7, 1 | 6)
+as(0, 1 & 6)
+as(7, 1 ^ 6)
+as(24, 3 << 3)
+as(1, 3 >> 1)
