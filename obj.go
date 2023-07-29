@@ -451,6 +451,18 @@ func computeBinaryOp(l, r *obj, op binaryOp) (*obj, error) {
 				return &obj{typ: tBool, bval: lf >= float64(r.ival)}, nil
 			}
 		}
+	case tBool:
+		lb := l.bval
+		switch op {
+		case boLogicalOr:
+			if rt == tBool {
+				return &obj{typ: tBool, bval: lb || r.bval}, nil
+			}
+		case boLogicalAnd:
+			if rt == tBool {
+				return &obj{typ: tBool, bval: lb && r.bval}, nil
+			}
+		}
 	}
 
 	return nil, fmt.Errorf("cannot compute: %s %s %s", l, op, r)
