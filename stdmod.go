@@ -19,5 +19,5 @@ func stdmoddir() string {
 	// todo: In Python, stdlib locates at "/usr/lib/python3.x".
 	// On distribution, the stdlib must be placed such directory and
 	// this must point there.
-	return "/home/hidetatz/shiba/lib"
+	return "/home/hidetatz/shiba/std"
 }
