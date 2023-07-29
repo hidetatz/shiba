@@ -604,8 +604,8 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 
 func procImport(mod *module, n *ndImport) (procResult, shibaErr) {
 	modname := ""
-	if isstdlib(n.target) {
-		modname = filepath.Join(stdlibdir(), n.target)
+	if isstdmod(n.target) {
+		modname = filepath.Join(stdmoddir(), n.target)
 	} else {
 		modname = filepath.Join(mod.directory, n.target)
 	}
