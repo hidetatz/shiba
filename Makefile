@@ -11,10 +11,16 @@ format:
 	goimports -w .
 
 .PHONY: test
-test: clean $(BIN)
+test: clean $(BIN) gotest sbtest
+
+.PHONY: gotest
+gotest: clean $(BIN)
 	go mod tidy
 	go vet
 	go test ./...
+
+.PHONY: sbtest
+sbtest: clean $(BIN)
 	ls -1 tests/*.sb | xargs -L 1 ./shiba
 
 .PHONY: clean
