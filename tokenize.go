@@ -106,6 +106,8 @@ var punctuators = []*strToTktype{
 	{"|=", tkVBarEq},
 	{"^=", tkCaretEq},
 	{":=", tkColonEq},
+	{"<<", tk2Less},
+	{">>", tk2Greater},
 	{"<", tkLess},
 	{">", tkGreater},
 	{".", tkDot},
