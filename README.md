@@ -23,6 +23,7 @@ print(result)
 Author: [@hidetatz](https://github.com/hidetatz)
 
 TODO (@hidetatz):
+- enable to write stdmod in Go
 - struct and method
 - error handling
 - easy and simple concurrency like Go
