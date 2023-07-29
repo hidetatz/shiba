@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 )
 
-func process(mod string, nd node) (procResult, shibaErr) {
+func process(mod *module, nd node) (procResult, shibaErr) {
 	switch n := nd.(type) {
 	case *ndEof:
 		return &prExit{}, nil
@@ -79,7 +80,7 @@ func process(mod string, nd node) (procResult, shibaErr) {
 	return nil, &errInternal{msg: fmt.Sprintf("unhandled nodetype: %s", nd), l: nd.token().loc}
 }
 
-func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
+func procReturn(mod *module, n *ndReturn) (procResult, shibaErr) {
 	o, err := procAsObj(mod, n.val)
 	if err != nil {
 		return nil, err
@@ -87,7 +88,7 @@ func procReturn(mod string, n *ndReturn) (procResult, shibaErr) {
 	return &prReturn{ret: o}, nil
 }
 
-func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+func procAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 	if n.op == aoUnpackEq {
 		return procUnpackAssign(mod, n)
 	}
@@ -100,7 +101,7 @@ func procAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 }
 
 // plain assign assigns multiple right values to multiple left operand.
-func procPlainAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+func procPlainAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != len(n.right) {
 		return nil, &errSimple{msg: "assignment size mismatch", l: n.token().loc}
 	}
@@ -119,7 +120,7 @@ func procPlainAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func assignTo(mod string, dst node, o *obj) shibaErr {
+func assignTo(mod *module, dst node, o *obj) shibaErr {
 	d, err := procAsObj(mod, dst)
 	// when err is nil, the node is already defined. update it
 	if err == nil {
@@ -144,7 +145,7 @@ func assignTo(mod string, dst node, o *obj) shibaErr {
 // unpack assign unpacks right side operator to the left.
 // Right side must have only one iterable operand.
 // The left side size must be the same with right side iterable size.
-func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+func procUnpackAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 	if len(n.right) != 1 {
 		return nil, &errSimple{msg: ":= cannot have multiple operand on right side", l: n.token().loc}
 	}
@@ -172,7 +173,7 @@ func procUnpackAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+func procComputeAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 	if len(n.left) != 1 {
 		return nil, &errSimple{msg: fmt.Sprintf("cannot assign to multiple values by %s", n.op), l: n.token().loc}
 	}
@@ -236,7 +237,7 @@ func procComputeAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 // a, b, c = 1, 2, 3
 // In case, the below is *not* allowed
 // a, b, c = 1, f() // f() returns 2 values
-func procMultipleAssign(mod string, n *ndAssign) (procResult, shibaErr) {
+func procMultipleAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 	if len(n.right) == 1 {
 		r, err := procAsObj(mod, n.right[0])
 		if err != nil {
@@ -298,7 +299,7 @@ func procMultipleAssign(mod string, n *ndAssign) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procIf(mod string, n *ndIf) (procResult, shibaErr) {
+func procIf(mod *module, n *ndIf) (procResult, shibaErr) {
 	env.createblockscope(mod)
 
 	for i := range n.conds {
@@ -341,7 +342,7 @@ func procIf(mod string, n *ndIf) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procLoop(mod string, n *ndLoop) (procResult, shibaErr) {
+func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 	env.createblockscope(mod)
 
 	if _, ok := n.cnt.(*ndIdent); !ok {
@@ -395,7 +396,7 @@ func procLoop(mod string, n *ndLoop) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
+func procFunDef(mod *module, n *ndFunDef) (procResult, shibaErr) {
 	params := []string{}
 	for _, p := range n.params {
 		i, ok := p.(*ndIdent)
@@ -420,7 +421,7 @@ func procFunDef(mod string, n *ndFunDef) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procIndex(mod string, n *ndIndex) (procResult, shibaErr) {
+func procIndex(mod *module, n *ndIndex) (procResult, shibaErr) {
 	tgt, err := procAsObj(mod, n.target)
 	if err != nil {
 		return nil, err
@@ -453,7 +454,7 @@ func procIndex(mod string, n *ndIndex) (procResult, shibaErr) {
 	return &prObj{o: seq.index(i)}, nil
 }
 
-func procDictIndex(mod string, d *obj, n *ndIndex) (procResult, shibaErr) {
+func procDictIndex(mod *module, d *obj, n *ndIndex) (procResult, shibaErr) {
 	key, err := procAsObj(mod, n.idx)
 	if err != nil {
 		return nil, err
@@ -464,7 +465,7 @@ func procDictIndex(mod string, d *obj, n *ndIndex) (procResult, shibaErr) {
 	return &prObj{o: o}, nil
 }
 
-func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
+func procSlice(mod *module, n *ndSlice) (procResult, shibaErr) {
 	start, err := procAsObj(mod, n.start)
 	if err != nil {
 		return nil, err
@@ -505,7 +506,7 @@ func procSlice(mod string, n *ndSlice) (procResult, shibaErr) {
 	return &prObj{o: &obj{typ: tList, list: seq.slice(si, ei)}}, nil
 }
 
-func procSelector(mod string, n *ndSelector) (procResult, shibaErr) {
+func procSelector(mod *module, n *ndSelector) (procResult, shibaErr) {
 	selector, err := procAsObj(mod, n.selector)
 	if err != nil {
 		return nil, err
@@ -529,7 +530,7 @@ func procSelector(mod string, n *ndSelector) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
+func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 	args := []*obj{}
 	for _, a := range n.args {
 		o, err := procAsObj(mod, a)
@@ -597,17 +598,29 @@ func procFuncall(mod string, n *ndFuncall) (procResult, shibaErr) {
 	}
 }
 
-func procImport(mod string, n *ndImport) (procResult, shibaErr) {
-	if err := runmod(n.target); err != nil {
+func procImport(mod *module, n *ndImport) (procResult, shibaErr) {
+	modname := ""
+	if isstdlib(n.target) {
+		modname = filepath.Join(stdlibdir(), n.target)
+	} else {
+		modname = filepath.Join(mod.directory, n.target)
+	}
+
+	m, err := newmodule(modname)
+	if err != nil {
+		return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+	}
+
+	if err := runmod(m); err != nil {
 		return nil, err
 	}
 
-	env.setobj(mod, n.target, &obj{typ: tMod, mod: n.target})
+	env.setobj(mod, m.name, &obj{typ: tMod, mod: m})
 
 	return nil, nil
 }
 
-func procBinaryOp(mod string, n *ndBinaryOp) (procResult, shibaErr) {
+func procBinaryOp(mod *module, n *ndBinaryOp) (procResult, shibaErr) {
 	l, err := procAsObj(mod, n.left)
 	if err != nil {
 		return nil, err
@@ -626,7 +639,7 @@ func procBinaryOp(mod string, n *ndBinaryOp) (procResult, shibaErr) {
 	return &prObj{o: o}, nil
 }
 
-func procUnaryOp(mod string, n *ndUnaryOp) (procResult, shibaErr) {
+func procUnaryOp(mod *module, n *ndUnaryOp) (procResult, shibaErr) {
 	o, err := procAsObj(mod, n.target)
 	if err != nil {
 		return nil, err
@@ -661,7 +674,7 @@ func procUnaryOp(mod string, n *ndUnaryOp) (procResult, shibaErr) {
 	return nil, &errInvalidUnaryOp{op: n.op.String(), target: n.target.String(), l: n.token().loc}
 }
 
-func procList(mod string, n *ndList) (procResult, shibaErr) {
+func procList(mod *module, n *ndList) (procResult, shibaErr) {
 	l := &obj{typ: tList}
 	for _, val := range n.vals {
 		o, err := procAsObj(mod, val)
@@ -674,7 +687,7 @@ func procList(mod string, n *ndList) (procResult, shibaErr) {
 	return &prObj{o: l}, nil
 }
 
-func procDict(mod string, n *ndDict) (procResult, shibaErr) {
+func procDict(mod *module, n *ndDict) (procResult, shibaErr) {
 	d := &obj{typ: tDict, dict: newdict()}
 	for i := range n.keys {
 		key, err := procAsObj(mod, n.keys[i])
@@ -693,7 +706,7 @@ func procDict(mod string, n *ndDict) (procResult, shibaErr) {
 	return &prObj{o: d}, nil
 }
 
-func procIdent(mod string, n *ndIdent) (procResult, shibaErr) {
+func procIdent(mod *module, n *ndIdent) (procResult, shibaErr) {
 	o, ok := env.getobj(mod, n.ident)
 	if ok {
 		return &prObj{o: o}, nil

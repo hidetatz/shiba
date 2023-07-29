@@ -34,7 +34,7 @@ type prObj struct {
 
 func (p *prObj) typ() string { return "obj" }
 
-func procAsObj(mod string, n node) (*obj, shibaErr) {
+func procAsObj(mod *module, n node) (*obj, shibaErr) {
 	pr, err := process(mod, n)
 	if err != nil {
 		return nil, err

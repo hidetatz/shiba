@@ -2,10 +2,16 @@ package main
 
 import "fmt"
 
-func interpret(filename string) int {
-	modname := filetomod(filename)
-	err := runmod(modname)
+// target a filename such as xxx/yyy.sb
+func interpret(target string) int {
+	modname := filetomod(target)
+	mod, err := newmodule(modname)
 	if err != nil {
+		werr("cannot load module %s: %s", modname, err)
+		return 1
+	}
+
+	if err := runmod(mod); err != nil {
 		loc := err.loc()
 		if loc != nil {
 			werr("%s:%d:%d %s", loc.mod, loc.line, loc.col, err)
@@ -18,17 +24,12 @@ func interpret(filename string) int {
 	return 0
 }
 
-func runmod(modname string) shibaErr {
-	mod, err := newmodule(modname)
-	if err != nil {
-		return &errSimple{msg: fmt.Sprintf("cannot load module %s: %s", modname, err)}
-	}
-
-	env.register(modname, mod)
+func runmod(mod *module) shibaErr {
+	env.register(mod)
 
 	p, err := newparser(mod)
 	if err != nil {
-		return &errSimple{msg: fmt.Sprintf("cannot parse module %s: %s", modname, err)}
+		return &errSimple{msg: fmt.Sprintf("cannot parse module %s: %s", mod.name, err)}
 	}
 
 	for {
@@ -41,7 +42,7 @@ func runmod(modname string) shibaErr {
 			break
 		}
 
-		pr, err := process(modname, stmt)
+		pr, err := process(mod, stmt)
 		if err != nil {
 			return err
 		}

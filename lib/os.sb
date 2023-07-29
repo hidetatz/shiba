@@ -1,0 +1,23 @@
+def chmod(filepath) {
+    sys_chmod = 90
+    mode = 511 # 0777
+    r1, r2, errno := syscall(sys_chmod, filepath, mode, 0)
+    return errno
+}
+
+def open(filepath) {
+    sys_open = 2
+    flag = 0
+    mode = 511 # 0777
+    
+    fd, r2, errno := syscall(sys_open, filepath, flag, mode)
+    return [fd, errno]
+}
+
+def read(fd, count) {
+    sys_read = 0
+    buf = " " * count
+    
+    r1, r2, errno := syscall(sys_read, fd, buf, count)
+    return [buf, errno]
+}

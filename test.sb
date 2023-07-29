@@ -1,22 +1,15 @@
-# chmod = 90
-# path = "/home/hidetatz/tmp/a"
-# mode = 511 # 0777
-#
-# r1, r2, errno := syscall(chmod, path, mode, 0)
-# print(r1, r2, errno)
+import os
 
-open = 2
-path = "/home/hidetatz/tmp/a"
-flag = 0
-mode = 511 # 0777
+fd, errno := os.open("/home/hidetatz/shiba/main.go")
+if errno != 0 {
+    print("failed to open")
+    return
+}
 
-fd, r2, errno := syscall(open, path, flag, mode)
-print(fd, r2, errno)
+result, errno := os.read(fd, 100)
+if errno != 0 {
+    print("failed to read")
+    return
+}
 
-read = 0
-count = 3
-buf = " " * count
-
-r1, r2, errno := syscall(read, fd, buf, count)
-print(r1, r2, errno)
-print("read result: " + buf)
+print(result)

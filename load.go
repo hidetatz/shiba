@@ -1,17 +1,17 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 )
 
-// todo: this needs to check stdlib files
-func loadmod(modname string) ([]rune, error) {
-	filename := modtofile(modname)
+// todo: non-unix platform might need some changes?
+func loadmod(dir, mod string) ([]rune, error) {
+	file := modtofile(mod)
 
-	bs, err := os.ReadFile(filename)
+	bs, err := os.ReadFile(filepath.Join(dir, file))
 	if err != nil {
-		return nil, fmt.Errorf("cannot open %s: %w", filename, err)
+		return nil, err
 	}
 
 	return []rune(string(bs)), nil

@@ -65,10 +65,10 @@ type obj struct {
 	bytes []byte
 	list  []*obj
 	dict  *dict
-	mod   string
+	mod   *module
 
 	// functions
-	fmod string
+	fmod *module
 	name string
 	// builtin
 	bfnbody func(objs ...*obj) (*obj, error)
@@ -195,11 +195,11 @@ func (o *obj) String() string {
 	case tDict:
 		return o.dict.String()
 	case tMod:
-		return o.mod
+		return o.mod.name
 	case tBuiltinFunc:
 		return o.name
 	default:
-		return o.mod + "." + o.name
+		return o.mod.name + "/" + o.name
 	}
 }
 

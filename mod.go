@@ -2,6 +2,8 @@ package main
 
 import (
 	"container/list"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -54,20 +56,28 @@ import (
 type module struct {
 	name       string
 	filename   string
+	directory  string
 	content    []rune
 	globscope  *scope
 	funcscopes *list.List
 }
 
 func newmodule(modname string) (*module, error) {
-	content, err := loadmod(modname)
+	dir, mod := filepath.Split(modname)
+
+	file := modtofile(mod)
+
+	bs, err := os.ReadFile(filepath.Join(dir, file))
 	if err != nil {
 		return nil, err
 	}
 
+	content := []rune(string(bs))
+
 	return &module{
-		name:       modname,
+		name:       mod,
 		filename:   modtofile(modname),
+		directory:  dir,
 		content:    content,
 		globscope:  newscope(),
 		funcscopes: list.New(),

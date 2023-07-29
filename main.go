@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func wout(f string, a ...any) {
@@ -28,6 +29,11 @@ func run(args []string) int {
 
 	env = &environment{modules: map[string]*module{}}
 
-	filename := args[1]
-	return interpret(filename)
+	a1 := args[1]
+	if !strings.HasSuffix(a1, ".sb") {
+		werr("%s must have .sb suffix", a1)
+		return 1
+	}
+
+	return interpret(a1)
 }

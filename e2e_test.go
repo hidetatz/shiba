@@ -15,8 +15,9 @@ var d = heredoc.Doc
 
 func TestOutput(t *testing.T) {
 	tests := map[string]struct {
-		content string
-		out     string
+		content         string
+		additionalfiles map[string]string
+		out             string
 	}{
 		"arithmetic1": {
 			content: d(`
@@ -563,22 +564,57 @@ func TestOutput(t *testing.T) {
 				100
 			`),
 		},
+		"import1": {
+			content: d(`
+				import import1_2
+
+				a = 1
+
+				print(import1_2.b(a))
+			`),
+			additionalfiles: map[string]string{
+				"import1_2": d(`
+					import import1_3
+
+					def b(x) {
+						return import1_3.a + x
+					}
+				`),
+				"import1_3": d(`
+					a = 3
+				`),
+			},
+			out: d(`
+				4
+			`),
+		},
 	}
 
-	td := t.TempDir()
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			td := t.TempDir()
+
+			files := map[string]string{name: tc.content}
+			for n, c := range tc.additionalfiles {
+				files[n] = c
+			}
+
 			fname := strings.ReplaceAll(name, " ", "_") + ".sb"
 			dfname := filepath.Join(td, fname)
 
-			f, err := os.OpenFile(dfname, os.O_RDWR|os.O_CREATE, 0755)
-			if err != nil {
-				t.Fatalf("create test sb file: %s, err: %s", fname, err)
-			}
-			defer f.Close()
+			for n, c := range files {
+				fname := strings.ReplaceAll(n, " ", "_") + ".sb"
+				dfname := filepath.Join(td, fname)
 
-			if _, err := f.Write([]byte(tc.content)); err != nil {
-				t.Fatalf("write test sb file: %s", fname)
+				f, err := os.OpenFile(dfname, os.O_RDWR|os.O_CREATE, 0755)
+				if err != nil {
+					t.Fatalf("create test sb file: %s, err: %s", fname, err)
+				}
+				defer f.Close()
+
+				if _, err := f.Write([]byte(c)); err != nil {
+					t.Fatalf("write test sb file: %s", fname)
+				}
 			}
 
 			// err is fine as some tests make sure error case
