@@ -1,0 +1,5 @@
+def assert(expected, actual) {
+    if expected != actual {
+        print("test failed. expected: ", expected, ", actual: " , actual)
+    }
+}
