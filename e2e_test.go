@@ -586,8 +586,10 @@ func TestOutput(t *testing.T) {
 				"import1_2": d(`
 					import import1_3
 
+					a = 2
+
 					def b(x) {
-						return import1_3.a + x
+						return import1_3.a + a + x
 					}
 				`),
 				"import1_3": d(`
@@ -595,7 +597,7 @@ func TestOutput(t *testing.T) {
 				`),
 			},
 			out: d(`
-				4
+				6
 			`),
 		},
 	}
