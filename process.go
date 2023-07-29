@@ -81,6 +81,10 @@ func process(mod *module, nd node) (procResult, shibaErr) {
 }
 
 func procReturn(mod *module, n *ndReturn) (procResult, shibaErr) {
+	if n.val == nil {
+		return &prReturn{ret: nil}, nil
+	}
+
 	o, err := procAsObj(mod, n.val)
 	if err != nil {
 		return nil, err

@@ -314,6 +314,16 @@ func TestOutput(t *testing.T) {
 				1
 			`),
 		},
+		"return2": {
+			content: d(`
+				print(1)
+				return
+				print(2)
+			`),
+			out: d(`
+				1
+			`),
+		},
 		"scope1": {
 			content: d(`
 				if 1 {

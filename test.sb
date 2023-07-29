@@ -1,10 +1,14 @@
 import os
 
+print("opening...")
+
 fd, errno := os.open("/home/hidetatz/shiba/main.go")
 if errno != 0 {
     print("failed to open")
     return
 }
+
+print("reading...")
 
 result, errno := os.read(fd, 100)
 if errno != 0 {

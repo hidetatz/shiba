@@ -56,12 +56,14 @@ func runmod(mod *module) shibaErr {
 			continue
 
 		case *prExit, *prReturn:
-			break
+			goto finish
 
 		default:
 			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), l: stmt.token().loc}
 		}
 	}
+
+finish:
 
 	return nil
 }
