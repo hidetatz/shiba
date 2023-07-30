@@ -1,25 +1,25 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 )
 
-var stdmods = []string{
-	"os",
-}
-
 func isstdmod(target string) bool {
-	for _, m := range stdmods {
-		if target == m {
-			return true
-		}
+	f := modtofile(filepath.Join(stdmoddir(), target))
+	if _, err := os.Stat(f); err == nil {
+		return true
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false
+	} else {
+		// other error. todo: handle
 	}
 
 	return false
 }
 
 func stdmoddir() string {
-	home, _ := os.UserHomeDir()
+	home, _ := os.UserHomeDir() // todo: handle error
 	return filepath.Join(home, "shiba/std")
 }
