@@ -3,7 +3,7 @@ package main
 type sequence interface {
 	size() int
 	index(idx int) *obj
-	slice(start, end int) []*obj
+	slice(start, end int) *obj
 }
 
 type strSequence struct {
@@ -18,13 +18,13 @@ func (s *strSequence) index(idx int) *obj {
 	return &obj{typ: tStr, bytes: []byte(string(s.runes[idx]))}
 }
 
-func (s *strSequence) slice(start, end int) []*obj {
+func (s *strSequence) slice(start, end int) *obj {
 	rs := s.runes[start:end]
-	var ret []*obj
+	var ret string
 	for _, r := range rs {
-		ret = append(ret, &obj{typ: tStr, bytes: []byte(string(r))})
+		ret += string(r)
 	}
-	return ret
+	return &obj{typ: tStr, bytes: []byte(ret)}
 }
 
 type listSequence struct {
@@ -39,6 +39,6 @@ func (s *listSequence) index(idx int) *obj {
 	return s.vals[idx]
 }
 
-func (s *listSequence) slice(start, end int) []*obj {
-	return s.vals[start:end]
+func (s *listSequence) slice(start, end int) *obj {
+	return &obj{typ: tList, list: s.vals[start:end]}
 }

@@ -507,7 +507,7 @@ func procSlice(mod *module, n *ndSlice) (procResult, shibaErr) {
 		return nil, &errSimple{msg: fmt.Sprintf("invalid slice indices [%d:%d]", si, ei), l: n.token().loc}
 	}
 
-	return &prObj{o: &obj{typ: tList, list: seq.slice(si, ei)}}, nil
+	return &prObj{o: seq.slice(si, ei)}, nil
 }
 
 func procSelector(mod *module, n *ndSelector) (procResult, shibaErr) {
