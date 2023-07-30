@@ -106,6 +106,16 @@ func (e *errInvalidUnaryOp) Error() string {
 	return fmt.Sprintf("invalid operation [%s]%s", e.op, e.target)
 }
 
+type errDictKeyNotFound struct {
+	l      *loc
+	key *obj
+}
+
+func (e *errDictKeyNotFound) loc() *loc { return e.l }
+func (e *errDictKeyNotFound) Error() string {
+	return fmt.Sprintf("key %s is not found in dict", e.key)
+}
+
 type errInternal struct {
 	l   *loc
 	msg string

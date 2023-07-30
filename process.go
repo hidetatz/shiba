@@ -142,6 +142,33 @@ func assignTo(mod *module, dst node, o *obj) shibaErr {
 		return nil
 	}
 
+	// if left is dict with key and the key is not found,
+	// create a new key in the dict
+	if _, ok := err.(*errDictKeyNotFound); ok {
+		index, ok := dst.(*ndIndex)
+		if !ok {
+			return err
+		}
+
+		oDict, err := procAsObj(mod, index.target)
+		if err != nil {
+			return err
+		}
+
+		if oDict.typ != tDict {
+			return err
+		}
+
+		oIndex, err := procAsObj(mod, index.idx)
+		if err != nil {
+			return err
+		}
+
+		oDict.dict.set(oIndex, o)
+
+		return nil
+	}
+
 	// other error
 	return err
 }
@@ -464,7 +491,10 @@ func procDictIndex(mod *module, d *obj, n *ndIndex) (procResult, shibaErr) {
 		return nil, err
 	}
 
-	o, _ := d.dict.get(key.toObjKey())
+	o, ok := d.dict.get(key)
+	if !ok {
+		return nil, &errDictKeyNotFound{key: key, l: n.token().loc}
+	}
 
 	return &prObj{o: o}, nil
 }
