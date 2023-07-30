@@ -1,0 +1,14 @@
+import assert
+
+as = assert.assert
+
+v = 100
+
+import imp
+
+as(1, imp.v)
+as(2, imp.f())
+as(3, imp.g())
+as(4, imp.h())
+
+print("import test succeeded")

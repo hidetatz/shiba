@@ -1,0 +1,5 @@
+import ../imp_4
+
+def h() {
+    return imp_4.v
+}

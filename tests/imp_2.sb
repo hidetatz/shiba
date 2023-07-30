@@ -1,0 +1,7 @@
+import imp_sub/imp_3
+
+v = 3
+
+def h() {
+    return imp_3.h()
+}

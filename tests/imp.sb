@@ -1,0 +1,15 @@
+import imp_2
+
+v = 1
+
+def f() {
+    return 2
+}
+
+def g() {
+    return imp_2.v
+}
+
+def h() {
+    return imp_2.h()
+}
