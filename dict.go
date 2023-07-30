@@ -23,6 +23,34 @@ func newdict() *dict {
 	}
 }
 
+func (d *dict) equals(x *dict) bool {
+	if d.size() != x.size() {
+		return false
+	}
+
+	dkeys := []objkey{}
+	for e := d.keys.Front(); e != nil; e = e.Next() {
+		dkeys = append(dkeys, e.Value.(objkey))
+	}
+
+	xkeys := []objkey{}
+	for e := x.keys.Front(); e != nil; e = e.Next() {
+		xkeys = append(xkeys, e.Value.(objkey))
+	}
+
+	for i := range dkeys {
+		if dkeys[i] != xkeys[i] {
+			return false
+		}
+
+		if !d.kv[dkeys[i]].equals(x.kv[xkeys[i]]) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (d *dict) clone() *dict {
 	cloned := newdict()
 

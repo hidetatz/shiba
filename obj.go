@@ -203,7 +203,7 @@ func (o *obj) equals(x *obj) bool {
 		return true
 
 	case tDict:
-		return o.dict == x.dict
+		return o.dict.equals(x.dict)
 	case tMod:
 		return o.mod == x.mod
 	case tBuiltinFunc:
