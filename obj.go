@@ -144,6 +144,8 @@ func (o *obj) clone() *obj {
 
 func (o *obj) isTruthy() bool {
 	switch o.typ {
+	case tNil:
+		return false
 	case tBool:
 		return o.bval
 	case tF64:
@@ -167,6 +169,8 @@ func (o *obj) equals(x *obj) bool {
 	}
 
 	switch o.typ {
+	case tNil:
+		return true // check only type
 	case tBool:
 		return o.bval == x.bval
 	case tF64:
@@ -211,6 +215,8 @@ func (o *obj) equals(x *obj) bool {
 
 func (o *obj) String() string {
 	switch o.typ {
+	case tNil:
+		return "<nil>"
 	case tBool:
 		return fmt.Sprintf("%t", o.bval)
 	case tF64:
