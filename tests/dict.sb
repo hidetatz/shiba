@@ -1,0 +1,13 @@
+import assert
+
+as = assert.assert
+
+d = {1: "a", 2: true, 3: [1, 2, 3], [1, 2, 3]: [4, 5, 6], 5: {"a": "b"}}
+as("a", d[1])
+as(true, d[2])
+as([1, 2, 3], d[3])
+as([4, 5, 6], d[[1, 2, 3]])
+as([4, 5, 6], d[d[3]])
+as("b", d[5]["a"])
+
+print("dict test succeeded")

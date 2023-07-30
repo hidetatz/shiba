@@ -9,4 +9,9 @@ as("aaaaaaaaa", 3 * "a" * 3)
 as("a", "abc"[0])
 as("ab", "abc"[0:2])
 
+a, b, c := "123"
+as(a, "1")
+as(b, "2")
+as(c, "3")
+
 print("str test succeeded")

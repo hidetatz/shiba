@@ -1,0 +1,39 @@
+import assert
+
+as = assert.assert
+
+a = 1
+
+as(1, a)
+
+if true {
+    a = 2
+}
+
+as(2, a)
+
+if a == 2 {
+    a = 3
+}
+
+as(3, a)
+
+if a == 1 {
+    a = 4
+} elif a == 2 {
+    a = 5
+} elif a == 3 {
+    a = 6
+}
+
+as(6, a)
+
+if a == 1 {
+    a = 7
+} else {
+    a = 8
+}
+
+as(8, a)
+
+print("if test succeeded")

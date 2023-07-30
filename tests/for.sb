@@ -1,0 +1,71 @@
+import assert
+
+as = assert.assert
+
+l = ["a", "b", "c", "d", "e"]
+
+idx = 0
+for i, e in l {
+    if idx == 0 {
+        as(0, i)
+        as("a", e)
+    } elif idx == 1 {
+        as(1, i)
+        as("b", e)
+    } elif idx == 2 {
+        as(2, i)
+        as("c", e)
+    } elif idx == 3 {
+        as(3, i)
+        as("d", e)
+    } elif idx == 4 {
+        as(4, i)
+        as("e", e)
+    } else {
+        print("must not come here")
+        exit(1)
+    }
+    idx += 1
+}
+
+as(5, idx)
+
+for i, e in [] {
+    print("must not come here")
+    exit(1)
+}
+
+idx = 0
+for i, e in "abc" {
+    if idx == 0 {
+        as(0, i)
+        as("a", e)
+    } elif idx == 1 {
+        as(1, i)
+        as("b", e)
+    } elif idx == 2 {
+        as(2, i)
+        as("c", e)
+    } else {
+        print("must not come here")
+        exit(1)
+    }
+    idx += 1
+}
+
+a = 0
+for i, e in l {
+    a = e
+    if i == 2 {
+        break
+    }
+}
+as("c", a)
+
+for i, e in l {
+    continue
+    print("must not come here")
+    exit(1)
+}
+
+print("for test succeeded")
