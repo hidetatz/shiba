@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -91,6 +92,21 @@ var builtinFns = map[string]*obj{
 				{typ: tI64, ival: int64(r2)},
 				{typ: tI64, ival: int64(errno)},
 			}}, nil
+		},
+	},
+	"exit": &obj{
+		typ:  tBuiltinFunc,
+		name: "exit",
+		bfnbody: func(args ...*obj) (*obj, error) {
+			if len(args) != 1 {
+				return NIL, fmt.Errorf("argument mismatch to exit(): 1 args required")
+			}
+			if args[0].typ != tI64 {
+				return NIL, fmt.Errorf("exit() arg must be i64")
+			}
+
+			os.Exit(int(args[0].ival))
+			return NIL, nil // unreachable
 		},
 	},
 }
