@@ -10,4 +10,16 @@ as([4, 5, 6], d[[1, 2, 3]])
 as([4, 5, 6], d[d[3]])
 as("b", d[5]["a"])
 
+d = {9: "a", 8: "b", 7: "c"}
+
+for i, e in d {
+    if i == 0 {
+        as(9, e)
+    } elif i == 1 {
+        as(8, e)
+    } else {
+        as(7, e)
+    }
+}
+
 print("dict test succeeded")

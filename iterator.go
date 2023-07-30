@@ -63,9 +63,10 @@ func (i *dictIterator) hasnext() bool {
 }
 
 func (i *dictIterator) next() (*obj, int) {
-	ret := i.e
+	retkey := i.e.Value.(objkey) // this is objkey(string)
+	retk := i.d.kk[retkey] // extract key obj by objkey
 	retidx := i.i
 	i.e = i.e.Next()
 	i.i++
-	return i.d.kv[ret.Value.(objkey)], retidx
+	return retk, retidx // return key obj when iterating dict
 }

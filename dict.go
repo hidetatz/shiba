@@ -8,46 +8,52 @@ import (
 // dict is an ordered dictionary implementation.
 // In shiba dict is always ordered.
 type dict struct {
-	kv   map[objkey]*obj
-	keys *list.List
-	// this is needed to delete in O(1)
-	ke map[objkey]*list.Element
+	kv   map[objkey]*obj // objkey to value
+	kk   map[objkey]*obj // objkey to key
+	keys *list.List // objkey list
+	ke map[objkey]*list.Element // objkey to list element. this is needed to delete in O(1)
 }
 
 func newdict() *dict {
 	return &dict{
 		kv:   map[objkey]*obj{},
+		kk:   map[objkey]*obj{},
 		keys: list.New(),
 		ke:   map[objkey]*list.Element{},
 	}
 }
 
-func (d *dict) set(k objkey, v *obj) {
-	_, ok := d.kv[k]
+func (d *dict) set(k, v *obj) {
+	key := k.toObjKey()
+	_, ok := d.kv[key]
 	if ok {
-		d.kv[k] = v
+		d.kv[key] = v
 		return
 	}
 
-	d.kv[k] = v
-	e := d.keys.PushBack(k)
-	d.ke[k] = e
+	d.kv[key] = v
+	d.kk[key] = k
+	e := d.keys.PushBack(key)
+	d.ke[key] = e
 }
 
-func (d *dict) get(k objkey) (*obj, bool) {
-	o, ok := d.kv[k]
+func (d *dict) get(k *obj) (*obj, bool) {
+	key := k.toObjKey()
+	o, ok := d.kv[key]
 	return o, ok
 }
 
-func (d *dict) del(k objkey) bool {
-	o, ok := d.ke[k]
+func (d *dict) del(k *obj) bool {
+	key := k.toObjKey()
+	o, ok := d.ke[key]
 	if !ok {
 		return false
 	}
 
 	d.keys.Remove(o)
-	delete(d.ke, k)
-	delete(d.kv, k)
+	delete(d.ke, key)
+	delete(d.kk, key)
+	delete(d.kv, key)
 	return true
 }
 

@@ -704,7 +704,7 @@ func procDict(mod *module, n *ndDict) (procResult, shibaErr) {
 			return nil, err
 		}
 
-		d.dict.set(key.toObjKey(), val)
+		d.dict.set(key, val)
 	}
 
 	return &prObj{o: d}, nil
