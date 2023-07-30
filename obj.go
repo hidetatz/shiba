@@ -117,9 +117,11 @@ func (o *obj) clone() *obj {
 	case tStr:
 		cloned.bytes = o.bytes
 	case tList:
-		cloned.list = o.list
+		for _, oo := range o.list {
+			cloned.list = append(cloned.list, oo.clone())
+		}
 	case tDict:
-		cloned.dict = o.dict
+		cloned.dict = o.dict.clone()
 	case tBuiltinFunc:
 		cloned.bfnbody = o.bfnbody
 	case tFunc:

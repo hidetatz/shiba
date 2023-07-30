@@ -23,6 +23,17 @@ func newdict() *dict {
 	}
 }
 
+func (d *dict) clone() *dict {
+	cloned := newdict()
+
+	for e := d.keys.Front(); e != nil; e = e.Next() {
+		key := e.Value.(objkey)
+		cloned.set(d.kk[key].clone(), d.kv[key].clone())
+	}
+
+	return cloned
+}
+
 func (d *dict) set(k, v *obj) {
 	key := k.toObjKey()
 	_, ok := d.kv[key]
