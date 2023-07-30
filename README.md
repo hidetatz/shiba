@@ -20,6 +20,8 @@ if errno != 0 {
 print(result)
 ```
 
+For more code example, see [tests/](./tests/)
+
 Author: [@hidetatz](https://github.com/hidetatz)
 
 TODO (@hidetatz):
