@@ -2,7 +2,6 @@ package main
 
 var stdmods = []string{
 	"os",
-	"testing",
 }
 
 func isstdmod(target string) bool {

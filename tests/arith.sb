@@ -1,8 +1,6 @@
-import testing
+import assert
 
-as = testing.assert
-
-print("running arith test")
+as = assert.assert
 
 as(6, 4 + 2)
 as(2, 4 - 2)
@@ -22,3 +20,5 @@ as(1.0, 0.1 * 10)
 as(1.0, 0.1 * 10.0)
 as(3, (1+2) * (3-2))
 as(19, (1*2) + ((3-2) * 12 +(1*5)))
+
+print("arith test succeeded")

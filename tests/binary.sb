@@ -1,8 +1,6 @@
-import testing
+import assert
 
-as = testing.assert
-
-print("running binary test")
+as = assert.assert
 
 as(false, 4 == 2)
 as(false, 4 == 4.0)
@@ -29,3 +27,5 @@ as(0, 1 & 6)
 as(7, 1 ^ 6)
 as(24, 3 << 3)
 as(1, 3 >> 1)
+
+print("binary test succeeded")
