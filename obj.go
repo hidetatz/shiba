@@ -67,12 +67,14 @@ type obj struct {
 	dict  *dict
 	mod   *module
 
-	// functions
-	fmod *module
+	// builtin/func
 	name string
+
 	// builtin
 	bfnbody func(objs ...*obj) (*obj, error)
-	// user-defined
+
+	// func
+	fmod *module
 	params []string
 	body   []node
 }
