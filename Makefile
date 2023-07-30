@@ -32,12 +32,3 @@ sbtest: clean $(BIN)
 .PHONY: clean
 clean:
 	rm -f $(BIN)
-
-.PHONY: rel
-rel: clean $(BIN)
-	mv ./shiba ./_shiba
-	mkdir -p shiba/bin
-	mv ./_shiba shiba/bin/shiba
-	cp -r ./std shiba/
-	tar -czf shiba0.0.0.linux_amd64.tar.gz shiba
-	rm -rf shiba
