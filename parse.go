@@ -796,6 +796,7 @@ func (p *parser) dict() node {
 	n := &ndDict{tok: p.cur}
 	p.must(tkLBrace)
 	if p.iscur(tkRBrace) {
+		p.proceed()
 		return n
 	}
 
