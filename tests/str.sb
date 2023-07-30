@@ -1,0 +1,12 @@
+import assert
+
+as = assert.assert
+
+as("ab", "a" + "b")
+as("aaa", "a" * 3)
+as("aaa", 3 * "a")
+as("aaaaaaaaa", 3 * "a" * 3)
+as("a", "abc"[0])
+as("ab", "abc"[0:2])
+
+print("str test succeeded")
