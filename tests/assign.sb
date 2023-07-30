@@ -1,0 +1,35 @@
+import assert
+
+as = assert.assert
+
+as(6, 4 + 2)
+
+a = 2
+b = 3
+
+a += b
+as(5, a)
+
+a -= b
+as(2, a)
+
+a *= b
+as(6, a)
+
+a /= b
+as(2, a)
+
+a %= b
+as(2, a)
+
+a &= b
+as(2, a)
+
+a |= b
+as(3, a)
+
+a ^= b
+as(0, a)
+
+
+print("assign test succeeded")

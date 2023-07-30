@@ -1,0 +1,38 @@
+import assert
+
+as = assert.assert
+
+def f(a, b) {
+    as(1, a)
+    as(2, b)
+}
+
+a, b = 1, 2
+f(a, b)
+
+def g(a1, a2) {
+    as(1, a1)
+    as(2, a2)
+
+    a1 = 3
+    a2 = 4
+}
+
+g(a, b)
+as(1, a)
+as(2, b)
+
+def h(a1, a2) {
+    return [a1 + 1, a2 + 1]
+}
+
+h(a, b)
+
+r = h(a, b)
+as([2, 3], r)
+
+r1, r2 := h(a, b)
+as(2, r1)
+as(3, r2)
+
+print("scope test succeeded")
