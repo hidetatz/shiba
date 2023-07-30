@@ -74,7 +74,7 @@ type obj struct {
 	bfnbody func(objs ...*obj) (*obj, error)
 
 	// func
-	fmod *module
+	fmod   *module
 	params []string
 	body   []node
 }

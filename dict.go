@@ -8,10 +8,10 @@ import (
 // dict is an ordered dictionary implementation.
 // In shiba dict is always ordered.
 type dict struct {
-	kv   map[objkey]*obj // objkey to value
-	kk   map[objkey]*obj // objkey to key
-	keys *list.List // objkey list
-	ke map[objkey]*list.Element // objkey to list element. this is needed to delete in O(1)
+	kv   map[objkey]*obj          // objkey to value
+	kk   map[objkey]*obj          // objkey to key
+	keys *list.List               // objkey list
+	ke   map[objkey]*list.Element // objkey to list element. this is needed to delete in O(1)
 }
 
 func newdict() *dict {

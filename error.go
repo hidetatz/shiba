@@ -107,7 +107,7 @@ func (e *errInvalidUnaryOp) Error() string {
 }
 
 type errDictKeyNotFound struct {
-	l      *loc
+	l   *loc
 	key *obj
 }
 
