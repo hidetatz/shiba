@@ -95,8 +95,10 @@ func (o *obj) update(x *obj) {
 	case tDict:
 		o.dict = x.dict
 	case tBuiltinFunc:
+		o.name = x.name
 		o.bfnbody = x.bfnbody
 	case tFunc:
+		o.name = x.name
 		o.fmod = x.fmod
 		o.params = x.params
 		o.body = x.body
@@ -125,8 +127,10 @@ func (o *obj) clone() *obj {
 	case tDict:
 		cloned.dict = o.dict.clone()
 	case tBuiltinFunc:
+		cloned.name = o.name
 		cloned.bfnbody = o.bfnbody
 	case tFunc:
+		cloned.name = o.name
 		cloned.fmod = o.fmod
 		cloned.params = o.params
 		cloned.body = o.body
