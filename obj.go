@@ -92,15 +92,46 @@ func (o *obj) update(x *obj) {
 		o.list = x.list
 	case tDict:
 		o.dict = x.dict
+	case tBuiltinFunc:
+		o.bfnbody = x.bfnbody
 	case tFunc:
 		o.fmod = x.fmod
 		o.params = x.params
 		o.body = x.body
 	case tMod:
 		o.mod = x.mod
-
-		// tBuiltinFunc cannot be updated
+	default:
+		panic("shiba error: unhandled type in obj.update()")
 	}
+}
+
+func (o *obj) clone() *obj {
+	cloned := &obj{typ: o.typ}
+	switch o.typ {
+	case tBool:
+		cloned.bval = o.bval
+	case tF64:
+		cloned.fval = o.fval
+	case tI64:
+		cloned.ival = o.ival
+	case tStr:
+		cloned.bytes = o.bytes
+	case tList:
+		cloned.list = o.list
+	case tDict:
+		cloned.dict = o.dict
+	case tBuiltinFunc:
+		cloned.bfnbody = o.bfnbody
+	case tFunc:
+		cloned.fmod = o.fmod
+		cloned.params = o.params
+		cloned.body = o.body
+	case tMod:
+		cloned.mod = o.mod
+	default:
+		panic("shiba error: unhandled type in obj.clone()")
+	}
+	return cloned
 }
 
 func (o *obj) isTruthy() bool {

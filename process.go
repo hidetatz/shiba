@@ -569,7 +569,7 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 
 		env.createfuncscope(fn.fmod)
 		for i := range fn.params {
-			env.setobj(fn.fmod, fn.params[i], args[i])
+			env.setobj(fn.fmod, fn.params[i], args[i].clone())
 		}
 
 		for _, block := range fn.body {
