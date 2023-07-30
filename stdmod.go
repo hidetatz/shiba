@@ -20,6 +20,5 @@ func isstdmod(target string) bool {
 }
 
 func stdmoddir() string {
-	home, _ := os.UserHomeDir() // todo: handle error
-	return filepath.Join(home, "shiba/std")
+	return "/usr/lib/shiba/"
 }
