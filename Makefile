@@ -9,8 +9,6 @@ $(BIN): $(SRCS) go.mod go.sum
 .PHONY: install
 install:
 	mv ./shiba /usr/local/bin/shiba
-	mkdir -p /usr/lib/shiba/
-	cp -r ./std/* /usr/lib/shiba/
 
 .PHONY: format
 format:
