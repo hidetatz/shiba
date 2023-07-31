@@ -28,6 +28,7 @@ gotest: clean $(BIN)
 .PHONY: sbtest
 sbtest: clean $(BIN)
 	ls -1 tests/*.sb | xargs -L 1 ./shiba
+	ls -1 tests/**/*.sb | xargs -L 1 ./shiba
 
 .PHONY: clean
 clean:

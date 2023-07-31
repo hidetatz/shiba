@@ -2,6 +2,7 @@ package main
 
 import (
 	"container/list"
+	"embed"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +63,9 @@ type module struct {
 	funcscopes *list.List
 }
 
+//go:embed std
+var stdmodfs embed.FS
+
 func newmodule(modname string) (*module, error) {
 	dir, mod := filepath.Split(modname)
 
@@ -78,6 +82,26 @@ func newmodule(modname string) (*module, error) {
 		name:       mod,
 		filename:   modtofile(modname),
 		directory:  dir,
+		content:    content,
+		globscope:  newscope(),
+		funcscopes: list.New(),
+	}, nil
+}
+
+func newstdmodule(mod string) (*module, error) {
+	file := modtofile(mod)
+
+	bs, err := stdmodfs.ReadFile(filepath.Join("std/", file))
+	if err != nil {
+		return nil, err
+	}
+
+	content := []rune(string(bs))
+
+	return &module{
+		name:       mod,
+		filename:   file,
+		directory:  "std",
 		content:    content,
 		globscope:  newscope(),
 		funcscopes: list.New(),

@@ -633,16 +633,14 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 }
 
 func procImport(mod *module, n *ndImport) (procResult, shibaErr) {
-	modname := ""
-	if isstdmod(n.target) {
-		modname = filepath.Join(stdmoddir(), n.target)
-	} else {
-		modname = filepath.Join(mod.directory, n.target)
-	}
-
-	m, err := newmodule(modname)
+	// first, try to import user-defined module
+	m, err := newmodule(filepath.Join(mod.directory, n.target))
 	if err != nil {
-		return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+		// if err, try to import std module
+		m, err = newstdmodule(n.target)
+		if err != nil {
+			return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+		}
 	}
 
 	if err := runmod(m); err != nil {

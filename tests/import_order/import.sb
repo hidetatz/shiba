@@ -1,0 +1,11 @@
+import ../assert
+
+as = assert.assert
+
+# os is defined in stdmod, but
+# the ./os.sb is read
+import os
+
+as(1, os.v)
+
+print("import_order test succeeded")
