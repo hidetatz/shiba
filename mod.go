@@ -108,6 +108,23 @@ func newstdmodule(mod string) (*module, error) {
 	}, nil
 }
 
+func newgostdmodule(modname string, objs []*gostdmodobj) (*module, error) {
+	m := &module{
+		name:       modname,
+		filename:   modname,
+		directory:  "std",
+		content:    nil,
+		globscope:  newscope(),
+		funcscopes: list.New(),
+	}
+
+	for _, o := range objs {
+		m.setobj(o.name, o.o)
+	}
+
+	return m, nil
+}
+
 func (m *module) createfuncscope() {
 	m.funcscopes.PushBack(newscope())
 }

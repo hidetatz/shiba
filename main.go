@@ -28,6 +28,7 @@ func run(args []string) int {
 	}
 
 	env = &environment{modules: map[string]*module{}}
+	initGoStdMod()
 
 	a1 := args[1]
 	if !strings.HasSuffix(a1, ".sb") {

@@ -26,6 +26,7 @@ const (
 	tList
 	tDict
 	tBuiltinFunc
+	tGoStdModFunc
 	tFunc
 	tMod
 )
@@ -48,6 +49,8 @@ func (o objtyp) String() string {
 		return "dict"
 	case tBuiltinFunc:
 		return "builtinfunc"
+	case tGoStdModFunc:
+		return "gostdmodfunc"
 	case tFunc:
 		return "func"
 	case tMod:
@@ -67,11 +70,14 @@ type obj struct {
 	dict  *dict
 	mod   *module
 
-	// builtin/func
+	// builtin/func/gostdmodfunc
 	name string
 
 	// builtin
 	bfnbody func(objs ...*obj) (*obj, error)
+
+	// std module implemented in Go
+	gostdmodfunc func(objs ...*obj) (*obj, error)
 
 	// func
 	fmod   *module
@@ -97,6 +103,9 @@ func (o *obj) update(x *obj) {
 	case tBuiltinFunc:
 		o.name = x.name
 		o.bfnbody = x.bfnbody
+	case tGoStdModFunc:
+		o.name = x.name
+		o.gostdmodfunc = x.gostdmodfunc
 	case tFunc:
 		o.name = x.name
 		o.fmod = x.fmod
@@ -129,6 +138,8 @@ func (o *obj) clone() *obj {
 	case tBuiltinFunc:
 		cloned.name = o.name
 		cloned.bfnbody = o.bfnbody
+	case tGoStdModFunc:
+		cloned.gostdmodfunc = o.gostdmodfunc
 	case tFunc:
 		cloned.name = o.name
 		cloned.fmod = o.fmod
@@ -208,6 +219,8 @@ func (o *obj) equals(x *obj) bool {
 		return o.mod == x.mod
 	case tBuiltinFunc:
 		return o.name == x.name
+	case tGoStdModFunc:
+		return o.name == x.name
 	default:
 		return o.fmod == x.fmod && o.name == x.name
 	}
@@ -242,6 +255,8 @@ func (o *obj) String() string {
 	case tMod:
 		return o.mod.name
 	case tBuiltinFunc:
+		return o.name
+	case tGoStdModFunc:
 		return o.name
 	default:
 		return o.mod.name + "/" + o.name

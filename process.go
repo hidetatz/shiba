@@ -589,6 +589,15 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 		return &prObj{o: o}, nil
 	}
 
+	if fn.typ == tGoStdModFunc {
+		o, err := fn.gostdmodfunc(args...)
+		if err != nil {
+			return nil, &errSimple{msg: err.Error(), l: n.token().loc}
+		}
+
+		return &prObj{o: o}, nil
+	}
+
 	if fn.typ == tFunc {
 		if len(fn.params) != len(args) {
 			return nil, &errSimple{
@@ -639,7 +648,15 @@ func procImport(mod *module, n *ndImport) (procResult, shibaErr) {
 		// if err, try to import std module
 		m, err = newstdmodule(n.target)
 		if err != nil {
-			return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+			// if still err, try to import gostd module
+			objs, ok := gostdmods.objs(n.target)
+			if !ok {
+				return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+			}
+			m, err = newgostdmodule(n.target, objs)
+			if err != nil {
+				return nil, &errSimple{msg: fmt.Sprintf("cannot import %s: %s", n.target, err), l: n.token().loc}
+			}
 		}
 	}
 
