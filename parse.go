@@ -276,17 +276,33 @@ func (p *parser) _if() node {
 	return n
 }
 
-// for = "for" ident "," ident "in" expr block
+// for = "for" expr ("," ident "in" expr)? block
 func (p *parser) _for() node {
 	p.skipnewline()
-	n := &ndLoop{tok: p.cur}
+	cur := p.cur
+
+	var n node
+
 	p.must(tkFor)
-	n.cnt = p.ident()
-	p.must(tkComma)
-	n.elem = p.ident()
-	p.must(tkIn)
-	n.target = p.expr()
-	n.blocks = p.block()
+	e := p.expr()
+
+	// if comma, loop the iterable object
+	if p.iscur(tkComma) {
+		nl := &ndLoop{tok: cur}
+		nl.cnt = e
+		p.must(tkComma)
+		nl.elem = p.ident()
+		p.must(tkIn)
+		nl.target = p.expr()
+		nl.blocks = p.block()
+		n = nl
+	} else {
+		nc := &ndCondLoop{tok: cur}
+		nc.cond = e
+		nc.blocks = p.block()
+		n = nc
+	}
+
 	return n
 }
 

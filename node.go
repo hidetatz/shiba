@@ -219,6 +219,18 @@ func (n *ndLoop) String() string {
 	return fmt.Sprintf("for %s, %s in %s { ... }", n.cnt, n.elem, n.target)
 }
 
+type ndCondLoop struct {
+	tok *token
+	cond node
+	blocks []node
+}
+
+func (n *ndCondLoop) token() *token { return n.tok }
+func (n *ndCondLoop) String() string {
+	return fmt.Sprintf("for %s { ... }", n.cond)
+}
+
+
 type ndFunDef struct {
 	tok    *token
 	name   string

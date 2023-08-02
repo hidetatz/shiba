@@ -31,6 +31,9 @@ func process(mod *module, nd node) (procResult, shibaErr) {
 	case *ndLoop:
 		return procLoop(mod, n)
 
+	case *ndCondLoop:
+		return procCondLoop(mod, n)
+
 	case *ndFunDef:
 		return procFunDef(mod, n)
 
@@ -399,6 +402,43 @@ func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 		env.setobj(mod, n.cnt.(*ndIdent).ident, &obj{typ: tI64, ival: int64(i)})
 		env.setobj(mod, n.elem.(*ndIdent).ident, next)
 
+		for _, block := range n.blocks {
+			pr, err := process(mod, block)
+			if err != nil {
+				return nil, err
+			}
+
+			if _, ok := pr.(*prReturn); ok {
+				env.delblockscope(mod)
+				return pr, nil
+			}
+
+			if _, ok := pr.(*prBreak); ok {
+				// when break, exit loop itself
+				env.delblockscope(mod)
+				return nil, nil
+			}
+
+			if _, ok := pr.(*prContinue); ok {
+				// when continue, exit running the block
+				break
+			}
+		}
+	}
+
+	env.delblockscope(mod)
+	return nil, nil
+}
+
+func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
+	env.createblockscope(mod)
+
+	cond, err := procAsObj(mod, n.cond)
+	if err != nil {
+		return nil, err
+	}
+
+	for cond.isTruthy() {
 		for _, block := range n.blocks {
 			pr, err := process(mod, block)
 			if err != nil {
