@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"strings"
 )
+
+const version = "v0.0.0"
 
 func wout(f string, a ...any) {
 	fmt.Fprintf(os.Stdout, f+"\n", a...)
@@ -22,9 +25,25 @@ func main() {
 }
 
 func run(args []string) int {
+	var (
+		v = flag.Bool("v", false, "show version")
+		h = flag.Bool("h", false, "show help")
+	)
+
+	flag.Parse()
+
+	if *v {
+		showversion()
+		return 0
+	}
+
+	if *h {
+		showhelp()
+		return 0
+	}
+
 	if len(args) <= 1 {
-		werr("a filename to be run must be given")
-		return 1
+		return runrepl()
 	}
 
 	env = &environment{modules: map[string]*module{}}
@@ -37,4 +56,18 @@ func run(args []string) int {
 	}
 
 	return interpret(a1)
+}
+
+func showversion() {
+	fmt.Println(version)
+}
+
+func showhelp() {
+	fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+	flag.PrintDefaults()
+}
+
+func runrepl() int {
+	fmt.Println("repl is not implemented")
+	return 0
 }
