@@ -220,8 +220,8 @@ func (n *ndLoop) String() string {
 }
 
 type ndCondLoop struct {
-	tok *token
-	cond node
+	tok    *token
+	cond   node
 	blocks []node
 }
 
@@ -229,7 +229,6 @@ func (n *ndCondLoop) token() *token { return n.tok }
 func (n *ndCondLoop) String() string {
 	return fmt.Sprintf("for %s { ... }", n.cond)
 }
-
 
 type ndFunDef struct {
 	tok    *token
