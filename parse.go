@@ -8,43 +8,18 @@ import (
 type parser struct {
 	tokenizer *tokenizer
 	cur       *token
-	next      *token
-	nextnext  *token
 }
 
 /*
  * parser helpers
  */
 
-// In initializing parser, it fetches 3 tokens from tokenizer then saves them.
-// In parse, sometimes it is necessary to read upcoming 2 or 3 tokens to decide how to parse,
-// so this parser always holds them.
-// When the tokenizer reaches to the bottom of the module, then just EOF token is saved.
-// I don't think this is elegant, but this is probably ok.
-func newparser(mod *module) (*parser, error) {
+func newparser(mod *module) *parser {
 	p := &parser{
 		tokenizer: newtokenizer(mod),
 	}
-
-	c, err := p.tokenizer.nexttoken()
-	if err != nil {
-		return nil, err
-	}
-	p.cur = c
-
-	c2, err := p.tokenizer.nexttoken()
-	if err != nil {
-		return nil, err
-	}
-	p.next = c2
-
-	c3, err := p.tokenizer.nexttoken()
-	if err != nil {
-		return nil, err
-	}
-	p.nextnext = c3
-
-	return p, nil
+	p.proceed()
+	return p
 }
 
 func (p *parser) iscur(t tktype) bool {
@@ -61,22 +36,12 @@ func (p *parser) iscurin(ts []tktype) (bool, tktype) {
 	return false, 0
 }
 
-func (p *parser) isnext(t tktype) bool {
-	return p.next.typ == t
-}
-
-func (p *parser) isnextnext(t tktype) bool {
-	return p.nextnext.typ == t
-}
-
 func (p *parser) proceed() {
 	c, err := p.tokenizer.nexttoken()
 	if err != nil {
 		panic(err)
 	}
-	p.cur = p.next
-	p.next = p.nextnext
-	p.nextnext = c
+	p.cur = c
 }
 
 func (p *parser) skipnewline() {

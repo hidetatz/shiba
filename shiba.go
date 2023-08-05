@@ -27,11 +27,7 @@ func interpret(target string) int {
 func runmod(mod *module) shibaErr {
 	env.register(mod)
 
-	p, err := newparser(mod)
-	if err != nil {
-		return &errSimple{msg: fmt.Sprintf("cannot parse module %s: %s", mod.name, err)}
-	}
-
+	p := newparser(mod)
 	for {
 		stmt, err := p.parsestmt()
 		if err != nil {
