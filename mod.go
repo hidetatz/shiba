@@ -125,6 +125,17 @@ func newgostdmodule(modname string, objs []*gostdmodobj) (*module, error) {
 	return m, nil
 }
 
+func newreplmodule() *module {
+	return &module{
+		name:       "repl",
+		filename:   "repl",
+		directory:  "",
+		content:    nil,
+		globscope:  newscope(),
+		funcscopes: list.New(),
+	}
+}
+
 func (m *module) createfuncscope() {
 	m.funcscopes.PushBack(newscope())
 }

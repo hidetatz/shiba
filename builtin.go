@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
+
+var printer io.Writer
 
 var builtinFns = map[string]*obj{
 	"print": &obj{
@@ -14,13 +17,13 @@ var builtinFns = map[string]*obj{
 		name: "print",
 		bfnbody: func(args ...*obj) (*obj, error) {
 			for i, arg := range args {
-				fmt.Print(arg)
+				fmt.Fprint(printer, arg)
 				if i != len(args)-1 {
-					fmt.Print(" ")
+					fmt.Fprint(printer, " ")
 				}
 			}
 
-			fmt.Println("")
+			fmt.Fprintln(printer)
 
 			return NIL, nil
 		},

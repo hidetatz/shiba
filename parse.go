@@ -175,15 +175,20 @@ func (p *parser) stmt() node {
 func (p *parser) block() []node {
 	p.must(tkLBrace)
 	blk := []node{}
+	p.skipnewline()
 	for {
-		p.skipnewline()
-
 		if p.iscur(tkRBrace) {
 			p.proceed()
 			break
 		}
 
-		blk = append(blk, p.stmt())
+		s := p.stmt()
+		if _, ok := s.(*ndEof); ok {
+			panic("unexpected eof in blocks")
+		}
+
+		blk = append(blk, s)
+		p.skipnewline()
 	}
 
 	return blk

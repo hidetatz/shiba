@@ -1,9 +1,14 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 // target a filename such as xxx/yyy.sb
 func interpret(target string) int {
+	printer = os.Stdout
+
 	modname := filetomod(target)
 	mod, err := newmodule(modname)
 	if err != nil {

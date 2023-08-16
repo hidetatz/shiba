@@ -42,12 +42,12 @@ func run(args []string) int {
 		return 0
 	}
 
-	if len(args) <= 1 {
-		return runrepl()
-	}
-
 	env = &environment{modules: map[string]*module{}}
 	initGoStdMod()
+
+	if len(args) <= 1 {
+		return repl()
+	}
 
 	a1 := args[1]
 	if !strings.HasSuffix(a1, ".sb") {
@@ -65,9 +65,4 @@ func showversion() {
 func showhelp() {
 	fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
-}
-
-func runrepl() int {
-	fmt.Println("repl is not implemented")
-	return 0
 }
