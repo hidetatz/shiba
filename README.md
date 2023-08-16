@@ -24,8 +24,8 @@ For more code example, see [tests/](./tests/).
 
 Installation:
 
-1. Download release from GitHub
-2. `tar zxf ~/Downloads/shiba0.0.1.linux_amd64.tar.gz`
+1. Download the latest shiba release from [GitHub Release](https://github.com/hidetatz/shiba/releases/latest)
+2. `tar zxf ./shibaX.X.X.linux_amd64.tar.gz`
 3. `./shiba main.sb`
 4. `./shiba` for REPL
 5. `./shiba -h` for help
