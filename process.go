@@ -658,7 +658,7 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 			}
 
 			if r, ok := pr.(*prReturn); ok {
-				env.delblockscope(fn.fmod)
+				env.delfuncscope(fn.fmod)
 				return &prObj{o: r.ret}, nil
 			}
 

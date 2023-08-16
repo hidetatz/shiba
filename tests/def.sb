@@ -35,4 +35,13 @@ r1, r2 := h(a, b)
 as(2, r1)
 as(3, r2)
 
+def i(p) {
+    return p * p
+}
+
+p = 3
+as(9, i(p))
+as(9, i(3))
+as(3, p)
+
 print("scope test succeeded")
