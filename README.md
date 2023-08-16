@@ -25,8 +25,10 @@ For more code example, see [tests/](./tests/).
 Installation:
 
 1. Download release from GitHub
-2. `tar zxf ~/Downloads/shiba0.0.0.linux_amd64.tar.gz -C ~/`
-3. `~/shiba/bin/shiba main.sb`
+2. `tar zxf ~/Downloads/shiba0.0.1.linux_amd64.tar.gz`
+3. `./shiba -h`
+
+REPL runs just by `./shiba`.
 
 Author: [@hidetatz](https://github.com/hidetatz)
 
