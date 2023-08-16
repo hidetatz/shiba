@@ -19,7 +19,7 @@ jobs:
           next_ver="${cur_ver%.*}.$((${cur_ver##*.}+1))"
           echo "next version: $next_ver"
           echo "ver=$next_ver" >> $GITHUB_OUTPUT
-      - id: version
+        id: version
 
       - uses: actions/setup-go@v3
         with:
