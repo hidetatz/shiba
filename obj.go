@@ -258,9 +258,10 @@ func (o *obj) String() string {
 		return o.name
 	case tGoStdModFunc:
 		return o.name
-	default:
-		return o.mod.name + "/" + o.name
+	case tFunc:
+		return o.fmod.name + "/" + o.name
 	}
+	return "?"
 }
 
 func (o *obj) isiterable() bool {
