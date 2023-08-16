@@ -8,15 +8,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: compute the upcoming version from the current latest version
         run: |
+          # This fetches the current latest tag
           cur_ver=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/hidetatz/shiba.git 'v*.*.*' | tail --lines=1 | cut --delimiter='/' --fields=3)
-          echo $cur_ver
+          echo "current version: $cur_ver"
           # This increments the patch version
           # https://stackoverflow.com/questions/6245293/extract-version-number-from-file-in-shell-script
           next_ver="${cur_ver%.*}.$((${cur_ver##*.}+1))"
-          echo $next_ver
-          # - name: build files
-          #   run: |
-          # 　　tar zxf ~/Downloads/shiba0.0.1.linux_amd64.tar.gz
-          # - uses: softprops/action-gh-release@v1
+          echo "next version: $next_ver"
+          echo "ver=$next_ver" >> $GITHUB_OUTPUT
+      - id: version
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'stable'
+
+      - name: build files
+        run: |
+          make
+          tar -zcvf shiba${{ steps.version.outputs.ver }}.linux_amd64.tar.gz ./shiba
+
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.ver }}
+          files: shiba${{ steps.version.outputs.ver }}.linux_amd64.tar.gz
