@@ -26,9 +26,9 @@ Installation:
 
 1. Download release from GitHub
 2. `tar zxf ~/Downloads/shiba0.0.1.linux_amd64.tar.gz`
-3. `./shiba -h`
-
-REPL runs just by `./shiba`.
+3. `./shiba main.sb`
+4. `./shiba` for REPL
+5. `./shiba -h` for help
 
 Author: [@hidetatz](https://github.com/hidetatz)
 
