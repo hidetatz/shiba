@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const version = "v0.0.1"
+var version string
 
 func wout(f string, a ...any) {
 	fmt.Fprintf(os.Stdout, f+"\n", a...)
@@ -59,7 +59,11 @@ func run(args []string) int {
 }
 
 func showversion() {
-	fmt.Println(version)
+	if version != "" {
+		fmt.Println(version)
+		return
+	}
+	fmt.Println("unknown version")
 }
 
 func showhelp() {

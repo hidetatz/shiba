@@ -29,7 +29,7 @@ jobs:
 
       - name: build files
         run: |
-          make
+          VERSION=${{ steps.version.outputs.ver }} make rel-build
           tar -zcvf ${{ steps.version.outputs.ver }}.linux_amd64.tar.gz ./shiba
 
       - uses: softprops/action-gh-release@v1
