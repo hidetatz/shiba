@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const version = "v0.0.0"
+const version = "v0.0.1"
 
 func wout(f string, a ...any) {
 	fmt.Fprintf(os.Stdout, f+"\n", a...)
