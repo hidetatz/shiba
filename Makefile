@@ -4,6 +4,7 @@ SRCS = $(shell find . -type f -name '*.go' -print)
 
 $(BIN): $(SRCS) go.mod go.sum
 	go mod tidy
+	# go build -o $(BIN) $(SRCS) # for debug
 	go build -o $(BIN) -ldflags="-s -w" $(SRCS)
 
 .PHONY: install
