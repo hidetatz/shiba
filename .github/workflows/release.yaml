@@ -14,7 +14,7 @@ jobs:
       - name: compute the upcoming version from the current latest version
         run: |
           # This fetches the current latest tag
-          cur_ver=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/hidetatz/shiba.git 'v*.*.*' | tail --lines=1 | cut --delimiter='/' --fields=3)
+          cur_ver=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags https://github.com/hidetatz/shiba.git 'shiba*.*.*' | tail --lines=1 | cut --delimiter='/' --fields=3)
           echo "current version: $cur_ver"
           # This increments the patch version
           # https://stackoverflow.com/questions/6245293/extract-version-number-from-file-in-shell-script
@@ -30,9 +30,9 @@ jobs:
       - name: build files
         run: |
           make
-          tar -zcvf shiba${{ steps.version.outputs.ver }}.linux_amd64.tar.gz ./shiba
+          tar -zcvf ${{ steps.version.outputs.ver }}.linux_amd64.tar.gz ./shiba
 
       - uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.ver }}
-          files: shiba${{ steps.version.outputs.ver }}.linux_amd64.tar.gz
+          files: ${{ steps.version.outputs.ver }}.linux_amd64.tar.gz
