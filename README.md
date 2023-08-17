@@ -37,5 +37,4 @@ TODO (@hidetatz):
 - error handling
 - easy and simple concurrency like Go
 - formatter
-- installer
 - package manager
