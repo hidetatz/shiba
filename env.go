@@ -68,6 +68,16 @@ func (e *environment) delblockscope(mod *module) error {
 	return nil
 }
 
+func (e *environment) setstruct(mod *module, name string, s *structdef) error {
+	m, err := e.findmodule(mod)
+	if err != nil {
+		return err
+	}
+
+	m.setstruct(name, s)
+	return nil
+}
+
 func (e *environment) setobj(mod *module, name string, o *obj) error {
 	m, err := e.findmodule(mod)
 	if err != nil {
@@ -76,6 +86,15 @@ func (e *environment) setobj(mod *module, name string, o *obj) error {
 
 	m.setobj(name, o)
 	return nil
+}
+
+func (e *environment) getstruct(mod *module, name string) (*structdef, bool) {
+	m, err := e.findmodule(mod)
+	if err != nil {
+		return nil, false
+	}
+
+	return m.getstruct(name)
 }
 
 func (e *environment) getobj(mod *module, name string) (*obj, bool) {

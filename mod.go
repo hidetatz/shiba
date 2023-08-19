@@ -171,6 +171,15 @@ func (m *module) setobj(name string, o *obj) {
 	m.globscope.setobj(name, o)
 }
 
+func (m *module) setstruct(name string, s *structdef) {
+	if m.funcscopes.Len() != 0 {
+		m.funcscopes.Back().Value.(*scope).setstruct(name, s)
+		return
+	}
+
+	m.globscope.setstruct(name, s)
+}
+
 func (m *module) getobj(name string) (*obj, bool) {
 	if m.funcscopes.Len() != 0 {
 		o, ok := m.funcscopes.Back().Value.(*scope).getobj(name)
@@ -182,6 +191,19 @@ func (m *module) getobj(name string) (*obj, bool) {
 	}
 
 	return m.globscope.getobj(name)
+}
+
+func (m *module) getstruct(name string) (*structdef, bool) {
+	if m.funcscopes.Len() != 0 {
+		s, ok := m.funcscopes.Back().Value.(*scope).getstruct(name)
+		if ok {
+			return s, true
+		}
+
+		return m.globscope.getglobstruct(name)
+	}
+
+	return m.globscope.getstruct(name)
 }
 
 func modtofile(modname string) string {

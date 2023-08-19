@@ -1,0 +1,22 @@
+import assert
+
+as = assert.assert
+
+struct person{
+    name
+    age
+
+    def birthday() {
+        age += 1
+    }
+
+    def setname(n) {
+        name = n
+    }
+
+    def getname() {
+        return name
+    }
+}
+
+print("struct test succeeded")

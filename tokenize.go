@@ -63,6 +63,7 @@ const (
 	tkBreak    // break
 	tkReturn   // return
 	tkImport   // import
+	tkStruct   // struct
 
 	tkIdent
 	tkStr
@@ -88,6 +89,7 @@ var keywords = []*strToTktype{
 	{"break", tkBreak},
 	{"return", tkReturn},
 	{"import", tkImport},
+	{"struct", tkStruct},
 }
 
 var punctuators = []*strToTktype{

@@ -407,6 +407,31 @@ func (n *ndDict) String() string {
 	return sb.String()
 }
 
+type ndStruct struct {
+	tok  *token
+	name node
+	vars []node
+	fns []node
+}
+
+func (n *ndStruct) token() *token { return n.tok }
+func (n *ndStruct) String() string {
+	sb := strings.Builder{}
+	sb.WriteString("struct ")
+	sb.WriteString(n.name.String())
+	sb.WriteString("{\n")
+	for i := range n.vars {
+		sb.WriteString("    " + n.vars[i].String() + "\n")
+	}
+	sb.WriteString("---\n")
+	for i := range n.fns {
+		sb.WriteString("    " + n.fns[i].String() + "\n")
+	}
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
 type ndContinue struct {
 	tok *token
 }

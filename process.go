@@ -34,6 +34,9 @@ func process(mod *module, nd node) (procResult, shibaErr) {
 	case *ndCondLoop:
 		return procCondLoop(mod, n)
 
+	case *ndStruct:
+		return procStruct(mod, n)
+
 	case *ndFunDef:
 		return procFunDef(mod, n)
 
@@ -464,6 +467,31 @@ func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
 	}
 
 	env.delblockscope(mod)
+	return nil, nil
+}
+
+func procStruct(mod *module, n *ndStruct) (procResult, shibaErr) {
+	if _, ok := n.name.(*ndIdent); !ok {
+		return nil, &errSimple{msg: fmt.Sprintf("invalid struct name %s", n.name), l: n.token().loc}
+	}
+
+	name := n.name.(*ndIdent).ident
+	sd := &structdef{name: name}
+
+	for _, v := range n.vars {
+		if _, ok := v.(*ndIdent); !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("invalid variable name %s in struct %s", v, name), l: n.token().loc}
+		}
+		sd.vars = append(sd.vars, v.(*ndIdent).ident)
+	}
+
+	for _, fn := range n.fns {
+		if _, err := process(mod, fn); err != nil {
+			return nil, err
+		}
+	}
+
+	env.setstruct(mod, name, sd)
 	return nil, nil
 }
 

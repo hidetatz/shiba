@@ -105,6 +105,10 @@ func (p *parser) stmt() node {
 		return p.def()
 	}
 
+	if p.iscur(tkStruct) {
+		return p._struct()
+	}
+
 	if p.iscur(tkReturn) {
 		return p._return()
 	}
@@ -291,6 +295,47 @@ func (p *parser) def() node {
 	p.must(tkRParen)
 
 	n.blocks = p.block()
+	return n
+}
+
+// struct = "struct" ident "{" ident-list? def-list? "}"
+func (p *parser) _struct() node {
+	p.skipnewline()
+	n := &ndStruct{tok: p.cur}
+	p.must(tkStruct)
+	n.name = p.ident()
+	p.must(tkLBrace)
+	p.skipnewline()
+
+	if p.iscur(tkRBrace) {
+		return n
+	}
+
+	// read variables
+	for {
+		if p.iscur(tkDef) {
+			break
+		}
+
+		if p.iscur(tkRBrace) {
+			break
+		}
+
+		n.vars = append(n.vars, p.ident())
+		p.skipnewline()
+	}
+
+	// read functions
+	for {
+		if p.iscur(tkRBrace) {
+			break
+		}
+
+		n.fns = append(n.fns, p.def())
+		p.skipnewline()
+	}
+
+	p.must(tkRBrace)
 	return n
 }
 
