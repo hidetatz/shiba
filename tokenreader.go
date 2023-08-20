@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// tokenreader tokenizes the module and returns token one by one.
 type tokenreader struct {
 	mod *module
 	// line number in the mod. starts from 1.
