@@ -31,7 +31,6 @@ func repl() int {
 		return 1
 	}
 
-
 	t := term.NewTerminal(os.Stdin, prompt)
 	defer term.Restore(int(os.Stdin.Fd()), origState)
 	printer = t
@@ -48,7 +47,7 @@ func repl() int {
 					cur = ""
 					t = term.NewTerminal(os.Stdin, prompt)
 					continue
-				// else, terminate the repl.
+					// else, terminate the repl.
 				} else {
 					break
 				}

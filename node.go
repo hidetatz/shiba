@@ -411,7 +411,7 @@ type ndStruct struct {
 	tok  *token
 	name node
 	vars []node
-	fns []node
+	fns  []node
 }
 
 func (n *ndStruct) token() *token { return n.tok }

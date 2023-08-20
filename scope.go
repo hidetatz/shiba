@@ -11,7 +11,7 @@ type scope struct {
 func newscope() *scope {
 	return &scope{
 		objs:        map[string]*obj{},
-		structdefs: map[string]*structdef{},
+		structdefs:  map[string]*structdef{},
 		blockscopes: list.New(),
 	}
 }
@@ -93,13 +93,13 @@ func (s *scope) getglobobj(name string) (*obj, bool) {
 }
 
 type blockscope struct {
-	objs map[string]*obj
-	structdefs  map[string]*structdef
+	objs       map[string]*obj
+	structdefs map[string]*structdef
 }
 
 func newblockscope() *blockscope {
 	return &blockscope{
-		objs: map[string]*obj{},
+		objs:       map[string]*obj{},
 		structdefs: map[string]*structdef{},
 	}
 }
