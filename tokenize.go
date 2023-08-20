@@ -139,16 +139,6 @@ func (t *tokenizer) cur() rune {
 	return t.mod.content[t.pos]
 }
 
-func (t *tokenizer) startswith(s string) bool {
-	for i, r := range []rune(s) {
-		if r != t.mod.content[t.pos+i] {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (t *tokenizer) next() {
 	t.pos++
 	t.col++
