@@ -26,6 +26,54 @@ func (t *tokenreader) newtoken(tt tktype, lit string, loc *loc) *token {
 	return &token{typ: tt, lit: lit, loc: loc}
 }
 
+func (t *tokenreader) readtoken() (*token, error) {
+	loc := t.newloc()
+	for {
+		if !t.hasnext() {
+			return t.newtoken(tkEof, "", loc), nil
+		}
+
+		if !isspace(t.cur()) {
+			break
+		}
+
+		t.next()
+	}
+
+	if t.cur() == '"' {
+		tk, err := t.readstring()
+		return tk, err
+	}
+
+	if isdigit(t.cur()) {
+		tk, err := t.readnum()
+		return tk, err
+	}
+
+	if tk, ok := t.readpunct(); ok {
+		if tk.typ == tkHash {
+			// read until "\n" as comment
+			msg := ""
+			for {
+				if t.cur() == '\n' {
+					break
+				}
+
+				msg += string(t.cur())
+				t.next()
+			}
+			tk.lit = msg
+		}
+		return tk, nil
+	}
+
+	if tk, ok := t.readident(); ok {
+		return tk, nil
+	}
+
+	return nil, &errTokenize{msg: "invalid token", l: loc}
+}
+
 func (t *tokenreader) readstring() (*token, error) {
 	loc := t.newloc()
 	t.next() // skip left '"'
@@ -155,54 +203,6 @@ func (t *tokenreader) next() {
 
 func (t *tokenreader) peek(n int) rune {
 	return t.mod.content[t.pos+n]
-}
-
-func (t *tokenreader) nexttoken() (*token, error) {
-	loc := t.newloc()
-	for {
-		if !t.hasnext() {
-			return t.newtoken(tkEof, "", loc), nil
-		}
-
-		if !isspace(t.cur()) {
-			break
-		}
-
-		t.next()
-	}
-
-	if t.cur() == '"' {
-		tk, err := t.readstring()
-		return tk, err
-	}
-
-	if isdigit(t.cur()) {
-		tk, err := t.readnum()
-		return tk, err
-	}
-
-	if tk, ok := t.readpunct(); ok {
-		if tk.typ == tkHash {
-			// read until "\n" as comment
-			msg := ""
-			for {
-				if t.cur() == '\n' {
-					break
-				}
-
-				msg += string(t.cur())
-				t.next()
-			}
-			tk.lit = msg
-		}
-		return tk, nil
-	}
-
-	if tk, ok := t.readident(); ok {
-		return tk, nil
-	}
-
-	return nil, &errTokenize{msg: "invalid token", l: loc}
 }
 
 func isdigit(r rune) bool {

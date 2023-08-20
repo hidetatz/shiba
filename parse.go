@@ -37,7 +37,7 @@ func (p *parser) iscurin(ts []tktype) (bool, tktype) {
 }
 
 func (p *parser) proceed() {
-	c, err := p.tokenreader.nexttoken()
+	c, err := p.tokenreader.readtoken()
 	if err != nil {
 		panic(err)
 	}
