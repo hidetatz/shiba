@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-type tokenizer struct {
+type tokenreader struct {
 	mod *module
 	// line number in the mod. starts from 1.
 	line int
@@ -14,19 +14,19 @@ type tokenizer struct {
 	pos int
 }
 
-func newtokenizer(mod *module) *tokenizer {
-	return &tokenizer{mod: mod, pos: 0, col: 1, line: 1}
+func newtokenreader(mod *module) *tokenreader {
+	return &tokenreader{mod: mod, pos: 0, col: 1, line: 1}
 }
 
-func (t *tokenizer) newloc() *loc {
+func (t *tokenreader) newloc() *loc {
 	return newloc(t.mod.filename, t.line, t.col, t.pos)
 }
 
-func (t *tokenizer) newtoken(tt tktype, lit string, loc *loc) *token {
+func (t *tokenreader) newtoken(tt tktype, lit string, loc *loc) *token {
 	return &token{typ: tt, lit: lit, loc: loc}
 }
 
-func (t *tokenizer) readstring() (*token, error) {
+func (t *tokenreader) readstring() (*token, error) {
 	loc := t.newloc()
 	t.next() // skip left '"'
 	str := ""
@@ -49,7 +49,7 @@ func (t *tokenizer) readstring() (*token, error) {
 	return t.newtoken(tkStr, str, loc), nil
 }
 
-func (t *tokenizer) readnum() (*token, error) {
+func (t *tokenreader) readnum() (*token, error) {
 	loc := t.newloc()
 	s := string(t.cur())
 	for {
@@ -75,7 +75,7 @@ func (t *tokenizer) readnum() (*token, error) {
 	return t.newtoken(tkNum, s, loc), nil
 }
 
-func (t *tokenizer) readident() (*token, bool) {
+func (t *tokenreader) readident() (*token, bool) {
 	loc := t.newloc()
 	ident := ""
 	for {
@@ -105,7 +105,7 @@ func (t *tokenizer) readident() (*token, bool) {
 	return t.newtoken(tkIdent, ident, loc), true
 }
 
-func (t *tokenizer) readpunct() (*token, bool) {
+func (t *tokenreader) readpunct() (*token, bool) {
 	loc := t.newloc()
 	for _, punct := range punctuators {
 		found := true
@@ -131,15 +131,15 @@ func (t *tokenizer) readpunct() (*token, bool) {
 	return nil, false
 }
 
-func (t *tokenizer) hasnext() bool {
+func (t *tokenreader) hasnext() bool {
 	return t.pos < len(t.mod.content)
 }
 
-func (t *tokenizer) cur() rune {
+func (t *tokenreader) cur() rune {
 	return t.mod.content[t.pos]
 }
 
-func (t *tokenizer) next() {
+func (t *tokenreader) next() {
 	t.pos++
 	t.col++
 
@@ -153,11 +153,11 @@ func (t *tokenizer) next() {
 	}
 }
 
-func (t *tokenizer) peek(n int) rune {
+func (t *tokenreader) peek(n int) rune {
 	return t.mod.content[t.pos+n]
 }
 
-func (t *tokenizer) nexttoken() (*token, error) {
+func (t *tokenreader) nexttoken() (*token, error) {
 	loc := t.newloc()
 	for {
 		if !t.hasnext() {
