@@ -6,7 +6,7 @@ import (
 )
 
 type parser struct {
-	tokenreader *tokenreader
+	tokenizer *tokenizer
 	cur       *token
 }
 
@@ -15,9 +15,7 @@ type parser struct {
  */
 
 func newparser(mod *module) *parser {
-	p := &parser{
-		tokenreader: newtokenreader(mod),
-	}
+	p := &parser{tokenizer: newtokenizer(mod)}
 	p.proceed()
 	return p
 }
@@ -37,7 +35,7 @@ func (p *parser) iscurin(ts []tktype) (bool, tktype) {
 }
 
 func (p *parser) proceed() {
-	c, err := p.tokenreader.readtoken()
+	c, err := p.tokenizer.gettoken()
 	if err != nil {
 		panic(err)
 	}
