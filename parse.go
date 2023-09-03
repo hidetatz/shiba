@@ -821,6 +821,9 @@ func (p *parser) primary() node {
 	// struct initialize.
 	// ident{varname: value, ...}
 	// this is parsed as ident + dict
+	// Because we need to determine "{" belongs to struct initialization or block statement,
+	// we try to read as dict first, then return as struct init if succeeds.
+	// If fail, return just ident assuming "{" belongs to block.
 	if d := p.try(p.dict); d != nil {
 		return &ndStructInit{tok: p.cur, name: i, values: d}
 	}
