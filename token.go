@@ -38,6 +38,10 @@ func (t tktype) String() string {
 
 		for _, punct := range punctuators {
 			if punct.t == t {
+				if t == tkNewLine {
+					return "newline"
+				}
+
 				return punct.s
 			}
 		}

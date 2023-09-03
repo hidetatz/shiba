@@ -34,8 +34,11 @@ func process(mod *module, nd node) (procResult, shibaErr) {
 	case *ndCondLoop:
 		return procCondLoop(mod, n)
 
-	case *ndStruct:
-		return procStruct(mod, n)
+	case *ndStructDef:
+		return procStructDef(mod, n)
+
+	case *ndStructInit:
+		return procStructInit(mod, n)
 
 	case *ndFunDef:
 		return procFunDef(mod, n)
@@ -470,7 +473,7 @@ func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
 	return nil, nil
 }
 
-func procStruct(mod *module, n *ndStruct) (procResult, shibaErr) {
+func procStructDef(mod *module, n *ndStructDef) (procResult, shibaErr) {
 	if _, ok := n.name.(*ndIdent); !ok {
 		return nil, &errSimple{msg: fmt.Sprintf("invalid struct name %s", n.name), l: n.token().loc}
 	}
@@ -493,6 +496,45 @@ func procStruct(mod *module, n *ndStruct) (procResult, shibaErr) {
 
 	env.setstruct(mod, name, sd)
 	return nil, nil
+}
+
+func procStructInit(mod *module, n *ndStructInit) (procResult, shibaErr) {
+	if _, ok := n.name.(*ndIdent); !ok {
+		return nil, &errSimple{msg: fmt.Sprintf("invalid struct name %s", n.name), l: n.token().loc}
+	}
+
+	name := n.name.(*ndIdent).ident
+	o := &obj{typ: tStruct, name: name, fields: map[string]*obj{}}
+
+	sd, ok := env.getstruct(mod, name)
+	if !ok {
+		return nil, &errSimple{msg: fmt.Sprintf("struct %s is not defined", name), l: n.token().loc}
+	}
+
+	d, ok := n.values.(*ndDict)
+	if !ok {
+		return nil, &errInternal{msg: fmt.Sprintf("dict expected in struct init but got %s", n.values), l: n.token().loc}
+	}
+
+	for i := range d.keys {
+		if _, ok := d.keys[i].(*ndIdent); !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("invalid field name %s in struct %s", d.keys[i], name), l: n.token().loc}
+		}
+
+		k := d.keys[i].(*ndIdent).ident
+		if !sd.hasfield(k) {
+			return nil, &errSimple{msg: fmt.Sprintf("struct %s does not have field %s", name, k), l: n.token().loc}
+		}
+
+		v, err := procAsObj(mod, d.vals[i])
+		if err != nil {
+			return nil, err
+		}
+
+		o.fields[k] = v
+	}
+
+	return &prObj{o: o}, nil
 }
 
 func procFunDef(mod *module, n *ndFunDef) (procResult, shibaErr) {

@@ -20,6 +20,14 @@ func newparser(mod *module) *parser {
 	return p
 }
 
+func (p *parser) mark() int {
+	return p.tokenizer.mark()
+}
+
+func (p *parser) reset(m int)  {
+	p.tokenizer.reset(m)
+}
+
 func (p *parser) iscur(t tktype) bool {
 	return p.cur.typ == t
 }
@@ -104,7 +112,7 @@ func (p *parser) stmt() node {
 	}
 
 	if p.iscur(tkStruct) {
-		return p._struct()
+		return p.structdef()
 	}
 
 	if p.iscur(tkReturn) {
@@ -297,9 +305,9 @@ func (p *parser) def() node {
 }
 
 // struct = "struct" ident "{" ident-list? def-list? "}"
-func (p *parser) _struct() node {
+func (p *parser) structdef() node {
 	p.skipnewline()
-	n := &ndStruct{tok: p.cur}
+	n := &ndStructDef{tok: p.cur}
 	p.must(tkStruct)
 	n.name = p.ident()
 	p.must(tkLBrace)
@@ -743,7 +751,7 @@ func (p *parser) postfix() node {
 	return n
 }
 
-// primary = list | dict | "(" expr ")" | str | num | "true" | "false" | ident
+// primary = list | dict | "(" expr ")" | str | num | "true" | "false" | ident | struct_init
 func (p *parser) primary() node {
 	if p.iscur(tkLBracket) {
 		return p.list()
@@ -805,7 +813,32 @@ func (p *parser) primary() node {
 		return n
 	}
 
-	return p.ident()
+	i := p.ident()
+	if !p.iscur(tkLBrace) {
+		return i
+	}
+
+	// struct initialize.
+	// ident{varname: value, ...}
+	// this is parsed as ident + dict
+	if d := p.try(p.dict); d != nil {
+		return &ndStructInit{tok: p.cur, name: i, values: d}
+	}
+
+	return i
+}
+
+func (p *parser) try(f func() node) (n node) {
+	m := p.mark()
+	c := p.cur
+	defer func() {
+		if r := recover(); r != nil {
+			p.reset(m)
+			p.cur = c
+		}
+	}()
+	n = f()
+	return
 }
 
 // list = "[" expr-list? "]"

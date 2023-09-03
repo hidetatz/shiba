@@ -25,6 +25,7 @@ const (
 	tStr
 	tList
 	tDict
+	tStruct
 	tBuiltinFunc
 	tGoStdModFunc
 	tFunc
@@ -47,6 +48,8 @@ func (o objtyp) String() string {
 		return "list"
 	case tDict:
 		return "dict"
+	case tStruct:
+		return "struct"
 	case tBuiltinFunc:
 		return "builtinfunc"
 	case tGoStdModFunc:
@@ -70,7 +73,7 @@ type obj struct {
 	dict  *dict
 	mod   *module
 
-	// builtin/func/gostdmodfunc
+	// builtin/func/gostdmodfunc/struct
 	name string
 
 	// builtin
@@ -83,6 +86,9 @@ type obj struct {
 	fmod   *module
 	params []string
 	body   []node
+
+	// struct
+	fields map[string]*obj
 }
 
 func (o *obj) update(x *obj) {
@@ -100,6 +106,9 @@ func (o *obj) update(x *obj) {
 		o.list = x.list
 	case tDict:
 		o.dict = x.dict
+	case tStruct:
+		o.name = x.name
+		o.fields = x.fields
 	case tBuiltinFunc:
 		o.name = x.name
 		o.bfnbody = x.bfnbody
@@ -135,6 +144,11 @@ func (o *obj) clone() *obj {
 		}
 	case tDict:
 		cloned.dict = o.dict.clone()
+	case tStruct:
+		cloned.name = o.name
+		for k, v := range o.fields {
+			cloned.fields[k] = v.clone()
+		}
 	case tBuiltinFunc:
 		cloned.name = o.name
 		cloned.bfnbody = o.bfnbody
@@ -221,6 +235,23 @@ func (o *obj) equals(x *obj) bool {
 		return o.name == x.name
 	case tGoStdModFunc:
 		return o.name == x.name
+	case tStruct:
+		if o.name != x.name {
+			return false
+		}
+
+		for k, v := range o.fields {
+			v2, ok := x.fields[k]
+			if !ok {
+				return false
+			}
+			if !v.equals(v2) {
+				return false
+			}
+		}
+
+		return true
+
 	default:
 		return o.fmod == x.fmod && o.name == x.name
 	}
@@ -252,6 +283,21 @@ func (o *obj) String() string {
 		return sb.String()
 	case tDict:
 		return o.dict.String()
+	case tStruct:
+		sb := strings.Builder{}
+		sb.WriteString(o.name)
+		sb.WriteString("{")
+		i := 0
+		for k, v := range o.fields {
+			sb.WriteString(k + ":" + v.String())
+			if i < len(o.fields)-1 {
+				sb.WriteString(", ")
+			}
+			i++
+		}
+		sb.WriteString("}")
+
+		return sb.String()
 	case tMod:
 		return o.mod.name
 	case tBuiltinFunc:
