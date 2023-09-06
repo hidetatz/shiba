@@ -22,5 +22,11 @@ struct person{
 p = person{name: "alice", age: 3}
 as("alice", p.name)
 as(3, p.age)
+p.birthday()
+as(4, p.age)
+as("alice", p.getname())
+p.setname("bob")
+as("bob", p.getname())
+as(4, p.age)
 
 print("struct test succeeded")

@@ -29,6 +29,7 @@ const (
 	tBuiltinFunc
 	tGoStdModFunc
 	tFunc
+	tMethod
 	tMod
 )
 
@@ -56,6 +57,8 @@ func (o objtyp) String() string {
 		return "gostdmodfunc"
 	case tFunc:
 		return "func"
+	case tMethod:
+		return "method"
 	case tMod:
 		return "module"
 	}
@@ -82,10 +85,13 @@ type obj struct {
 	// std module implemented in Go
 	gostdmodfunc func(objs ...*obj) (*obj, error)
 
-	// func
+	// func/method
 	fmod   *module
 	params []string
 	body   []node
+
+	// method
+	receiver *obj
 
 	// struct
 	fields map[string]*obj
@@ -159,6 +165,12 @@ func (o *obj) clone() *obj {
 		cloned.fmod = o.fmod
 		cloned.params = o.params
 		cloned.body = o.body
+	case tMethod:
+		cloned.name = o.name
+		cloned.fmod = o.fmod
+		cloned.params = o.params
+		cloned.body = o.body
+		cloned.receiver = o.receiver
 	case tMod:
 		cloned.mod = o.mod
 	default:
@@ -289,6 +301,10 @@ func (o *obj) String() string {
 		sb.WriteString("{")
 		i := 0
 		for k, v := range o.fields {
+			if v.typ == tMethod {
+				i++
+				continue
+			}
 			sb.WriteString(k + ":" + v.String())
 			if i < len(o.fields)-1 {
 				sb.WriteString(", ")

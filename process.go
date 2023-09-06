@@ -489,9 +489,28 @@ func procStructDef(mod *module, n *ndStructDef) (procResult, shibaErr) {
 	}
 
 	for _, fn := range n.fns {
-		if _, err := process(mod, fn); err != nil {
-			return nil, err
+		nfn := fn.(*ndFunDef)
+		params := []string{}
+		for _, p := range nfn.params {
+			i, ok := p.(*ndIdent)
+			if !ok {
+				return nil, &errSimple{
+					msg: fmt.Sprintf("function param %s must be identifier", p),
+					l:   n.token().loc,
+				}
+
+			}
+			params = append(params, i.ident)
 		}
+
+		f := &obj{
+			typ:    tMethod,
+			fmod:   mod,
+			name:   nfn.name,
+			params: params,
+			body:   nfn.blocks,
+		}
+		sd.defs = append(sd.defs, f)
 	}
 
 	env.setstruct(mod, name, sd)
@@ -509,6 +528,12 @@ func procStructInit(mod *module, n *ndStructInit) (procResult, shibaErr) {
 	sd, ok := env.getstruct(mod, name)
 	if !ok {
 		return nil, &errSimple{msg: fmt.Sprintf("struct %s is not defined", name), l: n.token().loc}
+	}
+
+	for _, dsd := range sd.defs {
+		d := dsd.clone()
+		d.receiver = o
+		o.fields[d.name] = d
 	}
 
 	d, ok := n.values.(*ndDict)
@@ -720,7 +745,7 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 		return &prObj{o: o}, nil
 	}
 
-	if fn.typ == tFunc {
+	if fn.typ == tFunc || fn.typ == tMethod {
 		if len(fn.params) != len(args) {
 			return nil, &errSimple{
 				msg: fmt.Sprintf("argument mismatch on %s()", fn.name),
@@ -731,6 +756,12 @@ func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
 		env.createfuncscope(fn.fmod)
 		for i := range fn.params {
 			env.setobj(fn.fmod, fn.params[i], args[i].clone())
+		}
+
+		if fn.typ == tMethod {
+			for k, v := range fn.receiver.fields {
+				env.setobj(fn.fmod, k, v)
+			}
 		}
 
 		for _, block := range fn.body {
