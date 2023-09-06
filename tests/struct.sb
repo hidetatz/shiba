@@ -20,6 +20,7 @@ struct person{
 }
 
 p = person{name: "alice", age: 3}
-print(p)
+as("alice", p.name)
+as(3, p.age)
 
 print("struct test succeeded")

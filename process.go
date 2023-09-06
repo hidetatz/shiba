@@ -656,22 +656,34 @@ func procSelector(mod *module, n *ndSelector) (procResult, shibaErr) {
 		return nil, err
 	}
 
-	// currently selector typ must be mod.
-	// In the future this should support struct/field.
-	if selector.typ != tMod {
-		return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), l: n.token().loc}
+	if selector.typ == tMod {
+		target, err := procAsObj(selector.mod, n.target)
+		if err != nil {
+			return nil, err
+		}
+
+		if target != nil {
+			return &prObj{o: target}, nil
+		}
+
+		return nil, nil
 	}
 
-	target, err := procAsObj(selector.mod, n.target)
-	if err != nil {
-		return nil, err
+	if selector.typ == tStruct {
+		field, ok := n.target.(*ndIdent)
+		if !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("%s must be an identifier", n.target), l: n.token().loc}
+		}
+
+		f, ok := selector.fields[field.ident]
+		if !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("unknown field name %s in %s", field.ident, selector), l: n.token().loc}
+		}
+
+		return &prObj{o: f}, nil
 	}
 
-	if target != nil {
-		return &prObj{o: target}, nil
-	}
-
-	return nil, nil
+	return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), l: n.token().loc}
 }
 
 func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
