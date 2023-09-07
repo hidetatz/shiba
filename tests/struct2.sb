@@ -1,0 +1,13 @@
+import assert
+
+as = assert.assert
+
+import struct1
+
+p = struct1.person{name: "alice", age: 3}
+as("alice", p.name)
+as(3, p.age)
+p.birthday()
+as(4, p.age)
+
+print("struct2 test succeeded")
