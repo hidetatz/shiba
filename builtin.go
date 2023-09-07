@@ -112,4 +112,12 @@ var builtinFns = map[string]*obj{
 			return NIL, nil // unreachable
 		},
 	},
+	"env": &obj{
+		typ:  tBuiltinFunc,
+		name: "env",
+		bfnbody: func(args ...*obj) (*obj, error) {
+			fmt.Fprintln(printer, env)
+			return NIL, nil
+		},
+	},
 }

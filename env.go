@@ -3,12 +3,35 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 var env *environment
 
 type environment struct {
 	modules map[string]*module
+}
+
+func (e *environment) String() string {
+	var sb strings.Builder
+	for name, mod := range e.modules {
+		sb.WriteString(fmt.Sprintf("{\n"))
+		sb.WriteString(fmt.Sprintf("  %s: {\n", name))
+		sb.WriteString(fmt.Sprintf("    global: {\n"))
+		for name, o := range mod.globscope.objs {
+			sb.WriteString(fmt.Sprintf("      %s: %s,\n", name, o))
+		}
+		sb.WriteString(fmt.Sprintf("    }\n"))
+		sb.WriteString(fmt.Sprintf("    structs: {\n"))
+		for name, s := range mod.globscope.structdefs {
+			sb.WriteString(fmt.Sprintf("      %s: %s,\n", name, s))
+		}
+		sb.WriteString(fmt.Sprintf("    }\n"))
+		sb.WriteString(fmt.Sprintf("  }\n"))
+		sb.WriteString(fmt.Sprintf("}\n"))
+	}
+
+	return sb.String()
 }
 
 func (e *environment) register(mod *module) {
