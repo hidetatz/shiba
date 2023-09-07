@@ -696,29 +696,19 @@ func procSelector(mod *module, n *ndSelector) (procResult, shibaErr) {
 
 	if selector.typ == tStruct {
 		field, ok := n.target.(*ndIdent)
-		if ok {
-			f, ok := selector.fields[field.ident]
-			if !ok {
-				return nil, &errSimple{msg: fmt.Sprintf("unknown field name %s in %s", field.ident, selector), l: n.token().loc}
-			}
-
-			return &prObj{o: f}, nil
+		if !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("%s must be an identifier", n.target), l: n.token().loc}
 		}
 
-		funcall, ok := n.target.(*ndFuncall)
-		if ok {
-			// f, ok := selector.fields[field.ident]
-			// if !ok {
-			// 	return nil, &errSimple{msg: fmt.Sprintf("unknown field name %s in %s", field.ident, selector), l: n.token().loc}
-			// }
-
-			// return &prObj{o: f}, nil
+		f, ok := selector.fields[field.ident]
+		if !ok {
+			return nil, &errSimple{msg: fmt.Sprintf("unknown field name %s in %s", field.ident, selector), l: n.token().loc}
 		}
 
-		return nil, &errSimple{msg: fmt.Sprintf("%s must be an field or method", n.target), l: n.token().loc}
+		return &prObj{o: f}, nil
 	}
 
-	return nil, &errSimple{msg: fmt.Sprintf("invalid selector %s", selector), l: n.token().loc}
+	return nil, &errSimple{msg: fmt.Sprintf("selector %s is not a module", selector), l: n.token().loc}
 }
 
 func procFuncall(mod *module, n *ndFuncall) (procResult, shibaErr) {
