@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 type assignOp int
@@ -152,7 +151,7 @@ type ndEof struct {
 
 func (n *ndEof) token() *token { return n.tok }
 func (n *ndEof) String() string {
-	return "<eof>"
+	return "ndEof{}"
 }
 
 type ndComment struct {
@@ -162,7 +161,7 @@ type ndComment struct {
 
 func (n *ndComment) token() *token { return n.tok }
 func (n *ndComment) String() string {
-	return "# " + n.message
+	return fmt.Sprintf("ndComment{message: %s}", n.message)
 }
 
 type ndAssign struct {
@@ -174,7 +173,7 @@ type ndAssign struct {
 
 func (n *ndAssign) token() *token { return n.tok }
 func (n *ndAssign) String() string {
-	return fmt.Sprintf("%s %s %s", n.left, n.op, n.right)
+	return fmt.Sprintf("ndAssign{left: %s, op: %s, right: %s}", nodesToStr(n.left), n.op, nodesToStr(n.right))
 }
 
 type ndIf struct {
@@ -186,22 +185,12 @@ type ndIf struct {
 
 func (n *ndIf) token() *token { return n.tok }
 func (n *ndIf) String() string {
-	sb := strings.Builder{}
-	sb.WriteString("if ")
-	for i := range n.conds {
-		sb.WriteString(n.conds[i].String() + " {")
-		for _, block := range n.blocks[i] {
-			sb.WriteString(block.String())
-			sb.WriteString("; ")
-		}
-		sb.WriteString("} ")
-
-		if i < len(n.conds)-1 {
-			sb.WriteString("elif ")
-		}
+	bs := "["
+	for _, block := range n.blocks {
+		bs += nodesToStr(block) + ","
 	}
-
-	return sb.String()
+	bs += "]"
+	return fmt.Sprintf("ndIf{conds: %s, blocks: %s}", nodesToStr(n.conds), bs)
 }
 
 type ndLoop struct {
@@ -216,7 +205,7 @@ type ndLoop struct {
 
 func (n *ndLoop) token() *token { return n.tok }
 func (n *ndLoop) String() string {
-	return fmt.Sprintf("for %s, %s in %s { ... }", n.cnt, n.elem, n.target)
+	return fmt.Sprintf("ndLoop{target: %s, cnt: %s, elem: %s, blocks: %s}", n.target, n.cnt, n.elem, nodesToStr(n.blocks))
 }
 
 type ndCondLoop struct {
@@ -227,7 +216,7 @@ type ndCondLoop struct {
 
 func (n *ndCondLoop) token() *token { return n.tok }
 func (n *ndCondLoop) String() string {
-	return fmt.Sprintf("for %s { ... }", n.cond)
+	return fmt.Sprintf("ndCondLoop{cond: %s, blocks: %s}", n.cond, nodesToStr(n.blocks))
 }
 
 type ndFunDef struct {
@@ -239,11 +228,7 @@ type ndFunDef struct {
 
 func (n *ndFunDef) token() *token { return n.tok }
 func (n *ndFunDef) String() string {
-	fnargs := []string{}
-	for _, p := range n.params {
-		fnargs = append(fnargs, p.(*ndIdent).ident)
-	}
-	return fmt.Sprintf("def %s(%s)", n.name, strings.Join(fnargs, ", "))
+	return fmt.Sprintf("ndFunDef{name: %s, params: %s, blocks: %s}", n.name, nodesToStr(n.params), nodesToStr(n.blocks))
 }
 
 type ndBinaryOp struct {
@@ -255,7 +240,7 @@ type ndBinaryOp struct {
 
 func (n *ndBinaryOp) token() *token { return n.tok }
 func (n *ndBinaryOp) String() string {
-	return fmt.Sprintf("(%s %s %s)", n.left, n.op, n.right)
+	return fmt.Sprintf("ndBinaryOp{left: %s, op: %s, right: %s}", n.left, n.op, n.right)
 }
 
 type ndUnaryOp struct {
@@ -266,7 +251,7 @@ type ndUnaryOp struct {
 
 func (n *ndUnaryOp) token() *token { return n.tok }
 func (n *ndUnaryOp) String() string {
-	return fmt.Sprintf("%s%s", n.op, n.target)
+	return fmt.Sprintf("ndUnaryOp{op: %s, target: %s}", n.op, n.target)
 }
 
 type ndSelector struct {
@@ -277,7 +262,7 @@ type ndSelector struct {
 
 func (n *ndSelector) token() *token { return n.tok }
 func (n *ndSelector) String() string {
-	return fmt.Sprintf("%s.%s", n.selector, n.target)
+	return fmt.Sprintf("ndSelector{selector: %s, target: %s}", n.selector, n.target)
 }
 
 type ndIndex struct {
@@ -288,7 +273,7 @@ type ndIndex struct {
 
 func (n *ndIndex) token() *token { return n.tok }
 func (n *ndIndex) String() string {
-	return fmt.Sprintf("%s[%s]", n.target, n.idx)
+	return fmt.Sprintf("ndIndex{idx: %s, target: %s}", n.idx, n.target)
 }
 
 type ndSlice struct {
@@ -300,7 +285,7 @@ type ndSlice struct {
 
 func (n *ndSlice) token() *token { return n.tok }
 func (n *ndSlice) String() string {
-	return fmt.Sprintf("%s[%s:%s]", n.target, n.start, n.end)
+	return fmt.Sprintf("ndSlice{start: %s, end: %s, target: %s}", n.start, n.end, n.target)
 }
 
 type ndFuncall struct {
@@ -311,7 +296,7 @@ type ndFuncall struct {
 
 func (n *ndFuncall) token() *token { return n.tok }
 func (n *ndFuncall) String() string {
-	return fmt.Sprintf("%s(...)", n.fn)
+	return fmt.Sprintf("ndFuncall{fn: %s, args: %s}", n.fn, nodesToStr(n.args))
 }
 
 type ndIdent struct {
@@ -321,7 +306,8 @@ type ndIdent struct {
 
 func (n *ndIdent) token() *token { return n.tok }
 func (n *ndIdent) String() string {
-	return n.ident + "(ident)"
+	return n.ident
+	return fmt.Sprintf("ndIdent{ident: %s}", n.ident)
 }
 
 type ndStr struct {
@@ -331,7 +317,7 @@ type ndStr struct {
 
 func (n *ndStr) token() *token { return n.tok }
 func (n *ndStr) String() string {
-	return "\"" + n.val + "(str)\""
+	return fmt.Sprintf("ndStr{val: %s}", n.val)
 }
 
 type ndI64 struct {
@@ -341,7 +327,7 @@ type ndI64 struct {
 
 func (n *ndI64) token() *token { return n.tok }
 func (n *ndI64) String() string {
-	return fmt.Sprintf("%d(i64)", n.val)
+	return fmt.Sprintf("ndI64{val: %d}", n.val)
 }
 
 type ndF64 struct {
@@ -351,7 +337,7 @@ type ndF64 struct {
 
 func (n *ndF64) token() *token { return n.tok }
 func (n *ndF64) String() string {
-	return fmt.Sprintf("%f(f64)", n.val)
+	return fmt.Sprintf("ndF64{val: %f}", n.val)
 }
 
 type ndBool struct {
@@ -361,7 +347,7 @@ type ndBool struct {
 
 func (n *ndBool) token() *token { return n.tok }
 func (n *ndBool) String() string {
-	return fmt.Sprintf("%t(bool)", n.val)
+	return fmt.Sprintf("ndBool{val: %t}", n.val)
 }
 
 type ndList struct {
@@ -371,17 +357,7 @@ type ndList struct {
 
 func (n *ndList) token() *token { return n.tok }
 func (n *ndList) String() string {
-	sb := strings.Builder{}
-	sb.WriteString("[")
-	for i, val := range n.vals {
-		sb.WriteString(val.String())
-		if i < len(n.vals)-1 {
-			sb.WriteString(", ")
-		}
-	}
-	sb.WriteString("]")
-
-	return sb.String()
+	return fmt.Sprintf("ndList{vals: %s}", nodesToStr(n.vals))
 }
 
 type ndDict struct {
@@ -392,19 +368,7 @@ type ndDict struct {
 
 func (n *ndDict) token() *token { return n.tok }
 func (n *ndDict) String() string {
-	sb := strings.Builder{}
-	sb.WriteString("{")
-	for i := range n.keys {
-		sb.WriteString(n.keys[i].String())
-		sb.WriteString(":")
-		sb.WriteString(n.vals[i].String())
-		if i < len(n.keys)-1 {
-			sb.WriteString(", ")
-		}
-	}
-	sb.WriteString("}")
-
-	return sb.String()
+	return fmt.Sprintf("ndDict{keys: %s, vals: %s}", nodesToStr(n.keys), nodesToStr(n.vals))
 }
 
 type ndStructDef struct {
@@ -416,20 +380,7 @@ type ndStructDef struct {
 
 func (n *ndStructDef) token() *token { return n.tok }
 func (n *ndStructDef) String() string {
-	sb := strings.Builder{}
-	sb.WriteString("struct ")
-	sb.WriteString(n.name.String())
-	sb.WriteString("{\n")
-	for i := range n.vars {
-		sb.WriteString("    " + n.vars[i].String() + "\n")
-	}
-	sb.WriteString("---\n")
-	for i := range n.fns {
-		sb.WriteString("    " + n.fns[i].String() + "\n")
-	}
-	sb.WriteString("}")
-
-	return sb.String()
+	return fmt.Sprintf("ndStructDef{name: %s, vars: %s, fns: %s}", n.name, nodesToStr(n.vars), nodesToStr(n.fns))
 }
 
 type ndStructInit struct {
@@ -440,13 +391,7 @@ type ndStructInit struct {
 
 func (n *ndStructInit) token() *token { return n.tok }
 func (n *ndStructInit) String() string {
-	sb := strings.Builder{}
-	sb.WriteString(n.name.String())
-	sb.WriteString(" {\n")
-	sb.WriteString("    " + n.values.String() + "\n")
-	sb.WriteString("}")
-
-	return sb.String()
+	return fmt.Sprintf("ndStructInit{name: %s, values: %s}", n.name, n.values)
 }
 
 type ndContinue struct {
@@ -455,7 +400,7 @@ type ndContinue struct {
 
 func (n *ndContinue) token() *token { return n.tok }
 func (n *ndContinue) String() string {
-	return "continue"
+	return "ndContinue{}"
 }
 
 type ndBreak struct {
@@ -464,7 +409,7 @@ type ndBreak struct {
 
 func (n *ndBreak) token() *token { return n.tok }
 func (n *ndBreak) String() string {
-	return "break"
+	return "ndBreak{}"
 }
 
 type ndReturn struct {
@@ -474,7 +419,7 @@ type ndReturn struct {
 
 func (n *ndReturn) token() *token { return n.tok }
 func (n *ndReturn) String() string {
-	return "return" + n.val.String()
+	return fmt.Sprintf("ndReturn{val: %s}", n.val)
 }
 
 type ndImport struct {
@@ -484,7 +429,7 @@ type ndImport struct {
 
 func (n *ndImport) token() *token { return n.tok }
 func (n *ndImport) String() string {
-	return "import " + n.target
+	return fmt.Sprintf("ndImport{target: %s}", n.target)
 }
 
 func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
@@ -493,4 +438,17 @@ func newbinaryop(tok *token, op binaryOp) *ndBinaryOp {
 
 func newunaryop(tok *token, op unaryOp) *ndUnaryOp {
 	return &ndUnaryOp{op: op, tok: tok}
+}
+
+func nodesToStr(nodes []node) string {
+	s := "["
+	for i, n := range nodes {
+		s += n.String()
+		if i < len(nodes) - 1 {
+			s += ", "
+		}
+	}
+	s += "]"
+
+	return s
 }
