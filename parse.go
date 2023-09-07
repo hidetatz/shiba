@@ -697,7 +697,7 @@ func (p *parser) postfix() node {
 			p.proceed()
 			p.skipnewline()
 			n2.selector = n
-			n2.target = p.ident()
+			n2.target = p.expr()
 			n = n2
 			continue
 		}
