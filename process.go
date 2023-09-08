@@ -341,6 +341,7 @@ func procMultipleAssign(mod *module, n *ndAssign) (procResult, shibaErr) {
 
 func procIf(mod *module, n *ndIf) (procResult, shibaErr) {
 	env.createblockscope(mod)
+	defer env.delblockscope(mod)
 
 	for i := range n.conds {
 		cond, err := procAsObj(mod, n.conds[i])
@@ -360,17 +361,14 @@ func procIf(mod *module, n *ndIf) (procResult, shibaErr) {
 			}
 
 			if _, ok := pr.(*prReturn); ok {
-				env.delblockscope(mod)
 				return pr, nil
 			}
 
 			if _, ok := pr.(*prBreak); ok {
-				env.delblockscope(mod)
 				return pr, nil
 			}
 
 			if _, ok := pr.(*prContinue); ok {
-				env.delblockscope(mod)
 				return pr, nil
 			}
 		}
@@ -378,12 +376,12 @@ func procIf(mod *module, n *ndIf) (procResult, shibaErr) {
 		break
 	}
 
-	env.delblockscope(mod)
 	return nil, nil
 }
 
 func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 	env.createblockscope(mod)
+	defer env.delblockscope(mod)
 
 	if _, ok := n.cnt.(*ndIdent); !ok {
 		return nil, &errSimple{msg: fmt.Sprintf("invalid counter %s in loop", n.cnt), l: n.token().loc}
@@ -415,13 +413,11 @@ func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 			}
 
 			if _, ok := pr.(*prReturn); ok {
-				env.delblockscope(mod)
 				return pr, nil
 			}
 
 			if _, ok := pr.(*prBreak); ok {
 				// when break, exit loop itself
-				env.delblockscope(mod)
 				return nil, nil
 			}
 
@@ -432,7 +428,6 @@ func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 		}
 	}
 
-	env.delblockscope(mod)
 	return nil, nil
 }
 
