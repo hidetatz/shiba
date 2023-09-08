@@ -29,4 +29,4 @@ p.setname("bob")
 as("bob", p.getname())
 as(4, p.age)
 
-print("struct test succeeded")
+print("struct1 test succeeded")
