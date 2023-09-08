@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-// target a filename such as xxx/yyy.sb
+// target is a filename such as xxx/yyy.sb
 func interpret(target string) int {
 	printer = os.Stdout
 
