@@ -306,7 +306,6 @@ type ndIdent struct {
 
 func (n *ndIdent) token() *token { return n.tok }
 func (n *ndIdent) String() string {
-	return n.ident
 	return fmt.Sprintf("ndIdent{ident: %s}", n.ident)
 }
 
