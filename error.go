@@ -7,6 +7,18 @@ type shibaErr interface {
 	loc() *loc
 }
 
+func newsberr(n node, format string, args ...any) shibaErr {
+	return &sberr{l: n.token().loc, msg: fmt.Sprintf(format, args...)}
+}
+
+type sberr struct {
+	l   *loc
+	msg string
+}
+
+func (e *sberr) loc() *loc     { return e.l }
+func (e *sberr) Error() string { return e.msg }
+
 type errSimple struct {
 	l   *loc
 	msg string
