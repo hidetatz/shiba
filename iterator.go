@@ -2,6 +2,8 @@ package main
 
 import "container/list"
 
+// iterator is an object which has multiple values
+// which can be looped over them.
 type iterator interface {
 	size() int
 	hasnext() bool
