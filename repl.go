@@ -87,7 +87,7 @@ func repl() int {
 				// do nothing
 
 			default:
-				termprintln(t, fmt.Sprintf("invalid %s in outside function", result.typ()))
+				termprintln(t, fmt.Sprintf("invalid %s in outside function", result))
 			}
 		}
 

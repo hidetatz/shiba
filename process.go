@@ -4,6 +4,20 @@ import (
 	"path/filepath"
 )
 
+func procAsObj(mod *module, n node) (*obj, shibaErr) {
+	pr, err := process(mod, n)
+	if err != nil {
+		return nil, err
+	}
+
+	o, ok := pr.(*prObj)
+	if !ok {
+		return nil, newsberr(n, "%s is not object", n)
+	}
+
+	return o.o, nil
+}
+
 func process(mod *module, nd node) (procResult, shibaErr) {
 	switch n := nd.(type) {
 	case *ndEof:

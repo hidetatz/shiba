@@ -59,7 +59,7 @@ func runmod(mod *module) shibaErr {
 			goto finish
 
 		default:
-			return newsberr(stmt, "invalid %s in outside function", result.typ())
+			return newsberr(stmt, "invalid %s in outside function", result)
 		}
 	}
 
