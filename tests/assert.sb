@@ -1,4 +1,4 @@
-def assert(expected, actual) {
+def Assert(expected, actual) {
     if expected != actual {
         print("test failed. expected: ", expected, ", actual: " , actual)
         exit(1)

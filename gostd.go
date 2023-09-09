@@ -23,14 +23,14 @@ func (g *gostdmodules) objs(modname string) ([]*gostdmodobj, bool) {
 var gostdmods = &gostdmodules{mods: map[string][]*gostdmodobj{
 	"math": {
 		{
-			"pi",
+			"Pi",
 			&obj{
 				typ:  tF64,
 				fval: math.Pi,
 			},
 		},
 		{
-			"add",
+			"Add",
 			&obj{
 				typ: tGoStdModFunc,
 				gostdmodfunc: func(objs ...*obj) (*obj, error) {

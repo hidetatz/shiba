@@ -580,7 +580,7 @@ func TestOutput(t *testing.T) {
 
 				a = 1
 
-				print(import1_2.b(a))
+				print(import1_2.B(a))
 			`),
 			additionalfiles: map[string]string{
 				"import1_2": d(`
@@ -588,12 +588,12 @@ func TestOutput(t *testing.T) {
 
 					a = 2
 
-					def b(x) {
-						return import1_3.a + a + x
+					def B(x) {
+						return import1_3.A + a + x
 					}
 				`),
 				"import1_3": d(`
-					a = 3
+					A = 3
 				`),
 			},
 			out: d(`

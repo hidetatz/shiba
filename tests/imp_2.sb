@@ -1,7 +1,7 @@
 import imp_sub/imp_3
 
-v = 3
+V = 3
 
-def h() {
-    return imp_3.h()
+def H() {
+    return imp_3.H()
 }

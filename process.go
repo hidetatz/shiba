@@ -600,6 +600,10 @@ func procSlice(mod *module, n *ndSlice) (procResult, shibaErr) {
 }
 
 func procSelector(mod *module, n *ndSelector) (procResult, shibaErr) {
+	if !n.target.isexported() {
+		return nil, newsberr(n, "%s is unexported", n.target)
+	}
+
 	selector, err := procAsObj(mod, n.selector)
 	if err != nil {
 		return nil, err

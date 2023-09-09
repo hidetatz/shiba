@@ -1,6 +1,6 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
 as(6, 4 + 2)
 

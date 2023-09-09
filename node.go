@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"unicode"
 )
 
 type assignOp int
@@ -142,6 +143,7 @@ const (
 
 type node interface {
 	token() *token
+	isexported() bool
 	fmt.Stringer
 }
 
@@ -150,6 +152,7 @@ type ndEof struct {
 }
 
 func (n *ndEof) token() *token { return n.tok }
+func (n *ndEof) isexported() bool { return false }
 func (n *ndEof) String() string {
 	return "ndEof{}"
 }
@@ -160,6 +163,7 @@ type ndComment struct {
 }
 
 func (n *ndComment) token() *token { return n.tok }
+func (n *ndComment) isexported() bool { return false }
 func (n *ndComment) String() string {
 	return fmt.Sprintf("ndComment{message: %s}", n.message)
 }
@@ -172,6 +176,7 @@ type ndAssign struct {
 }
 
 func (n *ndAssign) token() *token { return n.tok }
+func (n *ndAssign) isexported() bool { return false }
 func (n *ndAssign) String() string {
 	return fmt.Sprintf("ndAssign{left: %s, op: %s, right: %s}", nodesToStr(n.left), n.op, nodesToStr(n.right))
 }
@@ -184,6 +189,7 @@ type ndIf struct {
 }
 
 func (n *ndIf) token() *token { return n.tok }
+func (n *ndIf) isexported() bool { return false }
 func (n *ndIf) String() string {
 	bs := "["
 	for _, block := range n.blocks {
@@ -204,6 +210,7 @@ type ndLoop struct {
 }
 
 func (n *ndLoop) token() *token { return n.tok }
+func (n *ndLoop) isexported() bool { return false }
 func (n *ndLoop) String() string {
 	return fmt.Sprintf("ndLoop{target: %s, cnt: %s, elem: %s, blocks: %s}", n.target, n.cnt, n.elem, nodesToStr(n.blocks))
 }
@@ -215,6 +222,7 @@ type ndCondLoop struct {
 }
 
 func (n *ndCondLoop) token() *token { return n.tok }
+func (n *ndCondLoop) isexported() bool { return false }
 func (n *ndCondLoop) String() string {
 	return fmt.Sprintf("ndCondLoop{cond: %s, blocks: %s}", n.cond, nodesToStr(n.blocks))
 }
@@ -227,6 +235,7 @@ type ndFunDef struct {
 }
 
 func (n *ndFunDef) token() *token { return n.tok }
+func (n *ndFunDef) isexported() bool { return isexported(n.name) }
 func (n *ndFunDef) String() string {
 	return fmt.Sprintf("ndFunDef{name: %s, params: %s, blocks: %s}", n.name, nodesToStr(n.params), nodesToStr(n.blocks))
 }
@@ -239,6 +248,7 @@ type ndBinaryOp struct {
 }
 
 func (n *ndBinaryOp) token() *token { return n.tok }
+func (n *ndBinaryOp) isexported() bool { return false }
 func (n *ndBinaryOp) String() string {
 	return fmt.Sprintf("ndBinaryOp{left: %s, op: %s, right: %s}", n.left, n.op, n.right)
 }
@@ -250,6 +260,7 @@ type ndUnaryOp struct {
 }
 
 func (n *ndUnaryOp) token() *token { return n.tok }
+func (n *ndUnaryOp) isexported() bool { return false }
 func (n *ndUnaryOp) String() string {
 	return fmt.Sprintf("ndUnaryOp{op: %s, target: %s}", n.op, n.target)
 }
@@ -261,6 +272,7 @@ type ndSelector struct {
 }
 
 func (n *ndSelector) token() *token { return n.tok }
+func (n *ndSelector) isexported() bool { return n.target.isexported() }
 func (n *ndSelector) String() string {
 	return fmt.Sprintf("ndSelector{selector: %s, target: %s}", n.selector, n.target)
 }
@@ -272,6 +284,7 @@ type ndIndex struct {
 }
 
 func (n *ndIndex) token() *token { return n.tok }
+func (n *ndIndex) isexported() bool { return n.target.isexported() }
 func (n *ndIndex) String() string {
 	return fmt.Sprintf("ndIndex{idx: %s, target: %s}", n.idx, n.target)
 }
@@ -284,6 +297,7 @@ type ndSlice struct {
 }
 
 func (n *ndSlice) token() *token { return n.tok }
+func (n *ndSlice) isexported() bool { return n.target.isexported() }
 func (n *ndSlice) String() string {
 	return fmt.Sprintf("ndSlice{start: %s, end: %s, target: %s}", n.start, n.end, n.target)
 }
@@ -295,6 +309,7 @@ type ndFuncall struct {
 }
 
 func (n *ndFuncall) token() *token { return n.tok }
+func (n *ndFuncall) isexported() bool { return n.fn.isexported() }
 func (n *ndFuncall) String() string {
 	return fmt.Sprintf("ndFuncall{fn: %s, args: %s}", n.fn, nodesToStr(n.args))
 }
@@ -305,6 +320,7 @@ type ndIdent struct {
 }
 
 func (n *ndIdent) token() *token { return n.tok }
+func (n *ndIdent) isexported() bool { return isexported(n.ident) }
 func (n *ndIdent) String() string {
 	return fmt.Sprintf("ndIdent{ident: %s}", n.ident)
 }
@@ -315,6 +331,7 @@ type ndStr struct {
 }
 
 func (n *ndStr) token() *token { return n.tok }
+func (n *ndStr) isexported() bool { return true }
 func (n *ndStr) String() string {
 	return fmt.Sprintf("ndStr{val: %s}", n.val)
 }
@@ -325,6 +342,7 @@ type ndI64 struct {
 }
 
 func (n *ndI64) token() *token { return n.tok }
+func (n *ndI64) isexported() bool { return true }
 func (n *ndI64) String() string {
 	return fmt.Sprintf("ndI64{val: %d}", n.val)
 }
@@ -335,6 +353,7 @@ type ndF64 struct {
 }
 
 func (n *ndF64) token() *token { return n.tok }
+func (n *ndF64) isexported() bool { return true }
 func (n *ndF64) String() string {
 	return fmt.Sprintf("ndF64{val: %f}", n.val)
 }
@@ -345,6 +364,7 @@ type ndBool struct {
 }
 
 func (n *ndBool) token() *token { return n.tok }
+func (n *ndBool) isexported() bool { return true }
 func (n *ndBool) String() string {
 	return fmt.Sprintf("ndBool{val: %t}", n.val)
 }
@@ -355,6 +375,7 @@ type ndList struct {
 }
 
 func (n *ndList) token() *token { return n.tok }
+func (n *ndList) isexported() bool { return true }
 func (n *ndList) String() string {
 	return fmt.Sprintf("ndList{vals: %s}", nodesToStr(n.vals))
 }
@@ -366,6 +387,7 @@ type ndDict struct {
 }
 
 func (n *ndDict) token() *token { return n.tok }
+func (n *ndDict) isexported() bool { return true }
 func (n *ndDict) String() string {
 	return fmt.Sprintf("ndDict{keys: %s, vals: %s}", nodesToStr(n.keys), nodesToStr(n.vals))
 }
@@ -378,6 +400,7 @@ type ndStructDef struct {
 }
 
 func (n *ndStructDef) token() *token { return n.tok }
+func (n *ndStructDef) isexported() bool { return n.name.isexported() }
 func (n *ndStructDef) String() string {
 	return fmt.Sprintf("ndStructDef{name: %s, vars: %s, fns: %s}", n.name, nodesToStr(n.vars), nodesToStr(n.fns))
 }
@@ -389,6 +412,7 @@ type ndStructInit struct {
 }
 
 func (n *ndStructInit) token() *token { return n.tok }
+func (n *ndStructInit) isexported() bool { return n.name.isexported() }
 func (n *ndStructInit) String() string {
 	return fmt.Sprintf("ndStructInit{name: %s, values: %s}", n.name, n.values)
 }
@@ -398,6 +422,7 @@ type ndContinue struct {
 }
 
 func (n *ndContinue) token() *token { return n.tok }
+func (n *ndContinue) isexported() bool { return false }
 func (n *ndContinue) String() string {
 	return "ndContinue{}"
 }
@@ -407,6 +432,7 @@ type ndBreak struct {
 }
 
 func (n *ndBreak) token() *token { return n.tok }
+func (n *ndBreak) isexported() bool { return false }
 func (n *ndBreak) String() string {
 	return "ndBreak{}"
 }
@@ -417,6 +443,7 @@ type ndReturn struct {
 }
 
 func (n *ndReturn) token() *token { return n.tok }
+func (n *ndReturn) isexported() bool { return false }
 func (n *ndReturn) String() string {
 	return fmt.Sprintf("ndReturn{val: %s}", n.val)
 }
@@ -427,6 +454,7 @@ type ndImport struct {
 }
 
 func (n *ndImport) token() *token { return n.tok }
+func (n *ndImport) isexported() bool { return false }
 func (n *ndImport) String() string {
 	return fmt.Sprintf("ndImport{target: %s}", n.target)
 }
@@ -450,4 +478,8 @@ func nodesToStr(nodes []node) string {
 	s += "]"
 
 	return s
+}
+
+func isexported(s string) bool {
+	return unicode.IsUpper(rune(s[0]))
 }

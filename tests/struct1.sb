@@ -1,32 +1,32 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
-struct person{
-    name
-    age
+struct Person{
+    Name
+    Age
 
-    def birthday() {
-        age += 1
+    def Birthday() {
+        Age += 1
     }
 
-    def setname(n) {
-        name = n
+    def Setname(n) {
+        Name = n
     }
 
-    def getname() {
-        return name
+    def Getname() {
+        return Name
     }
 }
 
-p = person{name: "alice", age: 3}
-as("alice", p.name)
-as(3, p.age)
-p.birthday()
-as(4, p.age)
-as("alice", p.getname())
-p.setname("bob")
-as("bob", p.getname())
-as(4, p.age)
+p = Person{Name: "alice", Age: 3}
+as("alice", p.Name)
+as(3, p.Age)
+p.Birthday()
+as(4, p.Age)
+as("alice", p.Getname())
+p.Setname("bob")
+as("bob", p.Getname())
+as(4, p.Age)
 
 print("struct1 test succeeded")

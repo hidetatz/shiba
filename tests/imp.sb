@@ -1,15 +1,15 @@
 import imp_2
 
-v = 1
+V = 1
 
-def f() {
+def F() {
     return 2
 }
 
-def g() {
-    return imp_2.v
+def G() {
+    return imp_2.V
 }
 
-def h() {
-    return imp_2.h()
+def H() {
+    return imp_2.H()
 }

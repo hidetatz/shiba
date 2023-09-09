@@ -1,6 +1,6 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
 def f(a, b) {
     as(1, a)

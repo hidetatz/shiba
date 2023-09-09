@@ -1,6 +1,6 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
 as("ab", "a" + "b")
 as("aaa", "a" * 3)

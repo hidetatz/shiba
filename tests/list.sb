@@ -1,6 +1,6 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
 as([1, 2], [1] + [2])
 as([1, 1], [1] * 2)

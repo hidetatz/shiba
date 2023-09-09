@@ -1,11 +1,11 @@
 import ../assert
 
-as = assert.assert
+as = assert.Assert
 
 # os is defined in stdmod, but
 # the ./os.sb is read
 import os
 
-as(1, os.v)
+as(1, os.V)
 
 print("import_order test succeeded")

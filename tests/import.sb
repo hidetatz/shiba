@@ -1,14 +1,14 @@
 import assert
 
-as = assert.assert
+as = assert.Assert
 
 v = 100
 
 import imp
 
-as(1, imp.v)
-as(2, imp.f())
-as(3, imp.g())
-as(4, imp.h())
+as(1, imp.V)
+as(2, imp.F())
+as(3, imp.G())
+as(4, imp.H())
 
 print("import test succeeded")
