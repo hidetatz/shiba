@@ -1,5 +1,7 @@
 package main
 
+// sequence is an object which contains multiple values,
+// which have explicit order, can be accessed by index.
 type sequence interface {
 	size() int
 	index(idx int) *obj
