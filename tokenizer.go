@@ -1,5 +1,6 @@
 package main
 
+// tokenizer reads and manages tokens read by tokenreader.
 type tokenizer struct {
 	tr     *tokenreader
 	tokens []*token
@@ -8,14 +9,6 @@ type tokenizer struct {
 
 func newtokenizer(mod *module) *tokenizer {
 	return &tokenizer{tr: newtokenreader(mod)}
-}
-
-func (t *tokenizer) mark() int {
-	return t.pos
-}
-
-func (t *tokenizer) reset(pos int) {
-	t.pos = pos
 }
 
 func (t *tokenizer) gettoken() (*token, error) {
@@ -39,4 +32,12 @@ func (t *tokenizer) peektoken() (*token, error) {
 	}
 
 	return t.tokens[t.pos], nil
+}
+
+func (t *tokenizer) mark() int {
+	return t.pos
+}
+
+func (t *tokenizer) reset(pos int) {
+	t.pos = pos
 }
