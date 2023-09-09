@@ -1,11 +1,11 @@
-def chmod(filepath) {
+def Chmod(filepath) {
     sys_chmod = 90
     mode = 511 # 0777
     r1, r2, errno := syscall(sys_chmod, filepath, mode, 0)
     return errno
 }
 
-def open(filepath) {
+def Open(filepath) {
     sys_open = 2
     flag = 0
     mode = 511 # 0777
@@ -14,7 +14,7 @@ def open(filepath) {
     return [fd, errno]
 }
 
-def read(fd, count) {
+def Read(fd, count) {
     sys_read = 0
     buf = " " * count
     

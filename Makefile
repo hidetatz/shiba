@@ -1,8 +1,9 @@
 BIN = shiba
 
 SRCS = $(shell find . -type f -name '*.go' -print)
+STDSRCS = $(shell find ./std -type f -name '*.sb' -print)
 
-$(BIN): $(SRCS) go.mod go.sum
+$(BIN): $(SRCS) $(STDSRCS) go.mod go.sum
 	go mod tidy
 	go build -o $(BIN) $(SRCS)
 
