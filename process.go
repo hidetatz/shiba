@@ -791,14 +791,10 @@ func procImport(mod *module, n *ndImport) (procResult, shibaErr) {
 		// if err, try to import std module
 		m, err = newstdmodule(n.target)
 		if err != nil {
-			// if still err, try to import gostd module
-			objs, ok := gostdmods.objs(n.target)
-			if !ok {
-				return nil, newsberr(n, "cannot import %s: %s", n.target, err)
-			}
-			m, err = newgostdmodule(n.target, objs)
+			// if still error, try to import gostd module
+			m, err = newgostdmodule(n.target)
 			if err != nil {
-				return nil, newsberr(n, "cannot import %s: %s", n.target, err)
+				return nil, newsberr(n, "module %s undefined", n.target)
 			}
 		}
 	}
