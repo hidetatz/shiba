@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 )
 
@@ -60,7 +59,7 @@ func runmod(mod *module) shibaErr {
 			goto finish
 
 		default:
-			return &errSimple{msg: fmt.Sprintf("invalid %s in outside function", result.typ()), l: stmt.token().loc}
+			return newsberr(stmt, "invalid %s in outside function", result.typ())
 		}
 	}
 

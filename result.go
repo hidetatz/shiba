@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 type procResult interface {
 	typ() string
 }
@@ -42,7 +40,7 @@ func procAsObj(mod *module, n node) (*obj, shibaErr) {
 
 	o, ok := pr.(*prObj)
 	if !ok {
-		return nil, &errSimple{msg: fmt.Sprintf("%s is not object", n), l: n.token().loc}
+		return nil, newsberr(n, "%s is not object", n)
 	}
 
 	return o.o, nil

@@ -72,7 +72,7 @@ func (t *tokenreader) readtoken() (*token, error) {
 		return tk, nil
 	}
 
-	return nil, &errTokenize{msg: "invalid token", l: loc}
+	return nil, newsberr2(loc, "invalid token")
 }
 
 func (t *tokenreader) readstring() (*token, error) {
@@ -83,7 +83,7 @@ func (t *tokenreader) readstring() (*token, error) {
 	// todo: handle intermediate quote
 	for {
 		if !t.hasnext() {
-			return nil, &errTokenize{msg: "string unterminated", l: loc}
+			return nil, newsberr2(loc, "string unterminated")
 		}
 
 		c := t.cur()
@@ -118,7 +118,7 @@ func (t *tokenreader) readnum() (*token, error) {
 
 	dots := strings.Count(s, ".")
 	if dots >= 2 {
-		return nil, &errTokenize{msg: "invalid decimal expression", l: loc}
+		return nil, newsberr2(loc, "invalid decimal expression")
 	}
 
 	return t.newtoken(tkNum, s, loc), nil

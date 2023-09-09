@@ -334,7 +334,7 @@ func TestOutput(t *testing.T) {
 			`),
 			out: d(`
 				1
-				$$filename:5:7 identifier a is undefined
+				$$filename:5:7 a is undefined
 			`),
 		},
 		"scope2": {
@@ -353,7 +353,7 @@ func TestOutput(t *testing.T) {
 				2
 				2
 				3
-				$$filename:5:7 identifier i is undefined
+				$$filename:5:7 i is undefined
 			`),
 		},
 		"scope3": {
@@ -393,7 +393,7 @@ func TestOutput(t *testing.T) {
 				}
 			`),
 			out: d(`
-				$$filename:2:8 identifier a is undefined
+				$$filename:2:8 a is undefined
 			`),
 		},
 		"scope5": {
