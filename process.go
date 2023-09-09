@@ -372,6 +372,7 @@ func procLoop(mod *module, n *ndLoop) (procResult, shibaErr) {
 
 func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
 	env.createblockscope(mod)
+	defer env.delblockscope(mod)
 
 	cond, err := procAsObj(mod, n.cond)
 	if err != nil {
@@ -386,13 +387,11 @@ func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
 			}
 
 			if _, ok := pr.(*prReturn); ok {
-				env.delblockscope(mod)
 				return pr, nil
 			}
 
 			if _, ok := pr.(*prBreak); ok {
 				// when break, exit loop itself
-				env.delblockscope(mod)
 				return nil, nil
 			}
 
@@ -403,7 +402,6 @@ func procCondLoop(mod *module, n *ndCondLoop) (procResult, shibaErr) {
 		}
 	}
 
-	env.delblockscope(mod)
 	return nil, nil
 }
 
