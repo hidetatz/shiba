@@ -1,0 +1,9 @@
+import assert
+
+as = assert.assert
+
+import math
+as(6, math.add(4, 2))
+as(3.14159265358979323846264338327950288419716939937510582097494459, math.pi)
+
+print("gostd test succeeded")

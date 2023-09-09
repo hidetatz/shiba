@@ -43,7 +43,6 @@ func run(args []string) int {
 	}
 
 	env = &environment{modules: map[string]*module{}}
-	initGoStdMod()
 
 	if len(args) <= 1 {
 		return repl()

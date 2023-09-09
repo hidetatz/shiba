@@ -22,9 +22,9 @@ func interpret(target string) int {
 		} else {
 			werr("%s", err)
 		}
-		// todo: code should be extracted from err
 		return 1
 	}
+
 	return 0
 }
 
