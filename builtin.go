@@ -12,20 +12,27 @@ import (
 var printer io.Writer
 
 var builtinFns = map[string]*obj{
-	"print": &obj{
+	"env": &obj{
 		typ:  tBuiltinFunc,
-		name: "print",
+		name: "env",
 		bfnbody: func(args ...*obj) (*obj, error) {
-			for i, arg := range args {
-				fmt.Fprint(printer, arg)
-				if i != len(args)-1 {
-					fmt.Fprint(printer, " ")
-				}
+			fmt.Fprintln(printer, env)
+			return NIL, nil
+		},
+	},
+	"exit": &obj{
+		typ:  tBuiltinFunc,
+		name: "exit",
+		bfnbody: func(args ...*obj) (*obj, error) {
+			if len(args) != 1 {
+				return NIL, fmt.Errorf("argument mismatch to exit(): 1 args required")
+			}
+			if args[0].typ != tI64 {
+				return NIL, fmt.Errorf("exit() arg must be i64")
 			}
 
-			fmt.Fprintln(printer)
-
-			return NIL, nil
+			os.Exit(int(args[0].ival))
+			return NIL, nil // unreachable
 		},
 	},
 	"len": &obj{
@@ -42,6 +49,22 @@ var builtinFns = map[string]*obj{
 			}
 
 			return &obj{typ: tI64, ival: int64(target.iterator().size())}, nil
+		},
+	},
+	"print": &obj{
+		typ:  tBuiltinFunc,
+		name: "print",
+		bfnbody: func(args ...*obj) (*obj, error) {
+			for i, arg := range args {
+				fmt.Fprint(printer, arg)
+				if i != len(args)-1 {
+					fmt.Fprint(printer, " ")
+				}
+			}
+
+			fmt.Fprintln(printer)
+
+			return NIL, nil
 		},
 	},
 	"syscall": &obj{
@@ -95,29 +118,6 @@ var builtinFns = map[string]*obj{
 				{typ: tI64, ival: int64(r2)},
 				{typ: tI64, ival: int64(errno)},
 			}}, nil
-		},
-	},
-	"exit": &obj{
-		typ:  tBuiltinFunc,
-		name: "exit",
-		bfnbody: func(args ...*obj) (*obj, error) {
-			if len(args) != 1 {
-				return NIL, fmt.Errorf("argument mismatch to exit(): 1 args required")
-			}
-			if args[0].typ != tI64 {
-				return NIL, fmt.Errorf("exit() arg must be i64")
-			}
-
-			os.Exit(int(args[0].ival))
-			return NIL, nil // unreachable
-		},
-	},
-	"env": &obj{
-		typ:  tBuiltinFunc,
-		name: "env",
-		bfnbody: func(args ...*obj) (*obj, error) {
-			fmt.Fprintln(printer, env)
-			return NIL, nil
 		},
 	},
 }
