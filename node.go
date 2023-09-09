@@ -383,8 +383,8 @@ func (n *ndStructDef) String() string {
 }
 
 type ndStructInit struct {
-	tok  *token
-	name node
+	tok    *token
+	name   node
 	values node // ndDict
 }
 
@@ -443,7 +443,7 @@ func nodesToStr(nodes []node) string {
 	s := "["
 	for i, n := range nodes {
 		s += n.String()
-		if i < len(nodes) - 1 {
+		if i < len(nodes)-1 {
 			s += ", "
 		}
 	}

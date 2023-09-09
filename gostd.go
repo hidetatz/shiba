@@ -25,7 +25,7 @@ var gostdmods = &gostdmodules{mods: map[string][]*gostdmodobj{
 		{
 			"pi",
 			&obj{
-				typ: tF64,
+				typ:  tF64,
 				fval: math.Pi,
 			},
 		},

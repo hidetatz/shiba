@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"path/filepath"
-	"os"
 	"container/list"
 	"embed"
+	"fmt"
+	"os"
+	"path/filepath"
 )
 
 // load user-defined module.
@@ -89,4 +89,3 @@ func newreplmodule() *module {
 		funcscopes: list.New(),
 	}
 }
-

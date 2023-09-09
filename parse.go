@@ -24,7 +24,7 @@ func (p *parser) mark() int {
 	return p.tokenizer.mark()
 }
 
-func (p *parser) reset(m int)  {
+func (p *parser) reset(m int) {
 	p.tokenizer.reset(m)
 }
 

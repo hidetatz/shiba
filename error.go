@@ -30,7 +30,7 @@ func newsberr2(l *loc, format string, args ...any) shibaErr {
 
 func newTypeMismatchErr(n node, expected, actual objtyp) shibaErr {
 	return &sberr{
-		l: n.token().loc,
+		l:   n.token().loc,
 		msg: fmt.Sprintf("type %s is expected but got %s", expected, actual),
 	}
 }
