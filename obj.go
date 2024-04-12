@@ -5,97 +5,266 @@ import (
 	"strings"
 )
 
-type objkey string
-
-func (o *obj) toObjKey() objkey {
-	return objkey(fmt.Sprintf("%s_%s", o.typ, o))
+type obj interface {
+	key() objkey
+	clone() *obj
+	isTruethy() bool
+	equals(x *obj) bool
+	isIterable() bool
+	iterator() iterator
+	isSequencable() bool
+	sequence() sequence
 }
 
-var NIL = &obj{typ: tNil}
-var TRUE = &obj{typ: tBool, bval: true}
-var FALSE = &obj{typ: tBool, bval: false}
+type nonIterable struct {}
+func (*nonIterable) isIterable() bool { return false }
+func (*nonIterable) iterator() iterator{ panic("iterator() is called on non iterable obj") }
 
-type objtyp int
+type nonSequencable struct {}
+func (*nonSequencable) isSequencable() bool { return false }
+func (*nonSequencable) sequence() sequence { panic("sequence() is called on non sequencable obj") }
 
-const (
-	tNil objtyp = iota
-	tBool
-	tF64
-	tI64
-	tStr
-	tList
-	tDict
-	tStruct
-	tBuiltinFunc
-	tGoStdModFunc
-	tFunc
-	tMethod
-	tMod
-)
+// type objkey string
+// 
+// func (o *obj) toObjKey() objkey {
+// 	return objkey(fmt.Sprintf("%s_%s", o.typ, o))
+// }
 
-func (o objtyp) String() string {
-	switch o {
-	case tNil:
-		return "nil"
-	case tBool:
-		return "bool"
-	case tF64:
-		return "f64"
-	case tI64:
-		return "i64"
-	case tStr:
-		return "str"
-	case tList:
-		return "list"
-	case tDict:
-		return "dict"
-	case tStruct:
-		return "struct"
-	case tBuiltinFunc:
-		return "builtinfunc"
-	case tGoStdModFunc:
-		return "gostdmodfunc"
-	case tFunc:
-		return "func"
-	case tMethod:
-		return "method"
-	case tMod:
-		return "module"
+var NIL = &oNil{}
+var TRUE = &oBool{val: true}
+var FALSE = &oBool{val: false}
+
+// type objtyp int
+// 
+// const (
+// 	tNil objtyp = iota
+// 	tBool
+// 	tF64
+// 	tI64
+// 	tStr
+// 	tList
+// 	tDict
+// 	tStruct
+// 	tBuiltinFunc
+// 	tGoStdModFunc
+// 	tFunc
+// 	tMethod
+// 	tMod
+// )
+
+// func (o objtyp) String() string {
+// 	switch o {
+// 	case tNil:
+// 		return "nil"
+// 	case tBool:
+// 		return "bool"
+// 	case tF64:
+// 		return "f64"
+// 	case tI64:
+// 		return "i64"
+// 	case tStr:
+// 		return "str"
+// 	case tList:
+// 		return "list"
+// 	case tDict:
+// 		return "dict"
+// 	case tStruct:
+// 		return "struct"
+// 	case tBuiltinFunc:
+// 		return "builtinfunc"
+// 	case tGoStdModFunc:
+// 		return "gostdmodfunc"
+// 	case tFunc:
+// 		return "func"
+// 	case tMethod:
+// 		return "method"
+// 	case tMod:
+// 		return "module"
+// 	}
+// 	return "?"
+// }
+
+type oNil struct {
+	nonIterable
+	nonSequencable
+}
+
+func (o *oNil) key() objkey {
+	return "nil"
+}
+
+func (o *oNil) clone() *obj {
+	o2 := &oNil{}
+	return &o2
+}
+
+func (o *oNil) isTruethy() bool { return false }
+
+func (o *oNil) equals(x *obj) bool {
+	_, ok := *x.(*oNil)
+	return ok
+}
+
+type oBool struct {
+	nonIterable
+	nonSequencable
+
+	val bool
+}
+
+type oF64 struct {
+	nonIterable
+	nonSequencable
+
+	val float64
+}
+
+type oI64 struct {
+	nonIterable
+	nonSequencable
+
+	val int64
+}
+
+type oStr struct {
+	nonIterable
+	nonSequencable
+
+	val []byte
+}
+
+/*
+ * List
+ */
+
+type oList struct {
+	vals []*obj
+}
+
+func (o *oList) key() objkey {
+	return fmt.Sprintf("list_%s", o)
+}
+
+func (o *oList) clone() *obj {
+	o2 := &oList{}
+	for _, oo := range o.vals {
+		o2.vals = append(o2.vals, oo.clone())
 	}
-	return "?"
+	return &o2
 }
 
-type obj struct {
-	typ objtyp
+func (o *oList) isTruethy() bool {
+	return len(o.vals) != 0
+}
 
-	bval  bool
-	fval  float64
-	ival  int64
-	bytes []byte
-	list  []*obj
-	dict  *dict
-	mod   *module
+func (o *oList) equals(x *obj) bool {
+	xo, ok := *x.(*oList)
+	if !ok {
+		return false
+	}
 
-	// builtin/func/gostdmodfunc/struct
+	if len(o.vals) != len(xo.vals) {
+		return false
+	}
+
+	for i := range o.vals {
+		if !o.vals[i].equals(xo.vals[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (o *oList) isIterable() bool {
+	return true
+}
+
+func (o *oList) iterator() iterator {
+	return &listIterator{vals: o.vals, i: 0}
+}
+
+func (o *oList) isSequencable() bool {
+	return true
+}
+
+func (o *oList) sequence() sequence {
+	return &listSequence{vals: o.vals}
+}
+
+/*
+ * dict
+ */
+
+type oDict struct {
+	dict *dict
+}
+
+type oMod struct {
+	mod *module
+}
+
+type oStruct struct {
 	name string
-
-	// builtin
-	bfnbody func(objs ...*obj) (*obj, error)
-
-	// std module implemented in Go
-	gostdmodfunc func(objs ...*obj) (*obj, error)
-
-	// func/method
-	fmod   *module
-	params []string
-	body   []node
-
-	// method
-	receiver *obj
-
-	// struct
 	fields map[string]*obj
 }
+
+type oBuiltinFunc struct {
+	name string
+	body func(objs ...*obj) (*obj, error)
+}
+
+type oGoStdModFunc struct {
+	name string
+	body func(objs ...*obj) (*obj, error)
+}
+
+type oFunc struct {
+	name string
+	mod   *module
+	params []string
+	body   []node
+}
+
+type oMethod struct {
+	name string
+	mod   *module
+	params []string
+	body   []node
+	receiver *obj
+}
+
+// type obj struct {
+// 	typ objtyp
+// 
+// 	bval  bool
+// 	fval  float64
+// 	ival  int64
+// 	bytes []byte
+// 	list  []*obj
+// 	dict  *dict
+// 	mod   *module
+// 
+// 	// builtin/func/gostdmodfunc/struct
+// 	name string
+// 
+// 	// builtin
+// 	bfnbody func(objs ...*obj) (*obj, error)
+// 
+// 	// std module implemented in Go
+// 	gostdmodfunc func(objs ...*obj) (*obj, error)
+// 
+// 	// func/method
+// 	fmod   *module
+// 	params []string
+// 	body   []node
+// 
+// 	// method
+// 	receiver *obj
+// 
+// 	// struct
+// 	fields map[string]*obj
+// }
 
 func (o *obj) update(x *obj) {
 	o.typ = x.typ
